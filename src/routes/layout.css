@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+@theme {
+	--font-sans: 'Oswald', sans-serif;
+	--font-oswald: 'Oswald', sans-serif;
+	--font-caveat: 'Caveat', cursive;
+	--font-homemade-apple: 'Homemade Apple', cursive;
+	--font-supermercado-one: 'Supermercado One', sans-serif;
+
+	--color-olf-darkbrown: #8a5f41;
+	--color-olf-lightbrown: #a77f60;
+	--color-olf-beige: #f3e4c9;
+	--color-olf-lightgreen: #ccd67f;
+}
