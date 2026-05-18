@@ -1,0 +1,88 @@
+<script lang="ts">
+	import { goto, invalidateAll } from '$app/navigation';
+	import { signIn } from '$lib/api/auth';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+
+	let identifier = $state('');
+	let password = $state('');
+	let error = $state('');
+	let submitting = $state(false);
+
+	// Already clucking — no reason to sit on the sign-in page.
+	$effect(() => {
+		if (data.session) goto('/', { replaceState: true });
+	});
+
+	async function submit(e: SubmitEvent) {
+		e.preventDefault();
+		if (submitting) return;
+		error = '';
+		submitting = true;
+		const result = await signIn(identifier.trim(), password);
+		if (result.ok) {
+			// Layout's server load re-resolves the session from the new cookie.
+			await invalidateAll();
+			await goto('/');
+		} else {
+			error = result.message;
+			submitting = false;
+		}
+	}
+</script>
+
+<svelte:head><title>Sign in · Our Little Farm</title></svelte:head>
+
+<div class="flex w-full items-center bg-olf-darkbrown px-2 py-3">
+	<a href="/" class="font-homemade-apple font-bold tracking-wider text-white">Our Little Farm</a>
+</div>
+
+<div
+	class="flex min-h-[calc(100dvh-3rem)] items-center justify-center bg-olf-lightgreen px-4 py-10"
+>
+	<form onsubmit={submit} class="w-full max-w-sm rounded-2xl bg-olf-beige p-6 shadow-lg" novalidate>
+		<h1 class="mb-1 font-homemade-apple text-3xl font-bold text-olf-darkbrown">Back to the coop</h1>
+		<p class="mb-6 font-oswald text-olf-darkbrown/70">Username or email, then your password.</p>
+
+		<label class="mb-4 block">
+			<span class="mb-1 block font-oswald text-sm font-bold text-olf-darkbrown">
+				Username or email
+			</span>
+			<input
+				bind:value={identifier}
+				type="text"
+				autocomplete="username"
+				required
+				class="w-full rounded-lg border-2 border-olf-lightbrown bg-white/80 px-3 py-2 font-oswald focus:border-olf-darkbrown focus:outline-none"
+			/>
+		</label>
+
+		<label class="mb-6 block">
+			<span class="mb-1 block font-oswald text-sm font-bold text-olf-darkbrown">Password</span>
+			<input
+				bind:value={password}
+				type="password"
+				autocomplete="current-password"
+				required
+				class="w-full rounded-lg border-2 border-olf-lightbrown bg-white/80 px-3 py-2 font-oswald focus:border-olf-darkbrown focus:outline-none"
+			/>
+		</label>
+
+		{#if error}
+			<p class="mb-4 rounded-lg bg-red-700 px-3 py-2 font-oswald text-sm text-white">{error}</p>
+		{/if}
+
+		<button
+			type="submit"
+			disabled={submitting || !identifier || !password}
+			class="w-full rounded-full bg-olf-darkbrown px-4 py-2 font-oswald text-lg font-bold text-white disabled:opacity-50"
+		>
+			{submitting ? 'Letting you in…' : 'Sign in'}
+		</button>
+
+		<p class="mt-4 text-center font-oswald text-sm text-olf-darkbrown/70">
+			No animal yet? <a href="/signup" class="font-bold text-olf-darkbrown underline">Hatch one</a>
+		</p>
+	</form>
+</div>

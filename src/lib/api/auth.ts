@@ -28,6 +28,31 @@ export async function getSession(): Promise<Session | null> {
 	}
 }
 
+export type SignInResult = { ok: true } | { ok: false; message: string };
+
+/**
+ * Sign in with email+password or username+password. Better Auth has a
+ * separate endpoint per identifier kind; we pick by the presence of "@"
+ * (usernames can't contain it — contract enforces 3–30 chars, no @).
+ * The Set-Cookie session cookie rides back on the response because
+ * api() sends `credentials: "include"`; callers must `invalidateAll()`
+ * afterwards so the layout's server load re-resolves the session.
+ */
+export async function signIn(identifier: string, password: string): Promise<SignInResult> {
+	const isEmail = identifier.includes('@');
+	const path = isEmail ? '/api/auth/sign-in/email' : '/api/auth/sign-in/username';
+	const body = isEmail ? { email: identifier, password } : { username: identifier, password };
+	try {
+		const res = await api(path, { method: 'POST', body: JSON.stringify(body) });
+		if (res.ok) return { ok: true };
+		// Better Auth error bodies carry a human `message`; fall back generic.
+		const data = (await res.json().catch(() => null)) as { message?: string } | null;
+		return { ok: false, message: data?.message ?? 'Wrong credentials. Try again.' };
+	} catch {
+		return { ok: false, message: 'Can’t reach the farm right now. Try again.' };
+	}
+}
+
 /**
  * Server-side (layout load). The backend is a different origin (:3000),
  * so SvelteKit's fetch won't attach the browser cookie automatically —
