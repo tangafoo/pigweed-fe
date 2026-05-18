@@ -79,9 +79,15 @@ SvelteKit + TypeScript + GSAP (Vite is built in).
 - **No CSS framework needed.** The "no whitespace / all deliberate color"
   rule means bespoke CSS anyway. Svelte's scoped `<style>` blocks fit
   this perfectly.
-- Deploy on Vercel or Cloudflare Pages (`adapter-vercel` /
-  `adapter-cloudflare`). The frontend is static + API calls — no SSE-server
-  constraints apply to the FE host (those only mattered for pigweed-be).
+- Deploy target is **Cloudflare** (`@sveltejs/adapter-cloudflare`).
+  This is a **SvelteKit app, not a static bundle** —
+  `+*.server.ts` (session resolution, cookie forwarding) needs the
+  SvelteKit server runtime, which Cloudflare Workers provides via the
+  adapter. Keep that server layer a thin BFF: it resolves
+  sessions, forwards cookies, and shapes data for pages — it never
+  owns a DB, auth logic, or domain rules (those live in pigweed-be).
+  The SSE feed is still consumed client-side (`EventSource`), so no
+  long-lived-connection constraints apply to the FE host.
 
 ## Backend connection
 

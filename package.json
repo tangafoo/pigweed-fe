@@ -16,6 +16,9 @@
 		"test": "npm run test:unit -- --run && npm run test:e2e",
 		"test:e2e": "playwright install && playwright test"
 	},
+	"dependencies": {
+		"@meteorclass/pigweed-contract": "file:../pigweed-be/contract"
+	},
 	"devDependencies": {
 		"@eslint/compat": "^2.0.4",
 		"@eslint/js": "^10.0.1",

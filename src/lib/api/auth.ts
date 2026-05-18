@@ -1,44 +1,47 @@
-import { api } from './client';
+import { api, API_BASE } from './client';
+import type { Session } from '@meteorclass/pigweed-contract';
 
-export type Animal = 'CHICKEN' | 'DOG' | 'GOOSE';
-export type Gender = 'MALE' | 'FEMALE' | 'NONBINARY' | 'UNDISCLOSED';
+// Shapes now live in the shared contract package (single source of truth,
+// mirrors pigweed-be). Re-exported so existing `$lib/api/auth` imports
+// keep working.
+export type { Animal, Gender, SessionUser, Session } from '@meteorclass/pigweed-contract';
 
-/**
- * The signed-in user. Better Auth's get-session returns all of this in
- * one call (additionalFields), so the nav/profile needs no extra fetch.
- */
-export interface SessionUser {
-	id: string;
-	name: string;
-	email: string;
-	emailVerified: boolean;
-	image: string | null;
-	username: string;
-	gender: Gender;
-	animal: Animal;
-	avatarSeed: number;
-	coinBalance: number;
-	unlockCoins: number;
-}
-
-export interface Session {
-	user: SessionUser;
-	session: { id: string; expiresAt: string };
+/** Better Auth returns null / an object without `user` when logged out. */
+function parseSession(data: unknown): Session | null {
+	return data && typeof data === 'object' && 'user' in data && (data as Session).user
+		? (data as Session)
+		: null;
 }
 
 /**
- * Resolve the current session from the Better Auth cookie.
- * Returns null when nobody is logged in (no cookie / expired).
+ * Client-side: resolve the session via the shared api() wrapper, which
+ * sends the Better Auth cookie (`credentials: "include"`).
  */
 export async function getSession(): Promise<Session | null> {
 	try {
 		const res = await api('/api/auth/get-session');
 		if (!res.ok) return null;
-		const data = await res.json();
-		// Better Auth returns null/empty body when unauthenticated.
-		return data && data.user ? (data as Session) : null;
+		return parseSession(await res.json());
 	} catch {
 		// Backend down / network error — treat as logged out rather than crash.
+		return null;
+	}
+}
+
+/**
+ * Server-side (layout load). The backend is a different origin (:3000),
+ * so SvelteKit's fetch won't attach the browser cookie automatically —
+ * forward it explicitly from the incoming request.
+ */
+export async function getSessionFromCookie(cookie: string): Promise<Session | null> {
+	if (!cookie) return null;
+	try {
+		const res = await fetch(`${API_BASE}/api/auth/get-session`, {
+			headers: { cookie }
+		});
+		if (!res.ok) return null;
+		return parseSession(await res.json());
+	} catch {
 		return null;
 	}
 }

@@ -1,14 +1,8 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { getSession, type Session } from '$lib/api/auth';
+	import type { PageData } from './$types';
 
-	let session = $state<Session | null>(null);
-	let loading = $state(true);
-
-	onMount(async () => {
-		session = await getSession();
-		loading = false;
-	});
+	let { data }: { data: PageData } = $props();
+	const session = $derived(data.session);
 </script>
 
 <div class="flex w-full items-center bg-olf-darkbrown px-2 py-3">
@@ -29,9 +23,7 @@
 <p class="bg-olf-beige p-4 text-center">See what the chickens are saying</p>
 
 <div class="flex w-full items-center justify-between bg-olf-darkbrown px-4 py-3 text-white">
-	{#if loading}
-		<p class="font-oswald text-white/70">Checking the coop…</p>
-	{:else if session}
+	{#if session}
 		<p class="font-oswald text-lg">
 			Clucking as <span class="font-bold">{session.user.username}</span>
 		</p>
