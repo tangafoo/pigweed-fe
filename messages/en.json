@@ -1,0 +1,36 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"hello_world": "Hello, world!",
+
+	"passkey_signin_button": "Sign in with a passkey",
+	"passkey_signin_cancelled": "Sign-in cancelled.",
+	"passkey_signin_no_passkey": "No passkey on this device. Sign in with a password and add one in settings.",
+	"passkey_signin_unsupported": "Passkeys aren't supported in this browser.",
+	"passkey_signin_generic_error": "Couldn't sign in with passkey. Try again.",
+
+	"settings_page_title": "Settings · Our Little Farm",
+	"settings_heading": "Your perch",
+	"passkeys_heading": "Passkeys",
+	"passkeys_intro": "Sign in with your face, fingerprint, or device PIN instead of a password.",
+	"passkeys_empty": "No passkeys yet. Add one to skip the password on this device.",
+	"passkey_unnamed_device": "Unnamed device",
+	"passkey_added_label": "Added",
+	"passkey_device_type_label": "Type",
+
+	"passkey_add_button": "Add a passkey",
+	"passkey_add_name_label": "Name this device",
+	"passkey_add_name_placeholder": "MacBook, iPhone, …",
+	"passkey_add_confirm": "Add",
+	"passkey_add_cancel": "Cancel",
+	"passkey_add_in_progress": "Adding…",
+	"passkey_add_error": "Couldn't add that passkey. Try again.",
+	"passkey_add_cancelled": "Add cancelled.",
+	"passkey_add_unsupported": "Passkeys aren't supported in this browser.",
+
+	"passkey_delete_button": "Delete",
+	"passkey_delete_confirm_title": "Delete this passkey?",
+	"passkey_delete_confirm_body": "You won't be able to sign in with it anymore.",
+	"passkey_delete_confirm_yes": "Delete it",
+	"passkey_delete_confirm_no": "Keep it",
+	"passkey_delete_error": "Couldn't delete that passkey. Try again."
+}
