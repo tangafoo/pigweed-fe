@@ -32,5 +32,29 @@
 	"passkey_delete_confirm_body": "더 이상 이 패스키로 로그인할 수 없게 됩니다.",
 	"passkey_delete_confirm_yes": "삭제",
 	"passkey_delete_confirm_no": "보관",
-	"passkey_delete_error": "패스키를 삭제하지 못했습니다. 다시 시도해 주세요."
+	"passkey_delete_error": "패스키를 삭제하지 못했습니다. 다시 시도해 주세요.",
+
+	"home_user_count": "사용자 {count}명",
+	"home_hero_title": "말레이시아의 유기농 농장",
+	"home_weather_heat_fallback": "기온",
+	"home_weather_humidity_fallback": "습도",
+	"home_weather_humidity": "습도 {value}%",
+	"home_no_cruelty": "동물 학대 없음",
+	"home_no_chemicals": "화학약품 없음",
+	"home_eggs_heading": "달걀?",
+	"home_eggs_preorder": "예약 주문",
+	"home_feed_teaser": "닭들이 무슨 말 하는지 보기",
+	"home_signed_in_as": "활동 닉네임",
+	"home_stranger": "익명으로 둘러보는 중",
+	"home_signin_link": "로그인",
+	"home_signout_button": "로그아웃",
+	"home_signout_in_progress": "…",
+
+	"footer_tagline": "익명, 초지역, 동물 피드.",
+	"footer_link_signin": "로그인",
+	"footer_link_signup": "둥지 만들기",
+	"footer_link_settings": "설정",
+	"footer_copyright": "© {year} Our Little Farm",
+
+	"locale_switcher_label": "언어"
 }

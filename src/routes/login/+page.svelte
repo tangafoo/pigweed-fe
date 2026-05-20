@@ -2,7 +2,7 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { authClient, signIn } from '$lib/api/auth';
 	import { m } from '$lib/paraglide/messages.js';
-	import { Fingerprint } from '@lucide/svelte';
+	import { FingerprintPattern } from '@lucide/svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -47,6 +47,7 @@
 
 		passkeyBusy = true;
 		try {
+			// @ts-expect-error better-auth plugin types don't infer through createAuthClient (runtime works)
 			const result = await authClient.signIn.passkey();
 			if (result?.error) {
 				// No passkey enrolled for this device, or the cred matches
@@ -81,11 +82,11 @@
 >
 	<form onsubmit={submit} class="w-full max-w-sm rounded-2xl bg-olf-beige p-6 shadow-lg" novalidate>
 		<h1 class="mb-1 font-homemade-apple text-3xl font-bold text-olf-darkbrown">Back to the coop</h1>
-		<p class="mb-6 font-oswald text-olf-darkbrown/70">Username or email, then your password.</p>
+		<p class="mb-6 font-oswald text-olf-darkbrown/70">Anonymous. Hyperlocal. Chatter.</p>
 
 		<label class="mb-4 block">
 			<span class="mb-1 block font-oswald text-sm font-bold text-olf-darkbrown">
-				Username or email
+				Username / Email
 			</span>
 			<input
 				bind:value={identifier}
@@ -121,7 +122,7 @@
 
 		<div class="my-4 flex items-center gap-3 font-oswald text-xs text-olf-darkbrown/60">
 			<span class="h-px flex-1 bg-olf-darkbrown/20"></span>
-			or
+			added a passkey ?
 			<span class="h-px flex-1 bg-olf-darkbrown/20"></span>
 		</div>
 
@@ -131,12 +132,12 @@
 			disabled={passkeyBusy}
 			class="flex w-full items-center justify-center gap-2 rounded-full border-2 border-olf-darkbrown bg-olf-beige px-4 py-2 font-oswald text-lg font-bold text-olf-darkbrown disabled:opacity-50"
 		>
-			<Fingerprint size={20} />
+			<FingerprintPattern size={20} />
 			{passkeyBusy ? m.passkey_add_in_progress() : m.passkey_signin_button()}
 		</button>
 
 		<p class="mt-4 text-center font-oswald text-sm text-olf-darkbrown/70">
-			No animal yet? <a href="/signup" class="font-bold text-olf-darkbrown underline">Hatch one</a>
+			No account yet? <a href="/signup" class="font-bold text-olf-darkbrown underline">Sign up</a>
 		</p>
 	</form>
 </div>

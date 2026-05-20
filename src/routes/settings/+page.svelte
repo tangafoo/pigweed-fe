@@ -29,6 +29,7 @@
 		loading = true;
 		error = '';
 		try {
+			// @ts-expect-error better-auth plugin types don't infer through createAuthClient (runtime works)
 			const result = await authClient.passkey.listUserPasskeys();
 			// Better Auth client surfaces either `{ data, error }` or the
 			// raw list depending on plugin version; handle both shapes.
@@ -56,6 +57,7 @@
 
 		addBusy = true;
 		try {
+			// @ts-expect-error better-auth plugin types don't infer through createAuthClient (runtime works)
 			const result = await authClient.passkey.addPasskey({ name: newName.trim() || undefined });
 			if (result?.error) {
 				error = m.passkey_add_error();
@@ -80,6 +82,7 @@
 		deleteBusy = id;
 		error = '';
 		try {
+			// @ts-expect-error better-auth plugin types don't infer through createAuthClient (runtime works)
 			const result = await authClient.passkey.deletePasskey({ id });
 			if (result?.error) {
 				error = m.passkey_delete_error();

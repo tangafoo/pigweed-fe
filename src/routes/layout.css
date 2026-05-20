@@ -13,4 +13,21 @@
 	--color-olf-lightbrown: #a77f60;
 	--color-olf-beige: #f3e4c9;
 	--color-olf-lightgreen: #ccd67f;
+	--color-olf-darkgreen: #3f5e2e;
+}
+
+@utility border-0\.5 {
+	border-width: 0.5px;
+}
+@utility border-t-0\.5 {
+	border-top-width: 0.5px;
+}
+@utility border-r-0\.5 {
+	border-right-width: 0.5px;
+}
+@utility border-b-0\.5 {
+	border-bottom-width: 0.5px;
+}
+@utility border-l-0\.5 {
+	border-left-width: 0.5px;
 }

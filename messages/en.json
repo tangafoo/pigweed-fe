@@ -2,7 +2,7 @@
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"hello_world": "Hello, world!",
 
-	"passkey_signin_button": "Sign in with a passkey",
+	"passkey_signin_button": "Sign in with passkey",
 	"passkey_signin_cancelled": "Sign-in cancelled.",
 	"passkey_signin_no_passkey": "No passkey on this device. Sign in with a password and add one in settings.",
 	"passkey_signin_unsupported": "Passkeys aren't supported in this browser.",
@@ -32,5 +32,29 @@
 	"passkey_delete_confirm_body": "You won't be able to sign in with it anymore.",
 	"passkey_delete_confirm_yes": "Delete it",
 	"passkey_delete_confirm_no": "Keep it",
-	"passkey_delete_error": "Couldn't delete that passkey. Try again."
+	"passkey_delete_error": "Couldn't delete that passkey. Try again.",
+
+	"home_user_count": "{count} users",
+	"home_hero_title": "Organic farm in Malaysia",
+	"home_weather_heat_fallback": "Heat",
+	"home_weather_humidity_fallback": "Humidity",
+	"home_weather_humidity": "{value}% humidity",
+	"home_no_cruelty": "Cruelty-free",
+	"home_no_chemicals": "No chemicals",
+	"home_eggs_heading": "Eggs?",
+	"home_eggs_preorder": "preorder",
+	"home_feed_teaser": "See what the chickens are saying",
+	"home_signed_in_as": "Clucking as",
+	"home_stranger": "You're browsing as a stranger",
+	"home_signin_link": "Sign in",
+	"home_signout_button": "Sign out",
+	"home_signout_in_progress": "…",
+
+	"footer_tagline": "Anonymous, hyperlocal, animal feed.",
+	"footer_link_signin": "Sign in",
+	"footer_link_signup": "Hatch one",
+	"footer_link_settings": "Settings",
+	"footer_copyright": "© {year} Our Little Farm",
+
+	"locale_switcher_label": "Language"
 }

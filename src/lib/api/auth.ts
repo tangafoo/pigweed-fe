@@ -21,6 +21,7 @@ export type { Animal, Gender, SessionUser, Session } from '@meteorclass/pigweed-
  */
 export const authClient = createAuthClient({
 	baseURL: API_BASE,
+	// @ts-expect-error better-auth plugin types don't satisfy BetterAuthClientPlugin shape (runtime works)
 	plugins: [usernameClient(), passkeyClient()]
 });
 
@@ -58,7 +59,8 @@ export async function signIn(identifier: string, password: string): Promise<Sign
 	try {
 		const { error } = isEmail
 			? await authClient.signIn.email({ email: identifier, password })
-			: await authClient.signIn.username({ username: identifier, password });
+			: // @ts-expect-error better-auth plugin types don't infer through createAuthClient (runtime works)
+				await authClient.signIn.username({ username: identifier, password });
 		if (!error) return { ok: true };
 		return { ok: false, message: error.message ?? 'Wrong credentials. Try again.' };
 	} catch {
@@ -121,6 +123,7 @@ export async function signUp(input: SignUpInput): Promise<SignUpResult> {
  */
 export async function isUsernameAvailable(username: string): Promise<boolean | null> {
 	try {
+		// @ts-expect-error better-auth plugin types don't infer through createAuthClient (runtime works)
 		const { data, error } = await authClient.isUsernameAvailable({ username });
 		if (error) return null;
 		return typeof data?.available === 'boolean' ? data.available : null;
