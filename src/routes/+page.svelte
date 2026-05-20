@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { goto, invalidateAll } from '$app/navigation';
+	import { authClient } from '$lib/api/auth';
 	import NoIcon from '$lib/components/NoIcon.svelte';
 	import Parallax from '$lib/components/Parallax.svelte';
 	import { Sun, CloudRain, HeartCrack, FlaskConical } from '@lucide/svelte';
@@ -8,6 +10,19 @@
 	const session = $derived(data.session);
 	const weather = $derived(data.weather);
 	const userCount = $derived(data.userCount);
+
+	let signingOut = $state(false);
+	async function signOut() {
+		if (signingOut) return;
+		signingOut = true;
+		try {
+			await authClient.signOut();
+			await invalidateAll();
+			await goto('/login');
+		} finally {
+			signingOut = false;
+		}
+	}
 </script>
 
 <div class="flex w-full items-center bg-olf-darkbrown px-2 py-3">
@@ -64,9 +79,19 @@
 		<p class=" text-lg">
 			Clucking as <span class="font-bold">{session.user.username}</span>
 		</p>
-		<span class="rounded-full bg-olf-lightgreen px-3 py-1 text-sm">
-			🪙 {session.user.coinBalance}
-		</span>
+		<div class="flex items-center gap-2">
+			<span class="rounded-full bg-olf-lightgreen px-3 py-1 text-sm">
+				🪙 {session.user.coinBalance}
+			</span>
+			<button
+				type="button"
+				onclick={signOut}
+				disabled={signingOut}
+				class="rounded-full bg-olf-lightbrown px-3 py-1 text-sm font-bold text-olf-darkbrown disabled:opacity-50"
+			>
+				{signingOut ? '…' : 'Sign out'}
+			</button>
+		</div>
 	{:else}
 		<p class=" text-lg">You're browsing as a stranger</p>
 		<a href="/login" class="rounded-full bg-olf-lightgreen px-3 py-1 text-sm font-bold">
