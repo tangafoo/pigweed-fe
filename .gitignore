@@ -8,6 +8,11 @@ node_modules
 /.svelte-kit
 /build
 
+# Paraglide-JS generated bundle. The Vite plugin regenerates it on every
+# dev/build from project.inlang/ + messages/*.json — committing it would
+# just create merge conflicts.
+/src/lib/paraglide
+
 # OS
 .DS_Store
 Thumbs.db

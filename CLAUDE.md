@@ -124,6 +124,35 @@ Don't make separate calls to hydrate the user header.
 { email, otp }`. Same plugin does `forget-password` and OTP `sign-in`
 via the `type` field.
 
+**Passkeys (WebAuthn)** — The BE has `@better-auth/passkey` wired:
+`POST /api/auth/passkey/add-passkey` (enroll), `POST /api/auth/sign-in/passkey`
+(passwordless), `GET /api/auth/passkey/list-user-passkeys`,
+`POST /api/auth/passkey/{delete,update}-passkey`. **The FE side is not yet
+wired** — see `src/lib/api/passkey.ts` for the documented adoption recipe.
+TL;DR: WebAuthn ceremonies need `navigator.credentials.*`, which is what
+the official `@better-auth/passkey/client` plugin wraps. That requires
+adopting `createAuthClient` from `better-auth/svelte` in `lib/api/auth.ts`
+(currently raw `fetch`). Refactor as one PR when shipping passkey UX.
+
+## i18n (Paraglide-JS v2)
+
+Locales: `en` (base) + `ko`. Source of truth: `messages/en.json` +
+`messages/ko.json` (every locale implements every key). The Vite plugin
+(`paraglideVitePlugin` in `vite.config.ts`) regenerates
+`src/lib/paraglide/` on every dev/build — that directory is gitignored,
+don't edit it. Locale resolution strategy is `['cookie',
+'preferredLanguage', 'globalVariable', 'baseLocale']`: a `PARAGLIDE_LOCALE`
+cookie wins (persisted user choice), then `navigator.languages` on first
+visit, then `globalVariable` (set by `src/hooks.server.ts` during SSR via
+`paraglideMiddleware`), then `en` as the fallback.
+
+Use in components: `import { m } from '$lib/paraglide/messages.js'; m.hello_world()`.
+
+The `Locale` enum is shared with the BE via `@meteorclass/pigweed-contract`.
+Adding a locale = add to `pigweed-be/contract/src/index.ts` + rebuild the
+contract + add to `pigweed-be/src/utils/i18n.ts` (BE dict) + add a
+`messages/<locale>.json` file here + list it in `project.inlang/settings.json`.
+
 ## API contract — every endpoint
 
 ### Posts

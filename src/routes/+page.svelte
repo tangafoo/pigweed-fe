@@ -42,12 +42,12 @@
 		</div>
 
 		<div class="relative flex gap-4">
-			<p class="flex flex-col gap-1 text-xl text-white/90">
-				<NoIcon icon={HeartCrack} size={60} />
+			<p class="flex flex-col gap-1 text-white/90">
+				<NoIcon icon={HeartCrack} size={55} />
 				Cruelty-free
 			</p>
-			<p class="flex flex-col gap-1 text-xl text-white/90">
-				<NoIcon icon={FlaskConical} size={60} />
+			<p class="flex flex-col gap-1 text-white/90">
+				<NoIcon icon={FlaskConical} size={55} />
 				No chemicals
 			</p>
 		</div>
