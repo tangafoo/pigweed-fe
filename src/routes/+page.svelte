@@ -1,18 +1,15 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
 	import { authClient } from '$lib/api/auth';
-	import Footer from '$lib/components/Footer.svelte';
-	import LocaleSwitcher from '$lib/components/LocaleSwitcher.svelte';
 	import NoIcon from '$lib/components/NoIcon.svelte';
 	import Parallax from '$lib/components/Parallax.svelte';
 	import { m } from '$lib/paraglide/messages.js';
-	import { Sun, CloudRain, HeartCrack, FlaskConical } from '@lucide/svelte';
+	import { Sun, CloudRain, HeartCrack, FlaskConical, Egg, Apple, LeafyGreen } from '@lucide/svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 	const session = $derived(data.session);
 	const weather = $derived(data.weather);
-	const userCount = $derived(data.userCount);
 
 	let signingOut = $state(false);
 	async function signOut() {
@@ -27,19 +24,6 @@
 		}
 	}
 </script>
-
-<div class="flex w-full items-center gap-3 bg-olf-darkbrown px-2 py-3">
-	<h1 class="font-homemade-apple font-bold tracking-wider text-white">Our Little Farm</h1>
-	<div class="ml-auto flex items-center">
-		{#if userCount !== null}
-			<span class="font-supermercado-one text-sm text-white">
-				{m.home_user_count({ count: userCount })}
-			</span>
-		{/if}
-		<div class="mx-2 h-3.5 border-l border-white/60"></div>
-		<LocaleSwitcher />
-	</div>
-</div>
 
 <Parallax
 	src="https://pub-9ed0a91dba4749879e89a94774f50169.r2.dev/chicken%20hero.webp"
@@ -81,10 +65,55 @@
 		</div>
 	</div>
 </Parallax>
-<div class="flex h-20 w-full items-center justify-between bg-olf-lightgreen px-2">
-	<h1 class="text-3xl font-bold text-white">{m.home_eggs_heading()}</h1>
-	<p>{m.home_eggs_preorder()}</p>
+<!-- Order Eggs Section -->
+<div class="flex w-full items-center bg-olf-lightgreen">
+	<p class="mx-3 flex-1 text-3xl font-bold text-olf-darkgreen/60">
+		{m.home_eggs_heading()}
+	</p>
+	<button
+		class="flex flex-col items-center gap-0.5 bg-olf-darkbrown p-6 text-xs tracking-widest text-olf-beige uppercase lg:flex-1"
+	>
+		<Egg size={20} />
+		<span class="underline decoration-white/50 decoration-double underline-offset-2"
+			>{m.home_eggs_preorder()}</span
+		>
+	</button>
 </div>
+<!-- Order Veggies Section -->
+<div class="flex w-full">
+	<div class="flex flex-1 items-center bg-olf-lightgreen px-3 text-3xl brightness-90">
+		<p class="font-bold text-olf-darkgreen/60">
+			{m.home_veggies_heading()}
+		</p>
+	</div>
+	<button
+		disabled
+		class="flex flex-col items-center gap-0.5 border-t border-olf-beige/15 bg-olf-darkbrown p-6 text-xs tracking-widest text-olf-beige uppercase disabled:cursor-not-allowed disabled:bg-olf-lightbrown lg:flex-1"
+	>
+		<LeafyGreen size={20} />
+		<span class="underline decoration-white/50 decoration-double underline-offset-2"
+			>{m.home_next_batch()}</span
+		>
+	</button>
+</div>
+<!-- Order Fruits Section -->
+<div class="flex w-full">
+	<div class="flex flex-1 items-center bg-olf-lightgreen px-3 text-3xl brightness-75">
+		<p class="font-bold text-olf-darkgreen/60">
+			{m.home_fruits_heading()}
+		</p>
+	</div>
+	<button
+		disabled
+		class="flex flex-col items-center gap-0.5 border-t border-olf-beige/15 bg-olf-darkbrown p-6 text-xs tracking-widest text-olf-beige uppercase disabled:cursor-not-allowed disabled:bg-olf-lightbrown lg:flex-1"
+	>
+		<Apple size={20} />
+		<span class="underline decoration-white/50 decoration-double underline-offset-2"
+			>{m.home_next_batch()}</span
+		>
+	</button>
+</div>
+
 <p class="bg-olf-beige p-4 text-center">{m.home_feed_teaser()}</p>
 
 <div class="flex w-full items-center justify-between bg-olf-darkbrown px-4 py-3 text-white">
@@ -112,5 +141,3 @@
 		</a>
 	{/if}
 </div>
-
-<Footer />

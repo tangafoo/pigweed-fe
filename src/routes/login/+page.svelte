@@ -73,13 +73,7 @@
 
 <svelte:head><title>Sign in · Our Little Farm</title></svelte:head>
 
-<div class="flex w-full items-center bg-olf-darkbrown px-2 py-3">
-	<a href="/" class="font-homemade-apple font-bold tracking-wider text-white">Our Little Farm</a>
-</div>
-
-<div
-	class="flex min-h-[calc(100dvh-3rem)] items-center justify-center bg-olf-lightgreen px-4 py-10"
->
+<div class="flex min-h-[60dvh] items-center justify-center bg-olf-lightgreen px-4 py-10">
 	<form onsubmit={submit} class="w-full max-w-sm rounded-2xl bg-olf-beige p-6 shadow-lg" novalidate>
 		<h1 class="mb-1 font-homemade-apple text-3xl font-bold text-olf-darkbrown">Back to the coop</h1>
 		<p class="mb-6 font-oswald text-olf-darkbrown/70">Anonymous. Hyperlocal. Chatter.</p>
@@ -137,7 +131,7 @@
 		</button>
 
 		<p class="mt-4 text-center font-oswald text-sm text-olf-darkbrown/70">
-			No account yet? <a href="/signup" class="font-bold text-olf-darkbrown underline">Sign up</a>
+			No account yet? <a href="/signup" class="font-bold text-olf-darkgreen underline">Sign up</a>
 		</p>
 	</form>
 </div>

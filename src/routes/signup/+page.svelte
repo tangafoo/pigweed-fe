@@ -4,6 +4,7 @@
 	import type { Gender, SessionUser } from '$lib/api/auth';
 	import { randomUsername } from '$lib/username';
 	import type { PageData } from './$types';
+	import { Dices, Check } from '@lucide/svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -100,15 +101,9 @@
 	}
 </script>
 
-<svelte:head><title>Hatch your animal · Our Little Farm</title></svelte:head>
+<svelte:head><title>Create Account • Our Little Farm</title></svelte:head>
 
-<div class="flex w-full items-center bg-olf-darkbrown px-2 py-3">
-	<a href="/" class="font-homemade-apple font-bold tracking-wider text-white">Our Little Farm</a>
-</div>
-
-<div
-	class="flex min-h-[calc(100dvh-3rem)] items-center justify-center bg-olf-lightgreen px-4 py-10"
->
+<div class="flex min-h-[60dvh] items-center justify-center bg-olf-lightgreen px-4 py-10">
 	{#if phase === 'form'}
 		<form
 			onsubmit={submit}
@@ -116,34 +111,31 @@
 			novalidate
 		>
 			<h1 class="mb-1 font-homemade-apple text-3xl font-bold text-olf-darkbrown">
-				Hatch your animal
+				Hatch an account
 			</h1>
-			<p class="mb-6 font-oswald text-olf-darkbrown/70">
-				Email and a password. Your animal is rolled for you.
-			</p>
+			<p class="mb-6 text-olf-darkbrown/70">See what users are saying in your neighbourhood</p>
 
 			<label class="mb-4 block">
-				<span class="mb-1 block font-oswald text-sm font-bold text-olf-darkbrown">Email</span>
+				<span class="mb-1 block text-sm font-bold text-olf-darkbrown">Email</span>
 				<input
 					bind:value={email}
 					type="email"
 					autocomplete="email"
 					required
-					class="w-full rounded-lg border-2 border-olf-lightbrown bg-white/80 px-3 py-2 font-oswald focus:border-olf-darkbrown focus:outline-none"
+					class="w-full rounded-lg border-2 border-olf-lightbrown bg-white/80 px-3 py-2 focus:border-olf-darkbrown focus:outline-none"
 				/>
 			</label>
 
 			<div class="mb-4 block">
-				<span
-					class="mb-1 flex items-center justify-between font-oswald text-sm font-bold text-olf-darkbrown"
-				>
+				<span class="mb-1 flex items-center justify-between text-sm font-bold text-olf-darkbrown">
 					<span>Username</span>
 					<button
 						type="button"
 						onclick={shuffle}
-						class="font-oswald text-xs font-bold text-olf-darkbrown underline"
+						class="font-supermercado-one text-xs font-bold text-olf-darkbrown underline"
 					>
-						🎲 surprise me
+						Generate
+						<Dices size={12} class="inline-block" />
 					</button>
 				</span>
 				<input
@@ -154,41 +146,40 @@
 					minlength="3"
 					maxlength="30"
 					required
-					class="w-full rounded-lg border-2 border-olf-lightbrown bg-white/80 px-3 py-2 font-oswald focus:border-olf-darkbrown focus:outline-none"
+					class="w-full rounded-lg border-2 border-olf-lightbrown bg-white/80 px-3 py-2 focus:border-olf-darkbrown focus:outline-none"
 				/>
-				{#if usernameError}
-					<p class="mt-1 font-oswald text-sm font-bold text-red-700">{usernameError}</p>
-				{:else if avail === 'checking'}
-					<p class="mt-1 font-oswald text-sm text-olf-darkbrown/60">Checking…</p>
-				{:else if avail === 'available'}
-					<p class="mt-1 font-oswald text-sm font-bold text-green-700">That name is free 🌾</p>
-				{:else if avail === 'taken'}
-					<p class="mt-1 font-oswald text-sm font-bold text-red-700">
-						Already taken — try another.
-					</p>
-				{/if}
+				<p class="mt-1 text-sm">
+					{#if usernameError}
+						<span class=" text-red-700">{usernameError}</span>
+					{:else if avail === 'checking'}
+						<span class="mt-1 text-sm text-olf-darkbrown/60">Checking…</span>
+					{:else if avail === 'available'}
+						<span class="text-olf-darkgreen">Username is available</span>
+						<Check size={12} class="inline-block text-olf-darkgreen" />
+					{:else if avail === 'taken'}
+						<span class=" text-red-700">Already taken — try another.</span>
+					{/if}
+				</p>
 			</div>
 
 			<label class="mb-4 block">
-				<span class="mb-1 block font-oswald text-sm font-bold text-olf-darkbrown">Password</span>
+				<span class="mb-1 block text-sm font-bold text-olf-darkbrown">Password</span>
 				<input
 					bind:value={password}
 					type="password"
 					autocomplete="new-password"
 					minlength="8"
 					required
-					class="w-full rounded-lg border-2 border-olf-lightbrown bg-white/80 px-3 py-2 font-oswald focus:border-olf-darkbrown focus:outline-none"
+					class="w-full rounded-lg border-2 border-olf-lightbrown bg-white/80 px-3 py-2 focus:border-olf-darkbrown focus:outline-none"
 				/>
-				<span class="mt-1 block font-oswald text-xs text-olf-darkbrown/60"
-					>At least 8 characters.</span
-				>
+				<span class="mt-1 block text-xs text-olf-darkbrown/60">At least 8 characters.</span>
 			</label>
 
 			<label class="mb-6 block">
-				<span class="mb-1 block font-oswald text-sm font-bold text-olf-darkbrown">Gender</span>
+				<span class="mb-1 block text-sm font-bold text-olf-darkbrown">Gender</span>
 				<select
 					bind:value={gender}
-					class="w-full rounded-lg border-2 border-olf-lightbrown bg-white/80 px-3 py-2 font-oswald focus:border-olf-darkbrown focus:outline-none"
+					class="w-full rounded-lg border-2 border-olf-lightbrown bg-white/80 px-3 py-2 focus:border-olf-darkbrown focus:outline-none"
 				>
 					{#each genders as g (g.value)}
 						<option value={g.value}>{g.label}</option>
@@ -197,19 +188,19 @@
 			</label>
 
 			{#if error}
-				<p class="mb-4 rounded-lg bg-red-700 px-3 py-2 font-oswald text-sm text-white">{error}</p>
+				<p class="mb-4 rounded-lg bg-red-700 px-3 py-2 text-sm text-white">{error}</p>
 			{/if}
 
 			<button
 				type="submit"
 				disabled={submitting || !email || !username || !password || avail === 'taken'}
-				class="w-full rounded-full bg-olf-darkbrown px-4 py-2 font-oswald text-lg font-bold text-white disabled:opacity-50"
+				class="w-full rounded-full bg-olf-darkbrown px-4 py-2 text-lg font-bold text-white disabled:opacity-50"
 			>
-				{submitting ? 'Hatching…' : 'Hatch'}
+				{submitting ? 'Creating…' : 'Create Account'}
 			</button>
 
-			<p class="mt-4 text-center font-oswald text-sm text-olf-darkbrown/70">
-				Already have an animal?
+			<p class="mt-4 text-center text-sm text-olf-darkbrown/70">
+				Already have an account?
 				<a href="/login" class="font-bold text-olf-darkbrown underline">Sign in</a>
 			</p>
 		</form>
@@ -218,8 +209,8 @@
 			<h1 class="mb-1 font-homemade-apple text-3xl font-bold text-olf-darkbrown">
 				Meet your animal
 			</h1>
-			<p class="mb-6 font-oswald text-olf-darkbrown/70">
-				Don't like it? Reroll for a new one — whatever you land on is yours.
+			<p class="mb-6 text-olf-darkbrown/70">
+				Don't like it? Reroll a new one — this cannot be changed later.
 			</p>
 
 			<!-- TODO: replace this placeholder with the procedural
@@ -233,24 +224,27 @@
 				</span>
 			</div>
 
-			<p class="mb-6 font-oswald text-olf-darkbrown">
-				You're <span class="font-bold">{me?.username}</span>, a
-				<span class="font-bold">{me?.animal?.toLowerCase() ?? 'creature'}</span>.
+			<p class="mb-6 text-olf-darkbrown">
+				You're <span class="font-semibold">{me?.username}</span>, a
+				<span class="font-supermercado-one font-bold"
+					>{me?.animal?.toLowerCase() ?? 'creature'}</span
+				>.
 			</p>
 
 			<button
 				type="button"
 				onclick={reroll}
 				disabled={rerolling}
-				class="mb-3 w-full rounded-full border-2 border-olf-darkbrown px-4 py-2 font-oswald text-lg font-bold text-olf-darkbrown disabled:opacity-50"
+				class="mb-3 w-full rounded-full border-2 border-olf-darkbrown px-4 py-2 text-lg font-semibold text-olf-darkbrown disabled:opacity-50"
 			>
-				{rerolling ? 'Rolling…' : '🎲 Reroll'}
+				{rerolling ? 'Rolling…' : 'Reroll'}
+				<Dices size={16} class="inline-block" />
 			</button>
 
 			<button
 				type="button"
 				onclick={enterFarm}
-				class="w-full rounded-full bg-olf-darkbrown px-4 py-2 font-oswald text-lg font-bold text-white"
+				class="w-full rounded-full bg-olf-darkbrown px-4 py-2 text-lg font-bold text-white"
 			>
 				Enter the farm
 			</button>

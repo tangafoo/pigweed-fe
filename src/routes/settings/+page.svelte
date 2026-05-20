@@ -100,11 +100,7 @@
 
 <svelte:head><title>{m.settings_page_title()}</title></svelte:head>
 
-<div class="flex w-full items-center bg-olf-darkbrown px-2 py-3">
-	<a href="/" class="font-homemade-apple font-bold tracking-wider text-white">Our Little Farm</a>
-</div>
-
-<div class="min-h-[calc(100dvh-3rem)] bg-olf-lightgreen px-4 py-10">
+<div class="min-h-[60dvh] bg-olf-lightgreen px-4 py-10">
 	<div class="mx-auto max-w-2xl">
 		<h1 class="mb-6 font-homemade-apple text-4xl font-bold text-olf-darkbrown">
 			{m.settings_heading()}
