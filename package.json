@@ -17,8 +17,11 @@
 		"test:e2e": "playwright install && playwright test"
 	},
 	"dependencies": {
+		"@better-auth/passkey": "^1.6.11",
 		"@lucide/svelte": "^1.16.0",
 		"@meteorclass/pigweed-contract": "file:../pigweed-be/contract",
+		"better-auth": "^1.6.11",
+		"date-fns": "^4.2.1",
 		"gsap": "^3.15.0"
 	},
 	"devDependencies": {

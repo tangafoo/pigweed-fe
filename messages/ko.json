@@ -1,4 +1,36 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"hello_world": "안녕하세요!"
+	"hello_world": "안녕하세요!",
+
+	"passkey_signin_button": "패스키로 로그인",
+	"passkey_signin_cancelled": "로그인이 취소되었습니다.",
+	"passkey_signin_no_passkey": "이 기기에 등록된 패스키가 없습니다. 비밀번호로 로그인한 뒤 설정에서 추가하세요.",
+	"passkey_signin_unsupported": "이 브라우저는 패스키를 지원하지 않습니다.",
+	"passkey_signin_generic_error": "패스키 로그인에 실패했습니다. 다시 시도해 주세요.",
+
+	"settings_page_title": "설정 · Our Little Farm",
+	"settings_heading": "내 둥지",
+	"passkeys_heading": "패스키",
+	"passkeys_intro": "비밀번호 대신 얼굴, 지문, 또는 기기 PIN으로 로그인하세요.",
+	"passkeys_empty": "아직 등록된 패스키가 없습니다. 추가하면 이 기기에서 비밀번호 없이 로그인할 수 있어요.",
+	"passkey_unnamed_device": "이름 없는 기기",
+	"passkey_added_label": "추가됨",
+	"passkey_device_type_label": "유형",
+
+	"passkey_add_button": "패스키 추가",
+	"passkey_add_name_label": "기기 이름 지정",
+	"passkey_add_name_placeholder": "MacBook, iPhone, …",
+	"passkey_add_confirm": "추가",
+	"passkey_add_cancel": "취소",
+	"passkey_add_in_progress": "추가 중…",
+	"passkey_add_error": "패스키를 추가하지 못했습니다. 다시 시도해 주세요.",
+	"passkey_add_cancelled": "추가가 취소되었습니다.",
+	"passkey_add_unsupported": "이 브라우저는 패스키를 지원하지 않습니다.",
+
+	"passkey_delete_button": "삭제",
+	"passkey_delete_confirm_title": "이 패스키를 삭제하시겠어요?",
+	"passkey_delete_confirm_body": "더 이상 이 패스키로 로그인할 수 없게 됩니다.",
+	"passkey_delete_confirm_yes": "삭제",
+	"passkey_delete_confirm_no": "보관",
+	"passkey_delete_error": "패스키를 삭제하지 못했습니다. 다시 시도해 주세요."
 }

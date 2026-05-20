@@ -18,7 +18,7 @@ with the moderation Yik Yak never had.
 
 ## Visual identity — non-negotiable
 
-- **Heavy SVG, GSAP-animated, math-driven.** Visual state *derives* from
+- **Heavy SVG, GSAP-animated, math-driven.** Visual state _derives_ from
   data state. The backend stays numeric; the frontend goes feral.
 - **No whitespace.** Every surface is deliberately, saturatedly colored.
   No `#fff`. Punk, not Apple-clean. (Page background is your call — the
@@ -40,15 +40,15 @@ The backend gives you two fields per user: `animal` (enum) and
 SVG`. No image storage, no CDN, no AI, $0. You render it client-side.
 
 - Hand-drawn **layered** SVG per animal — body, wing/limb, head, eye,
-  accent, accessory are *separate paths* with `var(--...)` fills, not one
+  accent, accessory are _separate paths_ with `var(--...)` fills, not one
   flat shape. (The user draws these on iPad — vector tool, not Procreate.)
 - A **colored circle background** behind the silhouette. The whole tile
   is the punk DNA.
 - Seed math distributes colors from a curated punk palette across every
   slot. **Split the palette**: backgrounds from a saturated/mid-dark
   sub-palette, bodies from a brighter/contrasting sub-palette, so the
-  silhouette never camouflages into the circle. Hash the seed *differently
-  per slot* so they don't correlate.
+  silhouette never camouflages into the circle. Hash the seed _differently
+  per slot_ so they don't correlate.
 - Pattern library (spots/stripes/scratches as SVG `<pattern>`) and an
   accessory pool (hat/cig/mohawk) — seed picks which, if any.
 - Two users, same animal, different seed → visibly distinct. ~100M
@@ -100,10 +100,17 @@ SvelteKit + TypeScript + GSAP (Vite is built in).
 ## Auth flow
 
 **Sign up** — `POST /api/auth/sign-up/email`
+
 ```json
-{ "email": "...", "password": "...", "name": "...",
-  "username": "punk_chicken_42", "gender": "MALE|FEMALE|NONBINARY|UNDISCLOSED" }
+{
+	"email": "...",
+	"password": "...",
+	"name": "...",
+	"username": "punk_chicken_42",
+	"gender": "MALE|FEMALE|NONBINARY|UNDISCLOSED"
+}
 ```
+
 `animal` + `avatarSeed` are server-assigned (do NOT send them). Username
 errors come back specific: `USERNAME_IS_ALREADY_TAKEN`, `USERNAME_TOO_SHORT`
 (min 3), `USERNAME_TOO_LONG` (max 30). Check availability live as the
@@ -124,15 +131,22 @@ Don't make separate calls to hydrate the user header.
 { email, otp }`. Same plugin does `forget-password` and OTP `sign-in`
 via the `type` field.
 
-**Passkeys (WebAuthn)** — The BE has `@better-auth/passkey` wired:
-`POST /api/auth/passkey/add-passkey` (enroll), `POST /api/auth/sign-in/passkey`
-(passwordless), `GET /api/auth/passkey/list-user-passkeys`,
-`POST /api/auth/passkey/{delete,update}-passkey`. **The FE side is not yet
-wired** — see `src/lib/api/passkey.ts` for the documented adoption recipe.
-TL;DR: WebAuthn ceremonies need `navigator.credentials.*`, which is what
-the official `@better-auth/passkey/client` plugin wraps. That requires
-adopting `createAuthClient` from `better-auth/svelte` in `lib/api/auth.ts`
-(currently raw `fetch`). Refactor as one PR when shipping passkey UX.
+**Passkeys (WebAuthn)** — The BE has `@better-auth/passkey` wired
+(`POST /api/auth/passkey/add-passkey`, `POST /api/auth/sign-in/passkey`,
+`GET /api/auth/passkey/list-user-passkeys`,
+`POST /api/auth/passkey/{delete,update}-passkey`). The FE consumes them
+through the `authClient` exported from `src/lib/api/auth.ts` — a single
+`createAuthClient({ baseURL, plugins: [usernameClient(), passkeyClient()] })`
+that owns every `/api/auth/*` call. The `passkeyClient()` wraps the
+`navigator.credentials.*` ceremonies, so callers just await
+`authClient.signIn.passkey()`, `authClient.passkey.addPasskey({ name })`,
+`authClient.passkey.listUserPasskeys()`, `authClient.passkey.deletePasskey({ id })`.
+Surfaces: the **"Sign in with a passkey" button on `/login`** and the
+**`/settings` page** (server-redirects strangers to `/login`, lists
+enrolled passkeys, add/delete inline). Dev `rpID` must match —
+`PASSKEY_RP_ID=localhost` + `PASSKEY_ORIGIN=http://localhost:5173` on the
+BE; changing the FE port means changing both BE env vars in lockstep
+(passkeys silently refuse on any mismatch).
 
 ## i18n (Paraglide-JS v2)
 
@@ -158,6 +172,7 @@ contract + add to `pigweed-be/src/utils/i18n.ts` (BE dict) + add a
 ### Posts
 
 `GET /posts?lat=&lng=&radius=&sort=&page=&limit=`
+
 - `lat`/`lng` optional. If present → feed filtered to `radius` km
   (default 100). If absent → all posts (browse-all).
 - `sort=rank` → "hot" composite score (needs geo; silently falls back to
@@ -171,6 +186,7 @@ contract + add to `pigweed-be/src/utils/i18n.ts` (BE dict) + add a
 `GET /posts/:id` — single post.
 
 Post object shape (feed + single):
+
 ```
 { id, title, body, latitude, longitude, createdAt, updatedAt,
   upvoteCount, downvoteCount, moderated,
@@ -192,17 +208,20 @@ block → `422 { error, code: "CONTENT_FLAGGED", categories }`. Display
 
 `GET /posts/:postId/comments` — flat list, every comment carries
 `parentCommentId` + `depth`. **You build the tree client-side.** Each:
+
 ```
 { id, postId, parentCommentId, depth, body, createdAt, updatedAt,
   deletedAt, upvoteCount, downvoteCount, moderated,
   author: { id, name, image } | null,   // null when deleted
   myVote, awards, hidden }               // hidden = collapse it
 ```
+
 Deleted comments stay in the list (tree integrity) with body
 `"[deleted]"`, author `null`.
 
 `GET /comments/:id/replies` — `{ parent, comments: [...] }` — a comment
-+ all its descendants. Used for sub-thread pages / "read more".
+
+- all its descendants. Used for sub-thread pages / "read more".
 
 `POST /posts/:postId/comments` (auth) — `{ body, parentCommentId? }`.
 Same `422 CONTENT_FLAGGED` on moderation block.
@@ -243,13 +262,15 @@ unlockCoins, automatic). Comment equivalents exist for both.
 
 `GET /users/me/events` (auth) — **SSE stream**. Open once after sign-in
 with `EventSource`. Listen for `achievement_unlocked` events:
+
 ```js
 const es = new EventSource(`${API}/users/me/events`, { withCredentials: true });
-es.addEventListener("achievement_unlocked", e => {
-  const { achievement, newCoinBalance } = JSON.parse(e.data);
-  toast(`🏆 ${achievement.name}!  +${achievement.rewardCoins} coins`);
+es.addEventListener('achievement_unlocked', (e) => {
+	const { achievement, newCoinBalance } = JSON.parse(e.data);
+	toast(`🏆 ${achievement.name}!  +${achievement.rewardCoins} coins`);
 });
 ```
+
 Also emits `connected` (handshake) and `ping` (heartbeat, ignore).
 
 ### Misc
@@ -263,18 +284,18 @@ paginated) — a user's vote history for profile pages.
 
 ## Backend-signal → FE-behavior cheatsheet
 
-| Signal | Do this |
-|---|---|
-| `myVote: "UP"` | highlight the upvote button as active |
-| `awards: [...]` | render badge stack; `.slice(0,3)` for the preview |
-| `hidden: true` | collapse comment, click-to-reveal (body's already there) |
-| `moderated: false` | UNMODERATED shiny/foil badge — rare, celebrate it |
-| response `sort` ≠ requested | geo was missing; show newest tab active |
-| `402` on granters | "spend 1 unlockCoin" modal, show their balance |
-| `422 CONTENT_FLAGGED` | show `error` text; let them edit & retry |
-| `upvoteCount - downvoteCount` | drive bushy-border intensity |
-| SSE `achievement_unlocked` | toast + bump the coin balance in UI |
-| author `null` + body `[deleted]` | render as "[deleted]" stub, keep in tree |
+| Signal                           | Do this                                                  |
+| -------------------------------- | -------------------------------------------------------- |
+| `myVote: "UP"`                   | highlight the upvote button as active                    |
+| `awards: [...]`                  | render badge stack; `.slice(0,3)` for the preview        |
+| `hidden: true`                   | collapse comment, click-to-reveal (body's already there) |
+| `moderated: false`               | UNMODERATED shiny/foil badge — rare, celebrate it        |
+| response `sort` ≠ requested      | geo was missing; show newest tab active                  |
+| `402` on granters                | "spend 1 unlockCoin" modal, show their balance           |
+| `422 CONTENT_FLAGGED`            | show `error` text; let them edit & retry                 |
+| `upvoteCount - downvoteCount`    | drive bushy-border intensity                             |
+| SSE `achievement_unlocked`       | toast + bump the coin balance in UI                      |
+| author `null` + body `[deleted]` | render as "[deleted]" stub, keep in tree                 |
 
 ## Things NOT to do
 

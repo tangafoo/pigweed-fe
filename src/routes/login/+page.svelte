@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
-	import { signIn } from '$lib/api/auth';
+	import { authClient, signIn } from '$lib/api/auth';
+	import { m } from '$lib/paraglide/messages.js';
+	import { Fingerprint } from '@lucide/svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -9,6 +11,7 @@
 	let password = $state('');
 	let error = $state('');
 	let submitting = $state(false);
+	let passkeyBusy = $state(false);
 
 	// Already clucking — no reason to sit on the sign-in page.
 	$effect(() => {
@@ -28,6 +31,41 @@
 		} else {
 			error = result.message;
 			submitting = false;
+		}
+	}
+
+	async function signInWithPasskey() {
+		if (passkeyBusy) return;
+		error = '';
+
+		// Feature detection: bail before invoking the client so we can surface a
+		// specific message instead of an opaque ceremony failure.
+		if (typeof window === 'undefined' || !window.PublicKeyCredential) {
+			error = m.passkey_signin_unsupported();
+			return;
+		}
+
+		passkeyBusy = true;
+		try {
+			const result = await authClient.signIn.passkey();
+			if (result?.error) {
+				// No passkey enrolled for this device, or the cred matches
+				// nothing on the server — Better Auth surfaces as an error.
+				error = m.passkey_signin_no_passkey();
+				return;
+			}
+			await invalidateAll();
+			await goto('/');
+		} catch (e) {
+			// NotAllowedError fires when the user cancels the OS prompt or
+			// times out. Anything else is a generic ceremony failure.
+			if (e instanceof Error && e.name === 'NotAllowedError') {
+				error = m.passkey_signin_cancelled();
+			} else {
+				error = m.passkey_signin_generic_error();
+			}
+		} finally {
+			passkeyBusy = false;
 		}
 	}
 </script>
@@ -79,6 +117,22 @@
 			class="w-full rounded-full bg-olf-darkbrown px-4 py-2 font-oswald text-lg font-bold text-white disabled:opacity-50"
 		>
 			{submitting ? 'Letting you in…' : 'Sign in'}
+		</button>
+
+		<div class="my-4 flex items-center gap-3 font-oswald text-xs text-olf-darkbrown/60">
+			<span class="h-px flex-1 bg-olf-darkbrown/20"></span>
+			or
+			<span class="h-px flex-1 bg-olf-darkbrown/20"></span>
+		</div>
+
+		<button
+			type="button"
+			onclick={signInWithPasskey}
+			disabled={passkeyBusy}
+			class="flex w-full items-center justify-center gap-2 rounded-full border-2 border-olf-darkbrown bg-olf-beige px-4 py-2 font-oswald text-lg font-bold text-olf-darkbrown disabled:opacity-50"
+		>
+			<Fingerprint size={20} />
+			{passkeyBusy ? m.passkey_add_in_progress() : m.passkey_signin_button()}
 		</button>
 
 		<p class="mt-4 text-center font-oswald text-sm text-olf-darkbrown/70">

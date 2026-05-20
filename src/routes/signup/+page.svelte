@@ -110,7 +110,11 @@
 	class="flex min-h-[calc(100dvh-3rem)] items-center justify-center bg-olf-lightgreen px-4 py-10"
 >
 	{#if phase === 'form'}
-		<form onsubmit={submit} class="w-full max-w-sm rounded-2xl bg-olf-beige p-6 shadow-lg" novalidate>
+		<form
+			onsubmit={submit}
+			class="w-full max-w-sm rounded-2xl bg-olf-beige p-6 shadow-lg"
+			novalidate
+		>
 			<h1 class="mb-1 font-homemade-apple text-3xl font-bold text-olf-darkbrown">
 				Hatch your animal
 			</h1>
@@ -130,7 +134,9 @@
 			</label>
 
 			<div class="mb-4 block">
-				<span class="mb-1 flex items-center justify-between font-oswald text-sm font-bold text-olf-darkbrown">
+				<span
+					class="mb-1 flex items-center justify-between font-oswald text-sm font-bold text-olf-darkbrown"
+				>
 					<span>Username</span>
 					<button
 						type="button"
@@ -157,7 +163,9 @@
 				{:else if avail === 'available'}
 					<p class="mt-1 font-oswald text-sm font-bold text-green-700">That name is free 🌾</p>
 				{:else if avail === 'taken'}
-					<p class="mt-1 font-oswald text-sm font-bold text-red-700">Already taken — try another.</p>
+					<p class="mt-1 font-oswald text-sm font-bold text-red-700">
+						Already taken — try another.
+					</p>
 				{/if}
 			</div>
 
@@ -171,7 +179,9 @@
 					required
 					class="w-full rounded-lg border-2 border-olf-lightbrown bg-white/80 px-3 py-2 font-oswald focus:border-olf-darkbrown focus:outline-none"
 				/>
-				<span class="mt-1 block font-oswald text-xs text-olf-darkbrown/60">At least 8 characters.</span>
+				<span class="mt-1 block font-oswald text-xs text-olf-darkbrown/60"
+					>At least 8 characters.</span
+				>
 			</label>
 
 			<label class="mb-6 block">
