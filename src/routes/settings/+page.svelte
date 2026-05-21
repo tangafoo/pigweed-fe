@@ -2,7 +2,26 @@
 	import { authClient } from '$lib/api/auth';
 	import { m } from '$lib/paraglide/messages.js';
 	import { formatDate } from '$lib/utils/date';
-	import { Fingerprint, KeyRound, Trash2, Plus } from '@lucide/svelte';
+	import { Fingerprint, KeyRound, Trash2, Plus, UserRound } from '@lucide/svelte';
+	import type { Animal, Gender } from '@meteorclass/pigweed-contract';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
+	// `+page.server.ts` redirects unauthenticated visitors, so the layout's
+	// session is always present by the time this renders.
+	const user = $derived(data.session!.user);
+
+	const ANIMAL_LABEL: Record<Animal, () => string> = {
+		CHICKEN: m.animal_chicken,
+		DOG: m.animal_dog,
+		GOOSE: m.animal_goose
+	};
+	const GENDER_LABEL: Record<Gender, () => string> = {
+		MALE: m.gender_male,
+		FEMALE: m.gender_female,
+		NONBINARY: m.gender_nonbinary,
+		UNDISCLOSED: m.gender_undisclosed
+	};
 
 	type Passkey = {
 		id: string;
@@ -29,7 +48,6 @@
 		loading = true;
 		error = '';
 		try {
-			// @ts-expect-error better-auth plugin types don't infer through createAuthClient (runtime works)
 			const result = await authClient.passkey.listUserPasskeys();
 			// Better Auth client surfaces either `{ data, error }` or the
 			// raw list depending on plugin version; handle both shapes.
@@ -57,7 +75,6 @@
 
 		addBusy = true;
 		try {
-			// @ts-expect-error better-auth plugin types don't infer through createAuthClient (runtime works)
 			const result = await authClient.passkey.addPasskey({ name: newName.trim() || undefined });
 			if (result?.error) {
 				error = m.passkey_add_error();
@@ -82,7 +99,6 @@
 		deleteBusy = id;
 		error = '';
 		try {
-			// @ts-expect-error better-auth plugin types don't infer through createAuthClient (runtime works)
 			const result = await authClient.passkey.deletePasskey({ id });
 			if (result?.error) {
 				error = m.passkey_delete_error();
@@ -105,6 +121,53 @@
 		<h1 class="mb-6 font-homemade-apple text-4xl font-bold text-olf-darkbrown">
 			{m.settings_heading()}
 		</h1>
+
+		<section class="mb-6 rounded-2xl bg-olf-beige p-6">
+			<div class="mb-4 flex items-center gap-2">
+				<UserRound size={22} class="text-olf-darkbrown" />
+				<h2 class="font-homemade-apple text-2xl font-bold text-olf-darkbrown">
+					{m.account_heading()}
+				</h2>
+			</div>
+			<dl class="flex flex-col gap-2 font-oswald">
+				<div
+					class="flex items-center justify-between gap-3 rounded-xl bg-olf-darkbrown px-4 py-3 text-white"
+				>
+					<dt class="text-white/70">{m.account_field_username()}</dt>
+					<dd class="font-bold">{user.username}</dd>
+				</div>
+				<div
+					class="flex items-center justify-between gap-3 rounded-xl bg-olf-darkbrown px-4 py-3 text-white"
+				>
+					<dt class="text-white/70">{m.account_field_email()}</dt>
+					<dd class="truncate font-bold">{user.email}</dd>
+				</div>
+				<div
+					class="flex items-center justify-between gap-3 rounded-xl bg-olf-darkbrown px-4 py-3 text-white"
+				>
+					<dt class="text-white/70">{m.account_field_gender()}</dt>
+					<dd class="font-bold">{GENDER_LABEL[user.gender]()}</dd>
+				</div>
+				<div
+					class="flex items-center justify-between gap-3 rounded-xl bg-olf-darkbrown px-4 py-3 text-white"
+				>
+					<dt class="text-white/70">{m.account_field_animal()}</dt>
+					<dd class="font-bold">{ANIMAL_LABEL[user.animal]()}</dd>
+				</div>
+				<div
+					class="flex items-center justify-between gap-3 rounded-xl bg-olf-darkbrown px-4 py-3 text-white"
+				>
+					<dt class="text-white/70">{m.account_field_coin_balance()}</dt>
+					<dd class="font-bold">🪙 {user.coinBalance}</dd>
+				</div>
+				<div
+					class="flex items-center justify-between gap-3 rounded-xl bg-olf-darkbrown px-4 py-3 text-white"
+				>
+					<dt class="text-white/70">{m.account_field_unlock_coins()}</dt>
+					<dd class="font-bold">{user.unlockCoins}</dd>
+				</div>
+			</dl>
+		</section>
 
 		<section class="rounded-2xl bg-olf-beige p-6">
 			<div class="mb-2 flex items-center gap-2">

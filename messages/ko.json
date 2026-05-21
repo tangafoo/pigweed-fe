@@ -65,5 +65,45 @@
 	"footer_link_settings": "설정",
 	"footer_copyright": "© {year} Our Little Farm",
 
-	"locale_switcher_label": "언어"
+	"locale_switcher_label": "언어",
+
+	"animal_chicken": "닭",
+	"animal_dog": "개",
+	"animal_goose": "거위",
+
+	"gender_male": "남성",
+	"gender_female": "여성",
+	"gender_nonbinary": "논바이너리",
+	"gender_undisclosed": "비공개",
+
+	"profile_page_title": "{username} · Our Little Farm",
+	"profile_animal_line": "농장의 {animal}",
+	"profile_hatched": "{when} 부화",
+	"profile_stat_posts": "글 {count}개",
+	"profile_stat_comments": "댓글 {count}개",
+	"profile_settings_button": "설정",
+	"profile_tab_achievements": "업적",
+	"profile_tab_activity": "활동",
+	"profile_achievements_empty": "아직 업적이 없어요.",
+	"profile_achievements_loading": "…",
+	"profile_achievements_error": "업적을 불러오지 못했어요.",
+	"profile_achievement_granted": "{date} 획득",
+	"profile_votes_tab_posts": "글",
+	"profile_votes_tab_comments": "댓글",
+	"profile_votes_empty": "아직 아무것도 없어요.",
+	"profile_votes_error": "활동을 불러오지 못했어요.",
+	"profile_votes_loading": "…",
+	"profile_votes_load_more": "더 보기",
+	"profile_vote_up": "추천함",
+	"profile_vote_down": "비추천함",
+
+	"account_heading": "계정",
+	"account_field_username": "사용자 이름",
+	"account_field_email": "이메일",
+	"account_field_gender": "성별",
+	"account_field_animal": "동물",
+	"account_field_coin_balance": "코인",
+	"account_field_unlock_coins": "잠금 해제 코인",
+
+	"home_profile_link": "내 프로필"
 }

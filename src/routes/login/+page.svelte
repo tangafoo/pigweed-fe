@@ -47,7 +47,6 @@
 
 		passkeyBusy = true;
 		try {
-			// @ts-expect-error better-auth plugin types don't infer through createAuthClient (runtime works)
 			const result = await authClient.signIn.passkey();
 			if (result?.error) {
 				// No passkey enrolled for this device, or the cred matches

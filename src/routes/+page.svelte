@@ -6,7 +6,7 @@
 	import ProduceOrderButtons from '$lib/components/ProduceOrderButtons.svelte';
 	import { produceSections } from '$lib/produceSections';
 	import { m } from '$lib/paraglide/messages.js';
-	import { Sun, CloudRain, HeartCrack, FlaskConical } from '@lucide/svelte';
+	import { Sun, CloudRain, HeartCrack, FlaskConical, UserRound } from '@lucide/svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -79,6 +79,13 @@
 			{m.home_signed_in_as()} <span class="font-bold">{session.user.username}</span>
 		</p>
 		<div class="flex items-center gap-2">
+			<a
+				href="/users/{session.user.id}"
+				aria-label={m.home_profile_link()}
+				class="flex h-8 w-8 items-center justify-center rounded-full bg-olf-lightgreen text-olf-darkbrown"
+			>
+				<UserRound size={16} />
+			</a>
 			<span class="rounded-full bg-olf-lightgreen px-3 py-1 text-sm">
 				🪙 {session.user.coinBalance}
 			</span>

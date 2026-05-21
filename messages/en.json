@@ -65,5 +65,45 @@
 	"footer_link_settings": "Settings",
 	"footer_copyright": "© {year} Our Little Farm",
 
-	"locale_switcher_label": "Language"
+	"locale_switcher_label": "Language",
+
+	"animal_chicken": "Chicken",
+	"animal_dog": "Dog",
+	"animal_goose": "Goose",
+
+	"gender_male": "Male",
+	"gender_female": "Female",
+	"gender_nonbinary": "Nonbinary",
+	"gender_undisclosed": "Undisclosed",
+
+	"profile_page_title": "{username} · Our Little Farm",
+	"profile_animal_line": "A {animal} on the farm",
+	"profile_hatched": "Hatched {when}",
+	"profile_stat_posts": "{count} posts",
+	"profile_stat_comments": "{count} comments",
+	"profile_settings_button": "Settings",
+	"profile_tab_achievements": "Achievements",
+	"profile_tab_activity": "Activity",
+	"profile_achievements_empty": "No achievements yet.",
+	"profile_achievements_loading": "…",
+	"profile_achievements_error": "Couldn't load achievements.",
+	"profile_achievement_granted": "Earned {date}",
+	"profile_votes_tab_posts": "Posts",
+	"profile_votes_tab_comments": "Comments",
+	"profile_votes_empty": "Nothing here yet.",
+	"profile_votes_error": "Couldn't load activity.",
+	"profile_votes_loading": "…",
+	"profile_votes_load_more": "Load more",
+	"profile_vote_up": "Upvoted",
+	"profile_vote_down": "Downvoted",
+
+	"account_heading": "Account",
+	"account_field_username": "Username",
+	"account_field_email": "Email",
+	"account_field_gender": "Gender",
+	"account_field_animal": "Animal",
+	"account_field_coin_balance": "Coins",
+	"account_field_unlock_coins": "Unlock coins",
+
+	"home_profile_link": "Your profile"
 }
