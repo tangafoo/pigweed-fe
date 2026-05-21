@@ -24,7 +24,7 @@
 <div
 	data-avatar-seed={avatarSeed}
 	data-gender={gender}
-	class="flex shrink-0 items-center justify-center rounded-full bg-olf-lightbrown {SIZE_CLASS[
+	class="flex shrink-0 items-center justify-center rounded-full bg-olf-lightbrown shadow-md {SIZE_CLASS[
 		size
 	]}"
 >
