@@ -3,25 +3,13 @@
 	import { m } from '$lib/paraglide/messages.js';
 	import { formatDate } from '$lib/utils/date';
 	import { Fingerprint, KeyRound, Trash2, Plus, UserRound } from '@lucide/svelte';
-	import type { Animal, Gender } from '@meteorclass/pigweed-contract';
 	import type { PageData } from './$types';
+	import { ANIMAL_LABEL, GENDER_LABEL } from '$lib/utils/labels';
 
 	let { data }: { data: PageData } = $props();
 	// `+page.server.ts` redirects unauthenticated visitors, so the layout's
 	// session is always present by the time this renders.
 	const user = $derived(data.session!.user);
-
-	const ANIMAL_LABEL: Record<Animal, () => string> = {
-		CHICKEN: m.animal_chicken,
-		DOG: m.animal_dog,
-		GOOSE: m.animal_goose
-	};
-	const GENDER_LABEL: Record<Gender, () => string> = {
-		MALE: m.gender_male,
-		FEMALE: m.gender_female,
-		NONBINARY: m.gender_nonbinary,
-		UNDISCLOSED: m.gender_undisclosed
-	};
 
 	type Passkey = {
 		id: string;
