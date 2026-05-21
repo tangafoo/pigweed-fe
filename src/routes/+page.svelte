@@ -1,19 +1,26 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
 	import { authClient } from '$lib/api/auth';
+	import Avatar from '$lib/components/Avatar.svelte';
+	import FarmStory from '$lib/components/FarmStory.svelte';
+	import LatestPostsStrip from '$lib/components/LatestPostsStrip.svelte';
 	import NoIcon from '$lib/components/NoIcon.svelte';
 	import Parallax from '$lib/components/Parallax.svelte';
 	import ProduceOrderButtons from '$lib/components/ProduceOrderButtons.svelte';
+	import Spinner from '$lib/components/Spinner.svelte';
 	import { produceSections } from '$lib/produceSections';
+	import { asset } from '$lib/assets';
 	import { m } from '$lib/paraglide/messages.js';
-	import { Sun, CloudRain, HeartCrack, FlaskConical, UserRound } from '@lucide/svelte';
+	import { Sun, CloudRain, HeartCrack, FlaskConical, PiggyBank } from '@lucide/svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 	const session = $derived(data.session);
 	const weather = $derived(data.weather);
+	const latestPosts = $derived(data.latestPosts);
 
 	let signingOut = $state(false);
+
 	async function signOut() {
 		if (signingOut) return;
 		signingOut = true;
@@ -28,8 +35,8 @@
 </script>
 
 <Parallax
-	src="https://pub-9ed0a91dba4749879e89a94774f50169.r2.dev/chicken%20hero.webp"
-	srcLg="https://pub-9ed0a91dba4749879e89a94774f50169.r2.dev/farm%20hero.webp"
+	src={asset('chicken hero.webp')}
+	srcLg={asset('farm hero.webp')}
 	class="flex items-center lg:h-[50dvh]"
 >
 	<div class="px-6 py-16">
@@ -67,41 +74,60 @@
 		</div>
 	</div>
 </Parallax>
+<div class="bg-olf-darkgreen/95 p-2 text-center text-sm tracking-wide text-white/95">
+	<p>{m.home_delivery_lead()} • <span class="font-light">{m.home_delivery_schedule()}</span></p>
+</div>
 {#each produceSections as section (section.heading)}
 	<ProduceOrderButtons {...section} />
 {/each}
 
+<FarmStory>
+	<div class="flex w-full items-center justify-between bg-olf-beige px-4 pt-4 lg:px-6">
+		{#if session}
+			<div class="flex w-full justify-between lg:gap-4">
+				<div class="flex items-center gap-2">
+					<a href="/users/{session.user.id}" aria-label={m.home_profile_link()}>
+						<Avatar
+							animal={session.user.animal}
+							avatarSeed={session.user.avatarSeed}
+							gender={session.user.gender}
+							size="sm"
+						/>
+					</a>
+					<p class="font-semibold">{session.user.username}</p>
+				</div>
+				<div class="flex gap-2">
+					<div
+						class="flex items-center gap-1.5 rounded-full bg-olf-lightgreen px-3 text-sm shadow-md"
+					>
+						<PiggyBank size={16} fill="pink" class="shrink-0" />
+						<p>{session.user.coinBalance}</p>
+					</div>
+					<button
+						type="button"
+						onclick={signOut}
+						disabled={signingOut}
+						class="flex items-center justify-center rounded-full bg-olf-lightbrown px-3 py-1 text-sm font-bold text-olf-darkbrown disabled:opacity-50"
+					>
+						{#if signingOut}
+							<Spinner size={14} label={m.home_signout_in_progress()} />
+						{:else}
+							{m.home_signout_button()}
+						{/if}
+					</button>
+				</div>
+			</div>
+		{:else}
+			<a
+				href="/login"
+				class="ml-auto rounded-full bg-olf-lightgreen px-3 py-1 text-sm font-bold shadow-md lg:ml-0"
+			>
+				{m.home_signin_link()} 🐓
+			</a>
+		{/if}
+	</div>
+</FarmStory>
+
 <p class="bg-olf-beige p-4 text-center">{m.home_feed_teaser()}</p>
 
-<div class="flex w-full items-center justify-between bg-olf-darkbrown px-4 py-3 text-white">
-	{#if session}
-		<p class=" text-lg">
-			{m.home_signed_in_as()} <span class="font-bold">{session.user.username}</span>
-		</p>
-		<div class="flex items-center gap-2">
-			<a
-				href="/users/{session.user.id}"
-				aria-label={m.home_profile_link()}
-				class="flex h-8 w-8 items-center justify-center rounded-full bg-olf-lightgreen text-olf-darkbrown"
-			>
-				<UserRound size={16} />
-			</a>
-			<span class="rounded-full bg-olf-lightgreen px-3 py-1 text-sm">
-				🪙 {session.user.coinBalance}
-			</span>
-			<button
-				type="button"
-				onclick={signOut}
-				disabled={signingOut}
-				class="rounded-full bg-olf-lightbrown px-3 py-1 text-sm font-bold text-olf-darkbrown disabled:opacity-50"
-			>
-				{signingOut ? m.home_signout_in_progress() : m.home_signout_button()}
-			</button>
-		</div>
-	{:else}
-		<p class=" text-lg">{m.home_stranger()}</p>
-		<a href="/login" class="rounded-full bg-olf-lightgreen px-3 py-1 text-sm font-bold">
-			{m.home_signin_link()}
-		</a>
-	{/if}
-</div>
+<LatestPostsStrip posts={latestPosts} />

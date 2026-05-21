@@ -1,7 +1,6 @@
 import { Egg, LeafyGreen, Apple } from '@lucide/svelte';
 import { m } from '$lib/paraglide/messages.js';
-
-const R2 = 'https://pub-9ed0a91dba4749879e89a94774f50169.r2.dev';
+import { asset } from '$lib/assets';
 
 // Each entry maps 1:1 to <ProduceSection> props. brightnessClass steps down
 // (none -> 90 -> 75) so the stack reads as a freshness/availability gradient.
@@ -11,7 +10,7 @@ export const produceSections = [
 		description: m.home_eggs_description,
 		buttonLabel: m.home_eggs_preorder,
 		icon: Egg,
-		imageSrc: `${R2}/chicken%20houses.webp`,
+		imageSrc: asset('chicken houses.webp'),
 		imageAlt: 'Chicken house',
 		brightnessClass: '',
 		disabled: false,
@@ -22,7 +21,7 @@ export const produceSections = [
 		description: m.home_veggies_description,
 		buttonLabel: m.home_next_batch,
 		icon: LeafyGreen,
-		imageSrc: `${R2}/papaya%20tree%20juvenile.webp`,
+		imageSrc: asset('papaya tree juvenile.webp'),
 		imageAlt: 'Papaya tree',
 		brightnessClass: 'brightness-90',
 		disabled: true,
@@ -33,7 +32,7 @@ export const produceSections = [
 		description: m.home_fruits_description,
 		buttonLabel: m.home_next_batch,
 		icon: Apple,
-		imageSrc: `${R2}/papaya%20tree%20juvenile.webp`,
+		imageSrc: asset('papaya tree juvenile.webp'),
 		imageAlt: 'Papaya tree',
 		brightnessClass: 'brightness-75',
 		disabled: true,

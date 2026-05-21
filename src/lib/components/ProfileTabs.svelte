@@ -14,6 +14,7 @@
 		CommentVoteEntry
 	} from '@meteorclass/pigweed-contract';
 	import { ArrowBigUp, ArrowBigDown, Trophy, Activity } from '@lucide/svelte';
+	import Spinner from '$lib/components/Spinner.svelte';
 
 	interface ProfileTabsProps {
 		userId: string;
@@ -260,7 +261,9 @@
 		{/if}
 
 		{#if voteLoading}
-			<p class="mt-3 font-oswald text-olf-darkbrown/60">{m.profile_votes_loading()}</p>
+			<div class="mt-3 flex justify-center text-olf-darkbrown/60">
+				<Spinner />
+			</div>
 		{:else if voteHasMore}
 			<button
 				type="button"
