@@ -24,7 +24,7 @@
 					gender={profile.gender}
 				/>
 				<div class="min-w-0 flex-1">
-					<h1 class="font-homemade-apple text-4xl font-bold wrap-break-word text-olf-darkbrown">
+					<h1 class="font-supermercado-one text-2xl font-bold wrap-break-word text-olf-darkbrown">
 						{profile.username}
 					</h1>
 					<p class="font-oswald text-olf-darkbrown/70">
