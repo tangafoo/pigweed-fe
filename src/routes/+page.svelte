@@ -3,8 +3,10 @@
 	import { authClient } from '$lib/api/auth';
 	import NoIcon from '$lib/components/NoIcon.svelte';
 	import Parallax from '$lib/components/Parallax.svelte';
+	import ProduceOrderButtons from '$lib/components/ProduceOrderButtons.svelte';
+	import { produceSections } from '$lib/produceSections';
 	import { m } from '$lib/paraglide/messages.js';
-	import { Sun, CloudRain, HeartCrack, FlaskConical, Egg, Apple, LeafyGreen } from '@lucide/svelte';
+	import { Sun, CloudRain, HeartCrack, FlaskConical } from '@lucide/svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -65,54 +67,9 @@
 		</div>
 	</div>
 </Parallax>
-<!-- Order Eggs Section -->
-<div class="flex w-full items-center bg-olf-lightgreen">
-	<p class="mx-3 flex-1 text-3xl font-bold text-olf-darkgreen/60">
-		{m.home_eggs_heading()}
-	</p>
-	<button
-		class="flex flex-col items-center gap-0.5 bg-olf-darkbrown p-6 text-xs tracking-widest text-olf-beige uppercase lg:flex-1"
-	>
-		<Egg size={20} />
-		<span class="underline decoration-white/50 decoration-double underline-offset-2"
-			>{m.home_eggs_preorder()}</span
-		>
-	</button>
-</div>
-<!-- Order Veggies Section -->
-<div class="flex w-full">
-	<div class="flex flex-1 items-center bg-olf-lightgreen px-3 text-3xl brightness-90">
-		<p class="font-bold text-olf-darkgreen/60">
-			{m.home_veggies_heading()}
-		</p>
-	</div>
-	<button
-		disabled
-		class="flex flex-col items-center gap-0.5 border-t border-olf-beige/15 bg-olf-darkbrown p-6 text-xs tracking-widest text-olf-beige uppercase disabled:cursor-not-allowed disabled:bg-olf-lightbrown lg:flex-1"
-	>
-		<LeafyGreen size={20} />
-		<span class="underline decoration-white/50 decoration-double underline-offset-2"
-			>{m.home_next_batch()}</span
-		>
-	</button>
-</div>
-<!-- Order Fruits Section -->
-<div class="flex w-full">
-	<div class="flex flex-1 items-center bg-olf-lightgreen px-3 text-3xl brightness-75">
-		<p class="font-bold text-olf-darkgreen/60">
-			{m.home_fruits_heading()}
-		</p>
-	</div>
-	<button
-		disabled
-		class="flex flex-col items-center gap-0.5 border-t border-olf-beige/15 bg-olf-darkbrown p-6 text-xs tracking-widest text-olf-beige uppercase disabled:cursor-not-allowed disabled:bg-olf-lightbrown lg:flex-1"
-	>
-		<Apple size={20} />
-		<span class="underline decoration-white/50 decoration-double underline-offset-2"
-			>{m.home_next_batch()}</span
-		>
-	</button>
-</div>
+{#each produceSections as section (section.heading)}
+	<ProduceOrderButtons {...section} />
+{/each}
 
 <p class="bg-olf-beige p-4 text-center">{m.home_feed_teaser()}</p>
 
