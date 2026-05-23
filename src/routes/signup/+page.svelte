@@ -2,6 +2,7 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { signUp, isUsernameAvailable, rerollAvatar, getSession } from '$lib/api/auth';
 	import type { Gender, SessionUser } from '$lib/api/auth';
+	import Seo from '$lib/components/Seo.svelte';
 	import { randomUsername } from '$lib/username';
 	import type { PageData } from './$types';
 	import { Dices, Check } from '@lucide/svelte';
@@ -101,7 +102,11 @@
 	}
 </script>
 
-<svelte:head><title>Create Account • Our Little Farm</title></svelte:head>
+<Seo
+	title="Create an account · Our Little Farm"
+	description="Hatch an account and see what the animals in your neighbourhood are clucking about — anonymous, hyperlocal chatter."
+	noindex
+/>
 
 <div class="flex min-h-[60dvh] items-center justify-center bg-olf-lightgreen px-4 py-10">
 	{#if phase === 'form'}

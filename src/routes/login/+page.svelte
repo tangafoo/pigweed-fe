@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
 	import { authClient, signIn } from '$lib/api/auth';
+	import Seo from '$lib/components/Seo.svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import { FingerprintPattern } from '@lucide/svelte';
 	import type { PageData } from './$types';
@@ -70,7 +71,11 @@
 	}
 </script>
 
-<svelte:head><title>Sign in · Our Little Farm</title></svelte:head>
+<Seo
+	title="Sign in · Our Little Farm"
+	description="Sign in to Our Little Farm — anonymous, hyperlocal chatter from the animals in your neighbourhood."
+	noindex
+/>
 
 <div class="flex min-h-[60dvh] items-center justify-center bg-olf-lightgreen px-4 py-10">
 	<form onsubmit={submit} class="w-full max-w-sm rounded-2xl bg-olf-beige p-6 shadow-lg" novalidate>

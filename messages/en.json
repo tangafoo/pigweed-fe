@@ -35,7 +35,7 @@
 	"passkey_delete_error": "Couldn't delete that passkey. Try again.",
 
 	"home_user_count": "{count} users",
-	"home_hero_title": "Organic farm in Malaysia",
+	"home_hero_title": "Sustainable farm in Malaysia",
 	"home_weather_heat_fallback": "Heat",
 	"home_weather_humidity_fallback": "Humidity",
 	"home_weather_humidity": "{value}% humidity",

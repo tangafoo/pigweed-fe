@@ -3,13 +3,16 @@
 	import { authClient } from '$lib/api/auth';
 	import Avatar from '$lib/components/Avatar.svelte';
 	import FarmStory from '$lib/components/FarmStory.svelte';
+	import JsonLd from '$lib/components/JsonLd.svelte';
 	import LatestPostsStrip from '$lib/components/LatestPostsStrip.svelte';
 	import NoIcon from '$lib/components/NoIcon.svelte';
 	import Parallax from '$lib/components/Parallax.svelte';
 	import ProduceOrderButtons from '$lib/components/ProduceOrderButtons.svelte';
+	import Seo from '$lib/components/Seo.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import { produceSections } from '$lib/produceSections';
 	import { asset } from '$lib/assets';
+	import { MANTIN_COORDS, SITE_NAME, SITE_OG_IMAGE, SITE_TAGLINE, SITE_URL } from '$lib/seo';
 	import { m } from '$lib/paraglide/messages.js';
 	import { Sun, CloudRain, HeartCrack, FlaskConical, PiggyBank } from '@lucide/svelte';
 	import type { PageData } from './$types';
@@ -18,6 +21,34 @@
 	const session = $derived(data.session);
 	const weather = $derived(data.weather);
 	const latestPosts = $derived(data.latestPosts);
+
+	// LocalBusiness rich result for the farm — anchors us in Mantin so Google
+	// (and AI answer engines) can answer "sustainable farm near KL" with us.
+	const farmJsonLd = {
+		'@context': 'https://schema.org',
+		'@type': 'LocalBusiness',
+		name: SITE_NAME,
+		url: SITE_URL,
+		image: SITE_OG_IMAGE,
+		description: SITE_TAGLINE,
+		address: {
+			'@type': 'PostalAddress',
+			addressLocality: 'Mantin',
+			addressRegion: 'Negeri Sembilan',
+			addressCountry: 'MY'
+		},
+		geo: {
+			'@type': 'GeoCoordinates',
+			latitude: MANTIN_COORDS.lat,
+			longitude: MANTIN_COORDS.lng
+		},
+		areaServed: ['Kuala Lumpur', 'Negeri Sembilan', 'Selangor'],
+		makesOffer: [
+			{ '@type': 'Offer', itemOffered: { '@type': 'Product', name: 'Sustainable farm eggs' } },
+			{ '@type': 'Offer', itemOffered: { '@type': 'Product', name: 'Seasonal vegetables' } },
+			{ '@type': 'Offer', itemOffered: { '@type': 'Product', name: 'Tree-ripened fruit' } }
+		]
+	};
 
 	let signingOut = $state(false);
 
@@ -33,6 +64,12 @@
 		}
 	}
 </script>
+
+<Seo
+	title="Our Little Farm — Sustainable farm in Mantin, Negeri Sembilan"
+	description={SITE_TAGLINE}
+/>
+<JsonLd data={farmJsonLd} />
 
 <Parallax
 	src={asset('chicken hero.webp')}
