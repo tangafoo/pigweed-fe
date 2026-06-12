@@ -14,7 +14,9 @@ export const produceSections = [
 		imageAlt: 'Chicken house',
 		brightnessClass: '',
 		disabled: false,
-		seam: false
+		seam: false,
+		whatsAppPhone: '60172332992',
+		whatsAppMessage: (quantity: number) => m.home_eggs_order_message({ quantity })
 	},
 	{
 		heading: m.home_veggies_heading,
