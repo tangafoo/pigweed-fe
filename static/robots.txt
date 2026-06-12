@@ -1,3 +1,7 @@
-# allow crawling everything by default
+# Crawlable by default — per-page <meta name="robots" content="noindex">
+# handles login / signup / settings / demo. AI search crawlers (GPTBot,
+# ClaudeBot, PerplexityBot, etc.) are welcomed by the same default allow.
 User-agent: *
-Disallow:
+Allow: /
+
+Sitemap: https://ourlittlefarm.club/sitemap.xml

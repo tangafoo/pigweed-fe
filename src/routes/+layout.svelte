@@ -4,6 +4,8 @@
 	import { page } from '$app/state';
 	import LocaleSwitcher from '$lib/components/LocaleSwitcher.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import JsonLd from '$lib/components/JsonLd.svelte';
+	import { SITE_NAME, SITE_TAGLINE, SITE_URL } from '$lib/seo';
 	import { m } from '$lib/paraglide/messages.js';
 
 	let { children } = $props();
@@ -15,9 +17,29 @@
 	const userCount = $derived(
 		(page.data as { userCount?: number | null }).userCount ?? null
 	);
+
+	const websiteJsonLd = {
+		'@context': 'https://schema.org',
+		'@type': 'WebSite',
+		name: SITE_NAME,
+		url: SITE_URL,
+		description: SITE_TAGLINE,
+		inLanguage: ['en', 'ko']
+	};
+
+	const organizationJsonLd = {
+		'@context': 'https://schema.org',
+		'@type': 'Organization',
+		name: SITE_NAME,
+		url: SITE_URL
+	};
 </script>
 
-<svelte:head><link rel="icon" href={favicon} /></svelte:head>
+<svelte:head>
+	<link rel="icon" href={favicon} />
+</svelte:head>
+<JsonLd data={websiteJsonLd} />
+<JsonLd data={organizationJsonLd} />
 
 <div class="flex w-full items-center gap-3 bg-olf-darkbrown px-2 py-3">
 	<a href="/" class="font-homemade-apple font-bold tracking-wider text-white">Our Little Farm</a>

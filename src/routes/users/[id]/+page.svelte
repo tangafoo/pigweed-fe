@@ -3,15 +3,51 @@
 	import { m } from '$lib/paraglide/messages.js';
 	import { formatRelative } from '$lib/utils/date';
 	import Avatar from '$lib/components/Avatar.svelte';
+	import JsonLd from '$lib/components/JsonLd.svelte';
 	import ProfileTabs from '$lib/components/ProfileTabs.svelte';
+	import Seo from '$lib/components/Seo.svelte';
+	import { absoluteUrl, SITE_NAME } from '$lib/seo';
 	import { ANIMAL_LABEL } from '$lib/utils/labels';
 	import { Settings } from '@lucide/svelte';
 
 	let { data }: { data: PageData } = $props();
 	const profile = $derived(data.profile);
+
+	const profileDescription = $derived(
+		`${profile.username} on ${SITE_NAME} — a ${ANIMAL_LABEL[profile.animal]().toLowerCase()} with ${profile.postCount} posts and ${profile.commentCount} comments.`
+	);
+
+	const profileJsonLd = $derived({
+		'@context': 'https://schema.org',
+		'@type': 'ProfilePage',
+		url: absoluteUrl(`/users/${profile.id}`),
+		mainEntity: {
+			'@type': 'Person',
+			name: profile.username,
+			identifier: profile.id,
+			dateCreated: profile.createdAt,
+			interactionStatistic: [
+				{
+					'@type': 'InteractionCounter',
+					interactionType: 'https://schema.org/WriteAction',
+					userInteractionCount: profile.postCount
+				},
+				{
+					'@type': 'InteractionCounter',
+					interactionType: 'https://schema.org/CommentAction',
+					userInteractionCount: profile.commentCount
+				}
+			]
+		}
+	});
 </script>
 
-<svelte:head><title>{m.profile_page_title({ username: profile.username })}</title></svelte:head>
+<Seo
+	title={m.profile_page_title({ username: profile.username })}
+	description={profileDescription}
+	type="profile"
+/>
+<JsonLd data={profileJsonLd} />
 
 <div class="min-h-[60dvh] bg-olf-lightgreen px-4 py-10">
 	<div class="mx-auto max-w-2xl">

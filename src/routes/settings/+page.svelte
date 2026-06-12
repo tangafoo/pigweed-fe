@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { authClient } from '$lib/api/auth';
+	import Seo from '$lib/components/Seo.svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import { formatDate } from '$lib/utils/date';
 	import { Fingerprint, KeyRound, Trash2, Plus, UserRound } from '@lucide/svelte';
@@ -102,7 +103,7 @@
 	}
 </script>
 
-<svelte:head><title>{m.settings_page_title()}</title></svelte:head>
+<Seo title={m.settings_page_title()} description="Account settings" noindex />
 
 <div class="min-h-[60dvh] bg-olf-lightgreen px-4 py-10">
 	<div class="mx-auto max-w-2xl">

@@ -35,7 +35,7 @@
 	"passkey_delete_error": "패스키를 삭제하지 못했습니다. 다시 시도해 주세요.",
 
 	"home_user_count": "사용자 {count}명",
-	"home_hero_title": "말레이시아의 유기농 농장",
+	"home_hero_title": "말레이시아의 지속가능한 농장",
 	"home_weather_heat_fallback": "기온",
 	"home_weather_humidity_fallback": "습도",
 	"home_weather_humidity": "습도 {value}%",
