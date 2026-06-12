@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import Parallax from '$lib/components/Parallax.svelte';
-	import { Sunrise, Sprout, MapPin } from '@lucide/svelte';
+	import { Heart, Sprout, Recycle, MapPin } from '@lucide/svelte';
 	import { asset } from '$lib/assets';
 
 	interface FarmStoryProps {
@@ -14,9 +14,9 @@
 	let { children }: FarmStoryProps = $props();
 
 	const promises = [
-		{ icon: Sunrise, title: m.home_promise_1_title, body: m.home_promise_1_body },
+		{ icon: Heart, title: m.home_promise_1_title, body: m.home_promise_1_body },
 		{ icon: Sprout, title: m.home_promise_2_title, body: m.home_promise_2_body },
-		{ icon: MapPin, title: m.home_promise_3_title, body: m.home_promise_3_body }
+		{ icon: Recycle, title: m.home_promise_3_title, body: m.home_promise_3_body }
 	];
 </script>
 

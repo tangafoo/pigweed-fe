@@ -12,7 +12,15 @@
 	import Spinner from '$lib/components/Spinner.svelte';
 	import { produceSections } from '$lib/produceSections';
 	import { asset } from '$lib/assets';
-	import { MANTIN_COORDS, SITE_NAME, SITE_OG_IMAGE, SITE_TAGLINE, SITE_URL } from '$lib/seo';
+	import {
+		MANTIN_COORDS,
+		SITE_DESCRIPTION,
+		SITE_NAME,
+		SITE_OG_DESCRIPTION,
+		SITE_OG_IMAGE,
+		SITE_TAGLINE,
+		SITE_URL
+	} from '$lib/seo';
 	import { m } from '$lib/paraglide/messages.js';
 	import { Sun, CloudRain, HeartCrack, FlaskConical, PiggyBank } from '@lucide/svelte';
 	import type { PageData } from './$types';
@@ -67,7 +75,8 @@
 
 <Seo
 	title="Our Little Farm — Sustainable farm in Mantin, Negeri Sembilan"
-	description={SITE_TAGLINE}
+	description={SITE_DESCRIPTION}
+	ogDescription={SITE_OG_DESCRIPTION}
 />
 <JsonLd data={farmJsonLd} />
 

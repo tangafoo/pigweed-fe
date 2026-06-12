@@ -5,6 +5,9 @@
 	type SeoProps = {
 		title: string;
 		description?: string;
+		// og:description, when it should differ from the meta/twitter description.
+		// Defaults to `description` so callers that pass one value stay in sync.
+		ogDescription?: string;
 		image?: string;
 		path?: string;
 		type?: 'website' | 'article' | 'profile';
@@ -14,6 +17,7 @@
 	let {
 		title,
 		description = SITE_TAGLINE,
+		ogDescription = description,
 		image = SITE_OG_IMAGE,
 		path,
 		type = 'website',
@@ -35,7 +39,7 @@
 	<meta property="og:site_name" content={SITE_NAME} />
 	<meta property="og:type" content={type} />
 	<meta property="og:title" content={title} />
-	<meta property="og:description" content={description} />
+	<meta property="og:description" content={ogDescription} />
 	<meta property="og:url" content={canonical} />
 	<meta property="og:image" content={ogImage} />
 	<meta property="og:image:alt" content={SITE_NAME} />
