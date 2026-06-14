@@ -108,7 +108,7 @@
 	noindex
 />
 
-<div class="flex min-h-[60dvh] items-center justify-center bg-olf-lightgreen px-4 py-10">
+<div class="flex flex-1 items-center justify-center bg-olf-lightgreen px-4 py-10">
 	{#if phase === 'form'}
 		<form
 			onsubmit={submit}

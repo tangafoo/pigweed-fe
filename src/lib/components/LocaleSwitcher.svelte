@@ -8,7 +8,9 @@
 	// Stars and Stripes).
 	const names: Record<string, string> = {
 		en: 'English',
-		ko: '한국어'
+		ko: '한국어',
+		zh: '繁體中文',
+		ja: '日本語'
 	};
 
 	const current = $derived(getLocale());
@@ -32,7 +34,7 @@
 			onclick={() => pick(code as Locale)}
 			aria-pressed={current === code}
 			aria-label={names[code] ?? code}
-			class="px-2 py-1 transition-opacity"
+			class="cursor-pointer px-2 py-1 transition-opacity"
 			class:bg-olf-beige={current === code}
 			class:opacity-60={current !== code}
 		>
@@ -103,6 +105,43 @@
 							<rect x="0.5" y="1.1" width="2.5" height="0.7" />
 						</g>
 					</g>
+				</svg>
+			{:else if code === 'zh'}
+				<!-- Qingtian Bairi Mandi Hong: red field, blue canton, a white
+				     12-rayed sun. Stands in for the Traditional Chinese locale. -->
+				<svg
+					viewBox="0 0 30 20"
+					class="h-3 w-5"
+					xmlns="http://www.w3.org/2000/svg"
+					aria-hidden="true"
+				>
+					<rect width="30" height="20" fill="#fe0000" />
+					<rect width="15" height="10" fill="#000095" />
+					<g transform="translate(7.5,5)">
+						<g fill="#fff">
+							<polygon points="0,-4 0.92,-1.16 -1.49,-2.91 1.49,-2.91 -0.92,-1.16" />
+							<polygon points="0,4 -0.92,1.16 1.49,2.91 -1.49,2.91 0.92,1.16" />
+							<polygon points="4,0 1.16,0.92 2.91,-1.49 2.91,1.49 1.16,-0.92" />
+							<polygon points="-4,0 -1.16,-0.92 -2.91,1.49 -2.91,-1.49 -1.16,0.92" />
+							<polygon points="2.83,-2.83 0.62,-1.51 1.51,-3.61 1.51,-1.13 0.41,-1.78" />
+							<polygon points="-2.83,2.83 -0.62,1.51 -1.51,3.61 -1.51,1.13 -0.41,1.78" />
+							<polygon points="2.83,2.83 1.51,0.62 3.61,1.51 1.13,1.51 1.78,0.41" />
+							<polygon points="-2.83,-2.83 -1.51,-0.62 -3.61,-1.51 -1.13,-1.51 -1.78,-0.41" />
+						</g>
+						<circle r="2.1" fill="#000095" />
+						<circle r="1.7" fill="#fff" />
+					</g>
+				</svg>
+			{:else if code === 'ja'}
+				<!-- Hinomaru: a single red disc, centred, on white. -->
+				<svg
+					viewBox="0 0 30 20"
+					class="h-3 w-5"
+					xmlns="http://www.w3.org/2000/svg"
+					aria-hidden="true"
+				>
+					<rect width="30" height="20" fill="#fff" />
+					<circle cx="15" cy="10" r="6" fill="#bc002d" />
 				</svg>
 			{/if}
 		</button>

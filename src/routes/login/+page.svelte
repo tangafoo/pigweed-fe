@@ -77,7 +77,7 @@
 	noindex
 />
 
-<div class="flex min-h-[60dvh] items-center justify-center bg-olf-lightgreen px-4 py-10">
+<div class="flex flex-1 items-center justify-center bg-olf-lightgreen px-4 py-10">
 	<form onsubmit={submit} class="w-full max-w-sm rounded-2xl bg-olf-beige p-6 shadow-lg" novalidate>
 		<h1 class="mb-1 font-homemade-apple text-3xl font-bold text-olf-darkbrown">Back to the coop</h1>
 		<p class="mb-6 font-oswald text-olf-darkbrown/70">Anonymous. Hyperlocal. Chatter.</p>

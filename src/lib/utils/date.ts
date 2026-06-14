@@ -1,5 +1,5 @@
 import { format, formatDistanceToNowStrict } from 'date-fns';
-import { enUS, ko } from 'date-fns/locale';
+import { enUS, ko, zhTW, ja } from 'date-fns/locale';
 import { getLocale } from '$lib/paraglide/runtime.js';
 
 type DateLike = Date | string | number;
@@ -11,7 +11,16 @@ function toDate(d: DateLike): Date {
 // Map paraglide locale → date-fns locale. Add new entries here whenever
 // `messages/<locale>.json` gains a sibling.
 function localeFor(code: string) {
-	return code === 'ko' ? ko : enUS;
+	switch (code) {
+		case 'ko':
+			return ko;
+		case 'zh':
+			return zhTW;
+		case 'ja':
+			return ja;
+		default:
+			return enUS;
+	}
 }
 
 /**

@@ -49,7 +49,7 @@
 />
 <JsonLd data={profileJsonLd} />
 
-<div class="min-h-[60dvh] bg-olf-lightgreen px-4 py-10">
+<div class="flex-1 bg-olf-lightgreen px-4 py-10">
 	<div class="mx-auto max-w-2xl">
 		<section class="mb-6 rounded-2xl bg-olf-beige p-6">
 			<div class="flex items-center gap-5">

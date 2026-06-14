@@ -105,7 +105,7 @@
 
 <Seo title={m.settings_page_title()} description="Account settings" noindex />
 
-<div class="min-h-[60dvh] bg-olf-lightgreen px-4 py-10">
+<div class="flex-1 bg-olf-lightgreen px-4 py-10">
 	<div class="mx-auto max-w-2xl">
 		<h1 class="mb-6 font-homemade-apple text-4xl font-bold text-olf-darkbrown">
 			{m.settings_heading()}
