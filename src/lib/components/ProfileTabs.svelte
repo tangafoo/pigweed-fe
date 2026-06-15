@@ -11,18 +11,43 @@
 	import type {
 		VoteValue,
 		PostVoteEntry,
-		CommentVoteEntry
+		CommentVoteEntry,
+		Post
 	} from '@meteorclass/pigweed-contract';
-	import { ArrowBigUp, ArrowBigDown, Trophy, Activity } from '@lucide/svelte';
+	import { ArrowBigUp, ArrowBigDown, Trophy, Activity, Newspaper } from '@lucide/svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
+	import PostCard from '$lib/components/PostCard.svelte';
+	import { fetchFeed } from '$lib/api/posts';
 
 	interface ProfileTabsProps {
 		userId: string;
 	}
 	let { userId }: ProfileTabsProps = $props();
 
-	type Tab = 'achievements' | 'activity';
-	let activeTab = $state<Tab>('achievements');
+	type Tab = 'posts' | 'achievements' | 'activity';
+	let activeTab = $state<Tab>('posts');
+
+	// Authored posts — lazy, fetched once. Reuses the public feed endpoint
+	// filtered by authorId (no dedicated endpoint needed).
+	let authoredPosts = $state<Post[]>([]);
+	let postsLoaded = $state(false);
+	let postsLoading = $state(false);
+	let postsError = $state(false);
+
+	async function loadPosts() {
+		if (postsLoaded || postsLoading) return;
+		postsLoading = true;
+		postsError = false;
+		try {
+			const feed = await fetchFeed({ authorId: userId, sort: 'newest', limit: 30 });
+			authoredPosts = feed.posts;
+			postsLoaded = true;
+		} catch {
+			postsError = true;
+		} finally {
+			postsLoading = false;
+		}
+	}
 
 	// Achievements — lazy, fetched once.
 	let achievements = $state<EarnedAchievement[]>([]);
@@ -86,7 +111,8 @@
 
 	function selectTab(tab: Tab) {
 		activeTab = tab;
-		if (tab === 'achievements') loadAchievements();
+		if (tab === 'posts') loadPosts();
+		else if (tab === 'achievements') loadAchievements();
 		else if (!voteLoaded) loadVotes(true);
 	}
 
@@ -102,7 +128,7 @@
 	}
 
 	onMount(() => {
-		loadAchievements();
+		loadPosts();
 	});
 </script>
 
@@ -143,6 +169,17 @@
 <div class="mb-4 flex gap-2">
 	<button
 		type="button"
+		onclick={() => selectTab('posts')}
+		class="flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2 font-oswald font-bold {activeTab ===
+		'posts'
+			? 'bg-olf-darkbrown text-white'
+			: 'bg-olf-beige text-olf-darkbrown'}"
+	>
+		<Newspaper size={16} />
+		{m.profile_tab_posts()}
+	</button>
+	<button
+		type="button"
 		onclick={() => selectTab('achievements')}
 		class="flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2 font-oswald font-bold {activeTab ===
 		'achievements'
@@ -165,7 +202,29 @@
 	</button>
 </div>
 
-{#if activeTab === 'achievements'}
+{#if activeTab === 'posts'}
+	<section class="rounded-2xl bg-olf-beige p-6">
+		{#if postsLoading}
+			<div class="flex justify-center py-8 text-olf-darkbrown/60">
+				<Spinner />
+			</div>
+		{:else if postsError}
+			<p class="font-oswald text-red-700">{m.profile_posts_error()}</p>
+		{:else if authoredPosts.length === 0}
+			<p
+				class="rounded-xl bg-olf-darkbrown/10 px-4 py-6 text-center font-oswald text-olf-darkbrown/70"
+			>
+				{m.profile_posts_empty()}
+			</p>
+		{:else}
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+				{#each authoredPosts as post (post.id)}
+					<PostCard {post} />
+				{/each}
+			</div>
+		{/if}
+	</section>
+{:else if activeTab === 'achievements'}
 	<section class="rounded-2xl bg-olf-beige p-6">
 		{#if achLoading}
 			<p class="font-oswald text-olf-darkbrown/60">{m.profile_achievements_loading()}</p>

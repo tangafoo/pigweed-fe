@@ -1,15 +1,16 @@
 <script lang="ts">
-	import { goto, invalidateAll } from '$app/navigation';
-	import { authClient } from '$lib/api/auth';
-	import Avatar from '$lib/components/Avatar.svelte';
 	import FarmStory from '$lib/components/FarmStory.svelte';
+	import FarmYolk from '$lib/components/FarmYolk.svelte';
+	import FarmPromise from '$lib/components/FarmPromise.svelte';
+	import FarmVisit from '$lib/components/FarmVisit.svelte';
+	import FAQ from '$lib/components/FAQ.svelte';
 	import JsonLd from '$lib/components/JsonLd.svelte';
 	import LatestPostsStrip from '$lib/components/LatestPostsStrip.svelte';
 	import NoIcon from '$lib/components/NoIcon.svelte';
 	import Parallax from '$lib/components/Parallax.svelte';
 	import ProduceOrderButtons from '$lib/components/ProduceOrderButtons.svelte';
 	import Seo from '$lib/components/Seo.svelte';
-	import Spinner from '$lib/components/Spinner.svelte';
+
 	import { produceSections } from '$lib/produceSections';
 	import { asset } from '$lib/assets';
 	import {
@@ -22,11 +23,11 @@
 		SITE_URL
 	} from '$lib/seo';
 	import { m } from '$lib/paraglide/messages.js';
-	import { Sun, CloudRain, HeartCrack, FlaskConical, PiggyBank } from '@lucide/svelte';
+	import { Sun, CloudRain, HeartCrack, FlaskConical } from '@lucide/svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-	const session = $derived(data.session);
+
 	const weather = $derived(data.weather);
 	const latestPosts = $derived(data.latestPosts);
 
@@ -57,20 +58,6 @@
 			{ '@type': 'Offer', itemOffered: { '@type': 'Product', name: 'Tree-ripened fruit' } }
 		]
 	};
-
-	let signingOut = $state(false);
-
-	async function signOut() {
-		if (signingOut) return;
-		signingOut = true;
-		try {
-			await authClient.signOut();
-			await invalidateAll();
-			await goto('/login');
-		} finally {
-			signingOut = false;
-		}
-	}
 </script>
 
 <Seo
@@ -81,11 +68,12 @@
 <JsonLd data={farmJsonLd} />
 
 <Parallax
-	src={asset('chicken hero.webp')}
+	src={asset('chicken-hero02.webp')}
 	srcLg={asset('farm hero.webp')}
 	class="flex items-center lg:h-[50dvh]"
 >
-	<div class="px-6 py-16">
+	<div class="pointer-events-none absolute inset-0 bg-black/35"></div>
+	<div class="relative px-6 py-16">
 		<div class="relative mb-5 flex">
 			<p class="flex-1 font-homemade-apple text-4xl font-bold text-white/95">
 				{m.home_hero_title()}
@@ -120,60 +108,29 @@
 		</div>
 	</div>
 </Parallax>
+
 <div class="bg-olf-darkgreen/95 p-2 text-center text-sm tracking-wide text-white/95">
 	<p>{m.home_delivery_lead()} • <span class="font-light">{m.home_delivery_schedule()}</span></p>
 </div>
+
 {#each produceSections as section (section.heading)}
 	<ProduceOrderButtons {...section} />
 {/each}
 
-<FarmStory>
-	<div class="flex w-full items-center justify-between bg-olf-beige px-4 pt-4 lg:px-6">
-		{#if session}
-			<div class="flex w-full justify-between lg:gap-4">
-				<div class="flex items-center gap-2">
-					<a href="/users/{session.user.id}" aria-label={m.home_profile_link()}>
-						<Avatar
-							animal={session.user.animal}
-							avatarSeed={session.user.avatarSeed}
-							gender={session.user.gender}
-							size="sm"
-						/>
-					</a>
-					<p class="font-semibold">{session.user.username}</p>
-				</div>
-				<div class="flex gap-2">
-					<div
-						class="flex items-center gap-1.5 rounded-full bg-olf-lightgreen px-3 text-sm shadow-md"
-					>
-						<PiggyBank size={16} fill="pink" class="shrink-0" />
-						<p>{session.user.coinBalance}</p>
-					</div>
-					<button
-						type="button"
-						onclick={signOut}
-						disabled={signingOut}
-						class="flex items-center justify-center rounded-full bg-olf-lightbrown px-3 py-1 text-sm font-bold text-olf-darkbrown disabled:opacity-50"
-					>
-						{#if signingOut}
-							<Spinner size={14} label={m.home_signout_in_progress()} />
-						{:else}
-							{m.home_signout_button()}
-						{/if}
-					</button>
-				</div>
-			</div>
-		{:else}
-			<a
-				href="/login"
-				class="ml-auto rounded-full bg-olf-lightgreen px-3 py-1 text-sm font-bold shadow-md lg:ml-0"
-			>
-				{m.home_signin_link()} 🐓
-			</a>
-		{/if}
-	</div>
-</FarmStory>
+<FarmStory />
 
-<p class="bg-olf-beige p-4 text-center">{m.home_feed_teaser()}</p>
+<FarmYolk eggNum={data.eggNum} />
 
-<LatestPostsStrip posts={latestPosts} />
+<p
+	class="bg-olf-beige px-4 py-4 text-center font-oswald text-sm font-medium tracking-wider text-olf-darkgreen uppercase"
+>
+	{m.home_latest_kicker()}
+</p>
+
+<LatestPostsStrip posts={latestPosts} session={data.session} />
+
+<FarmPromise />
+
+<FarmVisit />
+
+<FAQ />

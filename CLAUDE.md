@@ -7,14 +7,23 @@
 
 ## What pigweed is
 
-An anonymous, hyperlocal, animal-themed social network. Every user is a
+A hyperlocal, animal-themed social network. Every user is a
 farm animal (CHICKEN / DOG / GOOSE — randomly assigned, rerollable). The
 feed is **location-bounded**: you only see posts from animals within a
 radius (~100km) of where you currently are. Travel and the feed travels
 with you; each post stays anchored to where it was made. The vibe is
-4chan-flavored anonymity (persistent animal pseudonym, never real
-identity) with adult AI moderation. 4chan rawness, Yik Yak locality, but
-with the moderation Yik Yak never had.
+4chan-flavored anonymity (persistent animal pseudonym) with adult AI
+moderation. 4chan rawness, Yik Yak locality, but with the moderation Yik
+Yak never had.
+
+> **Update (2026-06): no longer strictly anonymous.** ourlittlefarm is now a
+> farm community + customer reviews — owners post updates (flagged "OP") and
+> customers (the aunties buying eggs) review, often under their **real
+> names**. The animal pseudonym is offered and is the default flavor, but
+> `username` may be a real name and anonymity is **not** a guarantee. Treat
+> "never real identity" as historical intent, not a hard rule. Unchanged:
+> user geo is never stored server-side; no DMs. See pigweed-be/CLAUDE.md's
+> matching 2026-06 note for the full reasoning.
 
 ## Visual identity — non-negotiable
 

@@ -4,6 +4,8 @@
 	import type { Gender, SessionUser } from '$lib/api/auth';
 	import Seo from '$lib/components/Seo.svelte';
 	import { randomUsername } from '$lib/username';
+	import { m } from '$lib/paraglide/messages.js';
+	import type { Animal } from '@meteorclass/pigweed-contract';
 	import type { PageData } from './$types';
 	import { Dices, Check } from '@lucide/svelte';
 
@@ -29,12 +31,15 @@
 	let me = $state<SessionUser | null>(null);
 	let rerolling = $state(false);
 
-	const genders: { value: Gender; label: string }[] = [
-		{ value: 'MALE', label: 'Male' },
-		{ value: 'FEMALE', label: 'Female' },
-		{ value: 'NONBINARY', label: 'Nonbinary' },
-		{ value: 'UNDISCLOSED', label: 'Rather not say' }
+	const genders: { value: Gender; label: () => string }[] = [
+		{ value: 'MALE', label: () => m.gender_male() },
+		{ value: 'FEMALE', label: () => m.gender_female() },
+		{ value: 'NONBINARY', label: () => m.gender_nonbinary() },
+		{ value: 'UNDISCLOSED', label: () => m.gender_undisclosed() }
 	];
+
+	const animalLabel = (a: Animal) =>
+		a === 'CHICKEN' ? m.animal_chicken() : a === 'DOG' ? m.animal_dog() : m.animal_goose();
 
 	// Already clucking — no reason to sit on the signup page.
 	$effect(() => {
@@ -116,12 +121,12 @@
 			novalidate
 		>
 			<h1 class="mb-1 font-homemade-apple text-3xl font-bold text-olf-darkbrown">
-				Hatch an account
+				{m.signup_heading()}
 			</h1>
-			<p class="mb-6 text-olf-darkbrown/70">See what users are saying in your neighbourhood</p>
+			<p class="mb-6 text-olf-darkbrown/70">{m.signup_subtitle()}</p>
 
 			<label class="mb-4 block">
-				<span class="mb-1 block text-sm font-bold text-olf-darkbrown">Email</span>
+				<span class="mb-1 block text-sm font-bold text-olf-darkbrown">{m.signup_email_label()}</span>
 				<input
 					bind:value={email}
 					type="email"
@@ -133,13 +138,13 @@
 
 			<div class="mb-4 block">
 				<span class="mb-1 flex items-center justify-between text-sm font-bold text-olf-darkbrown">
-					<span>Username</span>
+					<span>{m.signup_username_label()}</span>
 					<button
 						type="button"
 						onclick={shuffle}
 						class="font-supermercado-one text-xs font-bold text-olf-darkbrown underline"
 					>
-						Generate
+						{m.signup_username_generate()}
 						<Dices size={12} class="inline-block" />
 					</button>
 				</span>
@@ -157,18 +162,18 @@
 					{#if usernameError}
 						<span class=" text-red-700">{usernameError}</span>
 					{:else if avail === 'checking'}
-						<span class="mt-1 text-sm text-olf-darkbrown/60">Checking…</span>
+						<span class="mt-1 text-sm text-olf-darkbrown/60">{m.signup_username_checking()}</span>
 					{:else if avail === 'available'}
-						<span class="text-olf-darkgreen">Username is available</span>
+						<span class="text-olf-darkgreen">{m.signup_username_available()}</span>
 						<Check size={12} class="inline-block text-olf-darkgreen" />
 					{:else if avail === 'taken'}
-						<span class=" text-red-700">Already taken — try another.</span>
+						<span class=" text-red-700">{m.signup_username_taken()}</span>
 					{/if}
 				</p>
 			</div>
 
 			<label class="mb-4 block">
-				<span class="mb-1 block text-sm font-bold text-olf-darkbrown">Password</span>
+				<span class="mb-1 block text-sm font-bold text-olf-darkbrown">{m.signup_password_label()}</span>
 				<input
 					bind:value={password}
 					type="password"
@@ -177,17 +182,17 @@
 					required
 					class="w-full rounded-lg border-2 border-olf-lightbrown bg-white/80 px-3 py-2 focus:border-olf-darkbrown focus:outline-none"
 				/>
-				<span class="mt-1 block text-xs text-olf-darkbrown/60">At least 8 characters.</span>
+				<span class="mt-1 block text-xs text-olf-darkbrown/60">{m.signup_password_hint()}</span>
 			</label>
 
 			<label class="mb-6 block">
-				<span class="mb-1 block text-sm font-bold text-olf-darkbrown">Gender</span>
+				<span class="mb-1 block text-sm font-bold text-olf-darkbrown">{m.signup_gender_label()}</span>
 				<select
 					bind:value={gender}
 					class="w-full rounded-lg border-2 border-olf-lightbrown bg-white/80 px-3 py-2 focus:border-olf-darkbrown focus:outline-none"
 				>
 					{#each genders as g (g.value)}
-						<option value={g.value}>{g.label}</option>
+						<option value={g.value}>{g.label()}</option>
 					{/each}
 				</select>
 			</label>
@@ -201,21 +206,21 @@
 				disabled={submitting || !email || !username || !password || avail === 'taken'}
 				class="w-full rounded-full bg-olf-darkbrown px-4 py-2 text-lg font-bold text-white disabled:opacity-50"
 			>
-				{submitting ? 'Creating…' : 'Create Account'}
+				{submitting ? m.signup_submitting() : m.signup_submit()}
 			</button>
 
 			<p class="mt-4 text-center text-sm text-olf-darkbrown/70">
-				Already have an account?
-				<a href="/login" class="font-bold text-olf-darkbrown underline">Sign in</a>
+				{m.signup_have_account()}
+				<a href="/login" class="font-bold text-olf-darkbrown underline">{m.signup_signin_link()}</a>
 			</p>
 		</form>
 	{:else}
 		<div class="w-full max-w-sm rounded-2xl bg-olf-beige p-6 text-center shadow-lg">
 			<h1 class="mb-1 font-homemade-apple text-3xl font-bold text-olf-darkbrown">
-				Meet your animal
+				{m.signup_meet_heading()}
 			</h1>
 			<p class="mb-6 text-olf-darkbrown/70">
-				Don't like it? Reroll a new one — this cannot be changed later.
+				{m.signup_meet_subtitle()}
 			</p>
 
 			<!-- TODO: replace this placeholder with the procedural
@@ -225,15 +230,15 @@
 				class="mx-auto mb-4 flex h-32 w-32 items-center justify-center rounded-full bg-olf-lightbrown"
 			>
 				<span class="font-supermercado-one text-2xl text-white">
-					{me?.animal ?? '…'}
+					{me ? animalLabel(me.animal) : '…'}
 				</span>
 			</div>
 
 			<p class="mb-6 text-olf-darkbrown">
-				You're <span class="font-semibold">{me?.username}</span>, a
-				<span class="font-supermercado-one font-bold"
-					>{me?.animal?.toLowerCase() ?? 'creature'}</span
-				>.
+				{m.signup_meet_intro({
+					username: me?.username ?? '',
+					animal: me ? animalLabel(me.animal) : ''
+				})}
 			</p>
 
 			<button
@@ -242,7 +247,7 @@
 				disabled={rerolling}
 				class="mb-3 w-full rounded-full border-2 border-olf-darkbrown px-4 py-2 text-lg font-semibold text-olf-darkbrown disabled:opacity-50"
 			>
-				{rerolling ? 'Rolling…' : 'Reroll'}
+				{rerolling ? m.signup_meet_rerolling() : m.signup_meet_reroll()}
 				<Dices size={16} class="inline-block" />
 			</button>
 
@@ -251,7 +256,7 @@
 				onclick={enterFarm}
 				class="w-full rounded-full bg-olf-darkbrown px-4 py-2 text-lg font-bold text-white"
 			>
-				Enter the farm
+				{m.signup_meet_enter()}
 			</button>
 		</div>
 	{/if}
