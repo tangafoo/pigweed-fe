@@ -77,14 +77,14 @@
 	noindex
 />
 
-<div class="flex min-h-[60dvh] items-center justify-center bg-olf-lightgreen px-4 py-10">
+<div class="flex flex-1 items-center justify-center bg-olf-lightgreen px-4 py-10">
 	<form onsubmit={submit} class="w-full max-w-sm rounded-2xl bg-olf-beige p-6 shadow-lg" novalidate>
-		<h1 class="mb-1 font-homemade-apple text-3xl font-bold text-olf-darkbrown">Back to the coop</h1>
-		<p class="mb-6 font-oswald text-olf-darkbrown/70">Anonymous. Hyperlocal. Chatter.</p>
+		<h1 class="mb-1 font-homemade-apple text-3xl font-bold text-olf-darkbrown">{m.login_heading()}</h1>
+		<p class="mb-6 font-oswald text-olf-darkbrown/70">{m.login_subtitle()}</p>
 
 		<label class="mb-4 block">
 			<span class="mb-1 block font-oswald text-sm font-bold text-olf-darkbrown">
-				Username / Email
+				{m.login_identifier_label()}
 			</span>
 			<input
 				bind:value={identifier}
@@ -96,7 +96,7 @@
 		</label>
 
 		<label class="mb-6 block">
-			<span class="mb-1 block font-oswald text-sm font-bold text-olf-darkbrown">Password</span>
+			<span class="mb-1 block font-oswald text-sm font-bold text-olf-darkbrown">{m.login_password_label()}</span>
 			<input
 				bind:value={password}
 				type="password"
@@ -115,12 +115,12 @@
 			disabled={submitting || !identifier || !password}
 			class="w-full rounded-full bg-olf-darkbrown px-4 py-2 font-oswald text-lg font-bold text-white disabled:opacity-50"
 		>
-			{submitting ? 'Letting you in…' : 'Sign in'}
+			{submitting ? m.login_submitting() : m.login_submit()}
 		</button>
 
 		<div class="my-4 flex items-center gap-3 font-oswald text-xs text-olf-darkbrown/60">
 			<span class="h-px flex-1 bg-olf-darkbrown/20"></span>
-			added a passkey ?
+			{m.login_passkey_divider()}
 			<span class="h-px flex-1 bg-olf-darkbrown/20"></span>
 		</div>
 
@@ -135,7 +135,8 @@
 		</button>
 
 		<p class="mt-4 text-center font-oswald text-sm text-olf-darkbrown/70">
-			No account yet? <a href="/signup" class="font-bold text-olf-darkgreen underline">Sign up</a>
+			{m.login_no_account()}
+			<a href="/signup" class="font-bold text-olf-darkgreen underline">{m.login_signup_link()}</a>
 		</p>
 	</form>
 </div>
