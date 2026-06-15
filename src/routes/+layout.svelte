@@ -5,18 +5,28 @@
 	import LocaleSwitcher from '$lib/components/LocaleSwitcher.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import JsonLd from '$lib/components/JsonLd.svelte';
+	import Toast from '$lib/components/Toast.svelte';
+	import { connectEvents, disconnectEvents } from '$lib/realtime/events';
+	import type { Session } from '@meteorclass/pigweed-contract';
 	import { SITE_NAME, SITE_TAGLINE, SITE_URL } from '$lib/seo';
-	import { m } from '$lib/paraglide/messages.js';
 
 	let { children } = $props();
 
-	// userCount is loaded only by `/`'s `+page.ts`. Layout reads it via
-	// the merged page data — undefined on every other route, so the
-	// count silently disappears off the home page (no extra fetch cost
-	// for /login, /signup, /settings).
-	const userCount = $derived(
-		(page.data as { userCount?: number | null }).userCount ?? null
+	// Open the live notifications SSE stream while signed in (client-only —
+	// effects don't run during SSR). Key the effect on the user ID (a stable
+	// primitive), NOT the session object: every invalidateAll() yields a fresh
+	// session object, which would otherwise tear the stream down and back up —
+	// and an achievement event arriving in that window (exactly what the
+	// post→toast flow triggers) would be missed. Depending on the id means the
+	// stream only opens/closes on actual login/logout.
+	const userId = $derived(
+		(page.data as { session?: Session | null }).session?.user.id ?? null
 	);
+	$effect(() => {
+		if (!userId) return;
+		connectEvents();
+		return () => disconnectEvents();
+	});
 
 	const websiteJsonLd = {
 		'@context': 'https://schema.org',
@@ -24,7 +34,7 @@
 		name: SITE_NAME,
 		url: SITE_URL,
 		description: SITE_TAGLINE,
-		inLanguage: ['en', 'ko']
+		inLanguage: ['en', 'ko', 'zh', 'ja']
 	};
 
 	const organizationJsonLd = {
@@ -41,19 +51,18 @@
 <JsonLd data={websiteJsonLd} />
 <JsonLd data={organizationJsonLd} />
 
-<div class="flex w-full items-center gap-3 bg-olf-darkbrown px-2 py-3">
-	<a href="/" class="font-homemade-apple font-bold tracking-wider text-white">Our Little Farm</a>
-	<div class="ml-auto flex items-center">
-		{#if userCount !== null}
-			<span class="font-supermercado-one text-sm text-white">
-				{m.home_user_count({ count: userCount })}
-			</span>
-			<div class="mx-2 h-3.5 border-l border-white/60"></div>
-		{/if}
-		<LocaleSwitcher />
+<div class="flex min-h-dvh flex-col">
+	<div class="flex w-full items-center gap-3 bg-olf-darkbrown px-2 py-3">
+		<a href="/" class="font-homemade-apple font-bold tracking-wider text-white">Our Little Farm</a>
+		<div class="ml-auto flex items-center">
+			<LocaleSwitcher />
+		</div>
 	</div>
+
+	<main class="flex flex-1 flex-col">
+		{@render children()}
+	</main>
+
+	<Footer />
 </div>
-
-{@render children()}
-
-<Footer />
+<Toast />

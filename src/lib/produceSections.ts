@@ -8,15 +8,19 @@ export const produceSections = [
 	{
 		heading: m.home_eggs_heading,
 		description: m.home_eggs_description,
+		priceLine: m.home_eggs_price,
 		buttonLabel: m.home_eggs_preorder,
 		icon: Egg,
-		imageSrc: asset('chicken houses.webp'),
+		iconClass: 'fill-olf-eggshell',
+		imageSrc: asset('chickens-eating-cantaloupe.webp'),
 		imageAlt: 'Chicken house',
 		brightnessClass: '',
 		disabled: false,
 		seam: false,
 		whatsAppPhone: '60172332992',
-		whatsAppMessage: (quantity: number) => m.home_eggs_order_message({ quantity })
+		unitSize: 15,
+		whatsAppMessage: (quantity: number) =>
+			m.home_eggs_order_message({ boxes: quantity, total: quantity * 15 })
 	},
 	{
 		heading: m.home_veggies_heading,

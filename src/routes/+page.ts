@@ -52,5 +52,8 @@ export const load: PageLoad = async ({ fetch, setHeaders }) => {
 		fetchUserCount(fetch),
 		fetchLatestPosts(fetch)
 	]);
-	return { weather, userCount, latestPosts };
+	// Random egg photo (1–4) for the "why pay more" section. Chosen in load so
+	// SSR renders the final image — no onMount glimpse, no hydration mismatch.
+	const eggNum = 1 + Math.floor(Math.random() * 4);
+	return { weather, userCount, latestPosts, eggNum };
 };
