@@ -10,7 +10,9 @@ Bun/Hono/Prisma backend over a single typed contract. The backend stays
 strictly numeric; the frontend is where it gets visual.
 
 <p align="center">
-  <img src="docs/screenshot.png" alt="ourlittlefarm landing page" width="360">
+  <img src="docs/screenshot.png" alt="ourlittlefarm landing page" width="240">
+  <img src="docs/feed.png" alt="Location-bounded feed with category and rating filters" width="240">
+  <img src="docs/order.png" alt="Egg order modal" width="240">
 </p>
 
 ## What's interesting in here
