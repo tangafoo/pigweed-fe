@@ -25,6 +25,25 @@ Yak never had.
 > user geo is never stored server-side; no DMs. See pigweed-be/CLAUDE.md's
 > matching 2026-06 note for the full reasoning.
 
+> **Update (2026-06): the social layer is BUILT** (this brief's "only thing
+> left to build" framing is now stale). Shipped: `src/lib/api/posts.ts` (the
+> single feed data seam — future RAG swap-in point: `fetchFeed`/`createPost`/
+> `uploadMedia`), `PostCard.svelte`, a hand-rolled step-and-dwell GSAP carousel
+> in `LatestPostsStrip`, the `/posts` page (category + star filters), the
+> `/posts/new` create form (geo with farm fallback — posting never blocks on
+> location — + multi-image upload + 422 handling), a profile **Posts** tab, and
+> live SSE achievement toasts (`lib/realtime/events.ts` + `Toast.svelte`, wired
+> in `+layout.svelte` keyed on `userId`). Locales now **en/ko/zh/ja** (zh =
+> Traditional) via a dropdown `LocaleSwitcher`. **Contract additions** (the doc
+> below predates them): `Post` has `category` (PostCategory incl. ANIMALS,
+> nullable) + `rating` (1–5, nullable); `Author` has `isFarmOwner` (→ "OP"
+> badge) and is `{id, username, gender, animal, avatarSeed, isFarmOwner}` (NOT
+> `{id,name,image}` as written below); the moderation error field is
+> `rejectedCategories`. Still deferred: real procedural avatars (blocked on iPad
+> art — `Avatar.svelte` is a placeholder), comments UI, `/posts/[id]` detail,
+> video upload. Next infra step: deploy BE to Railway (see pigweed-be memory
+> `be-deploy-fe-wiring-checklist` — `PUBLIC_API_BASE_URL`, CORS, api subdomain).
+
 ## Visual identity — non-negotiable
 
 - **Heavy SVG, GSAP-animated, math-driven.** Visual state _derives_ from
