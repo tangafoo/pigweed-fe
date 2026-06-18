@@ -69,7 +69,7 @@
 
 <Parallax
 	src={asset('chicken-hero02.webp')}
-	srcLg={asset('farm hero.webp')}
+	srcLg={asset('chicken-hero02.webp')}
 	class="flex items-center lg:h-[50dvh]"
 >
 	<div class="pointer-events-none absolute inset-0 bg-black/35"></div>

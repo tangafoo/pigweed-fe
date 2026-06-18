@@ -2,3 +2,6 @@ name = "ourlittlefarm"
 pages_build_output_dir = ".svelte-kit/cloudflare"
 compatibility_date = "2026-05-19"
 compatibility_flags = ["nodejs_compat"]
+
+[vars]
+PUBLIC_API_BASE_URL = "https://api.ourlittlefarm.club"
