@@ -58,6 +58,84 @@
 			{ '@type': 'Offer', itemOffered: { '@type': 'Product', name: 'Tree-ripened fruit' } }
 		]
 	};
+
+	// Scroll-driven head-cluck: a barely-there tilt scrubbed by scroll position
+	// as the hen travels through the viewport — rest → +10° → 0° → -10° → 0°.
+	// Pivots near the base so it reads as a lean, not a spin. The gaps between
+	// segments are "dwell" scroll where the head holds still. Async GSAP +
+	// ScrollTrigger (matches Parallax.svelte), reduced-motion aware.
+	function cluck(node: HTMLElement) {
+		let cleanup: (() => void) | undefined;
+
+		(async () => {
+			if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+			const { gsap } = await import('gsap');
+			const { ScrollTrigger } = await import('gsap/ScrollTrigger');
+			gsap.registerPlugin(ScrollTrigger);
+			gsap.set(node, { transformOrigin: '50% 80%' });
+
+			const tl = gsap
+				.timeline({
+					defaults: { duration: 1, ease: 'sine.inOut' },
+					scrollTrigger: {
+						trigger: node,
+						start: 'top bottom', // hen enters from the bottom of the viewport
+						end: 'bottom top', // …until it scrolls off the top
+						scrub: true
+					}
+				})
+				.to(node, { rotation: 10 })
+				.to(node, { rotation: 0 }, '+=1') // dwell, then settle
+				.to(node, { rotation: -10 }, '+=1')
+				.to(node, { rotation: 0 }, '+=1');
+
+			cleanup = () => {
+				tl.scrollTrigger?.kill();
+				tl.kill();
+			};
+		})();
+
+		return { destroy: () => cleanup?.() };
+	}
+
+	// Scroll-driven hop: same idea as cluck but a tiny vertical bounce instead
+	// of a tilt — rest → up → down → up → rest as the element passes through
+	// the viewport. Super minimal. Async GSAP + ScrollTrigger, reduced-motion aware.
+	function hop(node: HTMLElement) {
+		let cleanup: (() => void) | undefined;
+
+		(async () => {
+			if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+			const { gsap } = await import('gsap');
+			const { ScrollTrigger } = await import('gsap/ScrollTrigger');
+			gsap.registerPlugin(ScrollTrigger);
+
+			const tl = gsap.timeline({
+				defaults: { duration: 0.5 },
+				scrollTrigger: {
+					trigger: node,
+					start: 'top bottom',
+					end: 'bottom top',
+					scrub: true
+				}
+			});
+			// several small hops across the scroll range. Gravity-shaped easing:
+			// launch decelerates toward the apex (power2.out), fall accelerates
+			// back down (power2.in), with a brief dwell between hops.
+			for (let i = 0; i < 6; i++) {
+				tl.to(node, { y: -3, ease: 'power2.out' })
+					.to(node, { y: 0, ease: 'power2.in' })
+					.to(node, {}, '+=0.4');
+			}
+
+			cleanup = () => {
+				tl.scrollTrigger?.kill();
+				tl.kill();
+			};
+		})();
+
+		return { destroy: () => cleanup?.() };
+	}
 </script>
 
 <Seo
@@ -105,6 +183,17 @@
 				<NoIcon icon={FlaskConical} size={55} />
 				{m.home_no_chemicals()}
 			</p>
+			<p class="flex flex-col gap-1 text-white/90">
+				<span class="relative inline-flex items-center justify-center">
+					<img
+						use:cluck
+						src={asset('henkerchief.webp')}
+						alt=""
+						class="h-14 w-14 shrink-0 object-contain p-1"
+					/>
+				</span>
+				{m.home_happy_hens()}
+			</p>
 		</div>
 	</div>
 </Parallax>
@@ -121,11 +210,19 @@
 
 <FarmYolk eggNum={data.eggNum} />
 
-<p
-	class="bg-olf-beige px-4 py-4 text-center font-oswald text-sm font-medium tracking-wider text-olf-darkgreen uppercase"
->
-	{m.home_latest_kicker()}
-</p>
+<div class="bg-olf-beige px-4 py-4 text-center">
+	<img
+		use:hop
+		src={asset('hen with chicks.webp')}
+		alt=""
+		class="mx-auto mb-2 w-24 object-contain"
+	/>
+	<p
+		class="font-oswald text-sm font-medium tracking-wider text-olf-darkgreen uppercase"
+	>
+		{m.home_latest_kicker()}
+	</p>
+</div>
 
 <LatestPostsStrip posts={latestPosts} session={data.session} />
 
