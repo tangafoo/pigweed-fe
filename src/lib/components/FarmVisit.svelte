@@ -3,6 +3,17 @@
 	import { MapPin } from '@lucide/svelte';
 	import Parallax from '$lib/components/Parallax.svelte';
 	import { asset } from '$lib/assets';
+	import { MANTIN_COORDS } from '$lib/seo';
+
+	const { lat, lng } = MANTIN_COORDS;
+
+	// A small bounding box around the farm keeps the embed zoomed in on the
+	// gate rather than the whole district. OSM's export embed needs the box
+	// as min/max lng/lat plus a marker at the exact pin.
+	const pad = 0.012;
+	const bbox = `${lng - pad},${lat - pad},${lng + pad},${lat + pad}`;
+	const embedSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`;
+	const fullMapHref = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=15/${lat}/${lng}`;
 </script>
 
 <Parallax src={asset('chickens-eating-cucumber.webp')} class="h-56 w-full lg:h-72" />
@@ -19,4 +30,21 @@
 		<MapPin size={16} class="shrink-0 text-olf-lightgreen" />
 		{m.home_visit_location()}
 	</p>
+
+	<div class="mt-4 w-full max-w-2xl overflow-hidden rounded-2xl border-4 border-olf-lightgreen">
+		<iframe
+			title={m.home_visit_map_title()}
+			src={embedSrc}
+			loading="lazy"
+			class="block h-64 w-full lg:h-80"
+		></iframe>
+	</div>
+	<a
+		href={fullMapHref}
+		target="_blank"
+		rel="noopener noreferrer"
+		class="font-oswald text-xs tracking-wide text-olf-lightgreen underline underline-offset-4 hover:text-olf-beige"
+	>
+		{m.home_visit_view_map()}
+	</a>
 </section>

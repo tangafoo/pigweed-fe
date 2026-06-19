@@ -95,6 +95,8 @@
 	"home_visit_heading": "門はいつでも開いています",
 	"home_visit_body": "ヌグリ・スンビランのマンティン、静かな小道の先でわたしたちに会えます。朝がいちばんです——卵はまだ温かく、やかんはたいてい火にかかっています。かごを持ってきてください。雌鶏もガチョウもアヒルも人なつこいので、近いうちに子どもたち向けの小さな農場見学も計画しています。",
 	"home_visit_location": "マンティン · ヌグリ・スンビラン · マレーシア",
+	"home_visit_map_title": "農場の地図",
+	"home_visit_view_map": "大きな地図で見る",
 	"home_latest_kicker": "最新のレビューとお知らせ",
 	"home_latest_empty": "いまは鶏舎が静かです——最初に声をあげてみませんか。",
 	"home_enter_farm": "農場に入る",
@@ -112,7 +114,7 @@
 	"home_faq_q5": "卵以外も売っていますか？",
 	"home_faq_a5": "旬の野菜と木で熟した果物を、準備ができ次第お分けします。",
 
-	"footer_tagline": "匿名、超ローカル、動物の声。",
+	"footer_tagline": "農場コミュニティと卵の店 — 地域密着のレビューと投稿。",
 	"footer_link_signin": "サインイン",
 	"footer_link_signup": "卵をかえす",
 	"footer_link_settings": "設定",

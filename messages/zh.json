@@ -95,6 +95,8 @@
 	"home_visit_heading": "門，永遠敞開",
 	"home_visit_body": "你會在森美蘭萬撓一條幽靜小巷的盡頭找到我們。清晨最好——雞蛋還溫熱，水壺通常正燒著。帶個籃子來吧。我們的母雞、鵝和鴨都很友善，不久後我們還打算為孩子們籌辦些小小的農場之旅。",
 	"home_visit_location": "萬撓 · 森美蘭 · 馬來西亞",
+	"home_visit_map_title": "農場地圖",
+	"home_visit_view_map": "查看大地圖",
 	"home_latest_kicker": "最新評論與動態",
 	"home_latest_empty": "雞舍此刻很安靜——來當第一個發聲的吧。",
 	"home_enter_farm": "進入農場",
@@ -112,7 +114,7 @@
 	"home_faq_q5": "除了雞蛋還賣別的嗎？",
 	"home_faq_a5": "當季蔬菜與樹上熟成的水果，準備好就供應。",
 
-	"footer_tagline": "匿名、超在地、動物飼料。",
+	"footer_tagline": "農場社群與雞蛋商店 — 在地評論與貼文。",
 	"footer_link_signin": "登入",
 	"footer_link_signup": "孵一個",
 	"footer_link_settings": "設定",

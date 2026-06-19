@@ -215,11 +215,9 @@
 		use:hop
 		src={asset('hen with chicks.webp')}
 		alt=""
-		class="mx-auto mb-2 w-24 object-contain"
+		class="mx-auto mb-2 w-18 object-contain"
 	/>
-	<p
-		class="font-oswald text-sm font-medium tracking-wider text-olf-darkgreen uppercase"
-	>
+	<p class="font-oswald text-sm font-medium tracking-wider text-olf-darkgreen uppercase">
 		{m.home_latest_kicker()}
 	</p>
 </div>

@@ -95,6 +95,8 @@
 	"home_visit_heading": "문은 언제나 열려 있어요",
 	"home_visit_body": "만틴, 느그리슴빌란의 조용한 골목 끝에서 저희를 만날 수 있어요. 아침이 가장 좋아요 — 달걀은 아직 따뜻하고 주전자에는 보통 물이 끓고 있거든요. 바구니를 챙겨 오세요. 저희 암탉과 거위, 오리들은 다정한 친구들이라, 머지않아 아이들을 위한 작은 농장 나들이도 꿈꾸고 있답니다.",
 	"home_visit_location": "만틴 · 느그리슴빌란 · 말레이시아",
+	"home_visit_map_title": "농장 지도",
+	"home_visit_view_map": "지도 크게 보기",
 	"home_latest_kicker": "최신 리뷰와 소식",
 	"home_latest_empty": "지금은 닭장이 조용하네요 — 가장 먼저 떠들썩하게 만들어 보세요.",
 	"home_enter_farm": "농장으로 들어가기",
@@ -112,7 +114,7 @@
 	"home_faq_q5": "달걀 말고 다른 것도 파나요?",
 	"home_faq_a5": "제철 채소와 나무에서 익힌 과일을, 준비되는 대로 판매해요.",
 
-	"footer_tagline": "익명, 초지역, 동물 피드.",
+	"footer_tagline": "농장 커뮤니티 & 달걀 가게 — 위치 기반 후기와 글.",
 	"footer_link_signin": "로그인",
 	"footer_link_signup": "둥지 만들기",
 	"footer_link_settings": "설정",

@@ -26,7 +26,7 @@ export const SITE_OG_DESCRIPTION =
 // Drop a 1200×630 og-cover.jpg into the R2 assets bucket and this picks it up.
 export const SITE_OG_IMAGE = asset('og-cover.jpg');
 
-export const MANTIN_COORDS = { lat: 2.7, lng: 101.93 } as const;
+export const MANTIN_COORDS = { lat: 2.829086650126103, lng: 101.87180382313247 } as const;
 
 export const absoluteUrl = (path: string): string => {
 	if (/^https?:\/\//.test(path)) return path;

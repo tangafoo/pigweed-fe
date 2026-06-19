@@ -27,7 +27,13 @@
 
 	// One panel open at a time (classic accordion). `null` = all closed.
 	let openIndex = $state<number | null>(null);
-	const toggle = (i: number) => (openIndex = openIndex === i ? null : i);
+	// Set by the `hopOnClick` action once GSAP loads; replays the hen's hop on
+	// every accordion toggle. No-op until ready / under reduced-motion.
+	let playHop: (() => void) | undefined;
+	const toggle = (i: number) => {
+		openIndex = openIndex === i ? null : i;
+		playHop?.();
+	};
 
 	// Honor reduced-motion — Svelte transitions don't gate themselves.
 	// Evaluated once on the client; SSR (no window) just renders closed.
@@ -36,10 +42,10 @@
 			? 0
 			: 250;
 
-	// Auto-looping idle hop for the FAQ hen (faces left): a tiny up-and-left hop
-	// with a slight left tilt, settle back, then a ~2.5s rest before the next.
-	// Time-driven (not scroll), pivots at the feet. Async GSAP, reduced-motion aware.
-	const hopLoop = (node: HTMLElement) => {
+	// FAQ hen (faces left): a tiny up-and-left hop with a slight left tilt, then
+	// settle back. Plays once per accordion click (wired through `playHop`),
+	// not on a loop. Async GSAP, pivots at the feet, reduced-motion aware.
+	const hopOnClick = (node: HTMLElement) => {
 		let tl: gsap.core.Timeline | undefined;
 
 		(async () => {
@@ -47,9 +53,10 @@
 			const { gsap } = await import('gsap');
 			gsap.set(node, { transformOrigin: '50% 100%' });
 			tl = gsap
-				.timeline({ repeat: -1, repeatDelay: 5 })
-				.to(node, { x: -3, y: -4, rotation: -5, duration: 0.35, ease: 'power2.out' })
-				.to(node, { x: 0, y: 0, rotation: 0, duration: 0.4, ease: 'power2.in' });
+				.timeline({ paused: true })
+				.to(node, { x: -3, y: -4, rotation: -5, duration: 0.45, ease: 'power2.out' })
+				.to(node, { x: 0, y: 0, rotation: 0, duration: 0.22, ease: 'power2.in' });
+			playHop = () => tl?.restart();
 		})();
 
 		return { destroy: () => tl?.kill() };
@@ -70,7 +77,7 @@
 				</h2>
 			</div>
 			<img
-				use:hopLoop
+				use:hopOnClick
 				src={asset('chicken-drawing-brown.webp')}
 				alt=""
 				class="ml-auto w-24 shrink-0 lg:w-32"

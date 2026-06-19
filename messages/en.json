@@ -95,6 +95,8 @@
 	"home_visit_heading": "The gate's always open",
 	"home_visit_body": "You'll find us down a quiet lane in Mantin, Negeri Sembilan. Mornings are best — the eggs are still warm and the kettle's usually on. Bring a basket. Our hens, geese and ducks are a friendly bunch, so we're dreaming up little farm visits for kids before long.",
 	"home_visit_location": "Mantin · Negeri Sembilan · Malaysia",
+	"home_visit_map_title": "Map of the farm",
+	"home_visit_view_map": "View larger map",
 	"home_latest_kicker": "Latest Reviews and Updates",
 	"home_latest_empty": "The coop's quiet right now — be the first to make some noise.",
 	"home_enter_farm": "See More",
@@ -112,7 +114,7 @@
 	"home_faq_q5": "Do you sell anything besides eggs?",
 	"home_faq_a5": "Seasonal vegetables and tree-ripened fruit, whenever they're ready.",
 
-	"footer_tagline": "Anonymous, hyperlocal, animal feed.",
+	"footer_tagline": "Farm community & egg store — location-bound reviews and posts.",
 	"footer_link_signin": "Sign in",
 	"footer_link_signup": "Hatch one",
 	"footer_link_settings": "Settings",

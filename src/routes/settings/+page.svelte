@@ -6,6 +6,7 @@
 	import { Fingerprint, KeyRound, Trash2, Plus, UserRound } from '@lucide/svelte';
 	import type { PageData } from './$types';
 	import { ANIMAL_LABEL, GENDER_LABEL } from '$lib/utils/labels';
+	import { asset } from '$lib/assets';
 
 	let { data }: { data: PageData } = $props();
 	// `+page.server.ts` redirects unauthenticated visitors, so the layout's
@@ -147,7 +148,10 @@
 					class="flex items-center justify-between gap-3 rounded-xl bg-olf-darkbrown px-4 py-3 text-white"
 				>
 					<dt class="text-white/70">{m.account_field_coin_balance()}</dt>
-					<dd class="font-bold">🪙 {user.coinBalance}</dd>
+					<dd class="flex items-center gap-1.5 font-bold">
+						<img src={asset('egg05.webp')} alt="" class="h-4 w-4 shrink-0 object-contain" />
+						{user.coinBalance}
+					</dd>
 				</div>
 				<div
 					class="flex items-center justify-between gap-3 rounded-xl bg-olf-darkbrown px-4 py-3 text-white"
