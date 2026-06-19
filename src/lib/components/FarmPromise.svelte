@@ -189,7 +189,7 @@
 					<Icon size={36} strokeWidth={1.5} class={p.iconClass} />
 				</span>
 				<p class="font-supermercado-one text-lg">{p.title()}</p>
-				<p class="max-w-xs font-oswald text-sm text-olf-beige/75">{p.body()}</p>
+				<p class="max-w-xs font-oswald text-[0.95rem] tracking-wide text-olf-beige/85">{p.body()}</p>
 			</div>
 		{/each}
 	</div>

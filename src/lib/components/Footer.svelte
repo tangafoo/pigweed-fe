@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages.js';
+	import { page } from '$app/state';
+	import { orderModal } from '$lib/stores/orderModal.svelte';
+	import type { Session } from '@meteorclass/pigweed-contract';
 
 	const year = new Date().getFullYear();
+	const signedIn = $derived(!!(page.data as { session?: Session | null }).session);
 </script>
 
 <footer class="w-full bg-olf-darkgreen px-6 py-10 text-white">
@@ -12,9 +16,19 @@
 		</div>
 
 		<nav class="flex flex-wrap items-center gap-x-5 gap-y-2 font-oswald text-sm">
-			<a href="/login" class="hover:text-olf-lightgreen">{m.footer_link_signin()}</a>
-			<a href="/signup" class="hover:text-olf-lightgreen">{m.footer_link_signup()}</a>
-			<a href="/settings" class="hover:text-olf-lightgreen">{m.footer_link_settings()}</a>
+			{#if signedIn}
+				<a href="/settings" class="hover:text-olf-lightgreen">{m.footer_link_account()}</a>
+			{:else}
+				<a href="/signup" class="hover:text-olf-lightgreen">{m.footer_link_make_account()}</a>
+			{/if}
+			<a href="/posts" class="hover:text-olf-lightgreen">{m.footer_link_posts()}</a>
+			<button
+				type="button"
+				onclick={() => (orderModal.open = true)}
+				class="hover:text-olf-lightgreen"
+			>
+				{m.home_order_eggs()}
+			</button>
 		</nav>
 	</div>
 

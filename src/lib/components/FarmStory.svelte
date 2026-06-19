@@ -3,6 +3,7 @@
 	import { m } from '$lib/paraglide/messages.js';
 	import Parallax from '$lib/components/Parallax.svelte';
 	import { asset } from '$lib/assets';
+	import { orderModal } from '$lib/stores/orderModal.svelte';
 
 	interface FarmStoryProps {
 		// Rendered at the top of the story column, above the copy. The home
@@ -50,7 +51,7 @@
 			const tl = gsap.timeline({
 				scrollTrigger: {
 					trigger: node.closest('section'),
-					start: isDesktop ? 'top 70%' : 'top 45%',
+					start: isDesktop ? 'top 82%' : 'top 80%',
 					end: 'bottom top',
 					scrub: true
 				}
@@ -101,16 +102,32 @@
 			<h2 class="font-homemade-apple text-3xl leading-snug text-olf-darkbrown">
 				{m.home_story_heading()}
 			</h2>
-			<p class="font-oswald text-sm leading-relaxed text-olf-darkbrown/80">
+			<p class="font-oswald text-[0.95rem] leading-relaxed tracking-wide text-olf-darkbrown/85">
 				{m.home_story_body_1()}
 			</p>
-			<p class="font-oswald text-sm leading-relaxed text-olf-darkbrown/80">
+			<p class="font-oswald text-[0.95rem] leading-relaxed tracking-wide text-olf-darkbrown/85">
 				{m.home_story_body_2()}
 			</p>
-			<p class="mt-1 font-oswald text-sm font-light text-olf-darkbrown/55 italic">
+			<p class="font-oswald text-[0.95rem] leading-relaxed tracking-wide text-olf-darkbrown/85">
+				{m.home_story_body_3()}
+			</p>
+			<p
+				class="mt-1 font-oswald text-[0.95rem] font-light tracking-wide text-olf-darkbrown/70 italic"
+			>
+				{m.home_story_egg_prices_label()}
 				{m.home_eggs_price()}
 			</p>
+			<button
+				type="button"
+				onclick={() => (orderModal.open = true)}
+				class="mr-auto font-oswald text-sm font-bold text-olf-darkbrown underline underline-offset-4 hover:text-olf-darkgreen"
+			>
+				{m.home_order_eggs()}
+			</button>
 		</div>
 	</div>
-	<Parallax src={asset('chickens-eating-cucumber02.webp')} class="h-56 w-full lg:h-auto lg:w-2/5" />
+	<Parallax
+		src={asset('chickens-eating-cucumber02.webp')}
+		class="h-64 w-full lg:h-auto lg:w-[46%]"
+	/>
 </section>

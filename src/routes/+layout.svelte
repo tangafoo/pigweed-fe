@@ -3,6 +3,9 @@
 	import { page } from '$app/state';
 	import LocaleSwitcher from '$lib/components/LocaleSwitcher.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import OrderEggsModal from '$lib/components/OrderEggsModal.svelte';
+	import { UserRound } from '@lucide/svelte';
+	import { m } from '$lib/paraglide/messages.js';
 	import JsonLd from '$lib/components/JsonLd.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import { connectEvents, disconnectEvents } from '$lib/realtime/events';
@@ -54,8 +57,17 @@
 <div class="flex min-h-dvh flex-col">
 	<div class="flex w-full items-center gap-3 bg-olf-darkbrown px-2 py-3">
 		<a href="/" class="font-homemade-apple font-bold tracking-wider text-white">Our Little Farm</a>
-		<div class="ml-auto flex items-center">
+		<div class="ml-auto flex items-center gap-2">
 			<LocaleSwitcher />
+			{#if userId}
+				<a
+					href="/users/{userId}"
+					aria-label={m.home_profile_link()}
+					class="flex size-8 items-center justify-center rounded-full bg-olf-beige/15 text-white hover:bg-olf-beige/25"
+				>
+					<UserRound size={18} />
+				</a>
+			{/if}
 		</div>
 	</div>
 
@@ -65,4 +77,5 @@
 
 	<Footer />
 </div>
+<OrderEggsModal />
 <Toast />

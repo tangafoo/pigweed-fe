@@ -142,7 +142,7 @@
 					<button
 						type="button"
 						onclick={shuffle}
-						class="font-supermercado-one text-xs font-bold text-olf-darkbrown underline"
+						class="font-oswald text-xs font-bold text-olf-darkbrown underline"
 					>
 						{m.signup_username_generate()}
 						<Dices size={12} class="inline-block" />

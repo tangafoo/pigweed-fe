@@ -12,22 +12,20 @@ export const produceSections = [
 		buttonLabel: m.home_eggs_preorder,
 		icon: Egg,
 		iconClass: 'fill-olf-eggshell',
+		iconShake: true,
 		imageSrc: asset('chickens-eating-cantaloupe.webp'),
 		imageAlt: 'Chicken house',
 		brightnessClass: '',
 		disabled: false,
 		seam: false,
-		whatsAppPhone: '60172332992',
-		unitSize: 15,
-		whatsAppMessage: (quantity: number) =>
-			m.home_eggs_order_message({ boxes: quantity, total: quantity * 15 })
+		whatsAppPhone: '60172332992'
 	},
 	{
 		heading: m.home_veggies_heading,
 		description: m.home_veggies_description,
 		buttonLabel: m.home_next_batch,
 		icon: LeafyGreen,
-		imageSrc: asset('papaya tree juvenile.webp'),
+		imageSrc: asset('kangkung.webp'),
 		imageAlt: 'Papaya tree',
 		brightnessClass: 'brightness-90',
 		disabled: true,

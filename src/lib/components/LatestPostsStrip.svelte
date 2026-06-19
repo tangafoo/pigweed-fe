@@ -144,9 +144,15 @@
 				downCard = cardIndexOf(e.target);
 				dragging = false;
 				pause();
+				// Touch/pen scroll natively (see touch-action below); kill any in-flight
+				// glide so the finger isn't fighting a GSAP tween.
+				if (e.pointerType !== 'mouse') clearScheduled();
 			};
 			const onMove = (e: PointerEvent) => {
 				if (downCard === -1) return;
+				// On touch we let the browser do horizontal scrolling — far smoother
+				// than driving scrollLeft by hand, and it was what felt broken before.
+				if (e.pointerType !== 'mouse') return;
 				if (!dragging && Math.abs(e.clientX - downX) > 5) {
 					dragging = true;
 					captured = true;
@@ -163,6 +169,23 @@
 					node.classList.remove('dragging');
 				}
 				const onLink = !!(e.target as Element | null)?.closest('a, button');
+				// Touch/pen: the browser already scrolled. Settle on the nearest post
+				// if it moved, otherwise treat it as a tap-to-centre.
+				if (e.pointerType !== 'mouse') {
+					if (Math.abs(node.scrollLeft - startScroll) > 8) {
+						autoOn = !reduce;
+						snapNearest();
+					} else if (downCard !== -1 && !onLink) {
+						autoOn = !reduce;
+						if (reduce) gsap.set(node, { scrollLeft: targets[((downCard % n) + n) % n] });
+						else glideTo(downCard);
+					} else {
+						resume();
+					}
+					downCard = -1;
+					dragging = false;
+					return;
+				}
 				if (dragging) {
 					autoOn = !reduce;
 					snapNearest(); // dragged → settle on the nearest post
@@ -275,7 +298,7 @@
 	.carousel {
 		cursor: grab;
 		scrollbar-width: none; /* Firefox — the auto-scroll is the affordance */
-		touch-action: pan-y; /* let vertical page scroll through; we own horizontal */
+		touch-action: pan-x pan-y; /* touch scrolls the strip natively; mouse uses our drag */
 	}
 	.carousel::-webkit-scrollbar {
 		display: none;
