@@ -6,9 +6,11 @@
 	import PostCard from '$lib/components/PostCard.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import Seo from '$lib/components/Seo.svelte';
+	import FilterDropdown from '$lib/components/FilterDropdown.svelte';
 
 	import { m } from '$lib/paraglide/messages.js';
 	import { Plus, Star } from '@lucide/svelte';
+	import { CATEGORY_COLOR } from '$lib/categories';
 
 	let { data }: { data: PageData } = $props();
 	const session = $derived(data.session);
@@ -61,6 +63,14 @@
 		minRating = value;
 		refetch();
 	}
+
+	// Current-selection labels for the two filter dropdown triggers.
+	const categoryTriggerLabel = $derived(
+		CATEGORIES.find((c) => c.value === category)?.label() ?? m.posts_cat_all()
+	);
+	const ratingTriggerLabel = $derived(
+		minRating == null ? m.posts_rating_all() : `${minRating}★+`
+	);
 </script>
 
 <Seo
@@ -92,50 +102,81 @@
 			{/if}
 		</div>
 
-		<!-- Category sections -->
-		<div class="mb-3 flex flex-wrap gap-2">
-			{#each CATEGORIES as c (c.value ?? 'all')}
-				<button
-					type="button"
-					onclick={() => selectCategory(c.value)}
-					class="rounded-full px-4 py-1.5 font-oswald text-sm font-bold {category === c.value
-						? 'bg-olf-darkgreen text-white'
-						: 'bg-olf-beige text-olf-darkbrown'}"
-				>
-					{c.label()}
-				</button>
-			{/each}
-		</div>
-
-		<!-- Star filter -->
+		<!-- Filters: compact dropdowns instead of two wrapping chip rows. -->
 		<div class="mb-6 flex flex-wrap items-center gap-2">
-			<button
-				type="button"
-				onclick={() => selectRating(null)}
-				class="rounded-full px-3 py-1 font-oswald text-xs font-bold {minRating === null
-					? 'bg-olf-darkbrown text-white'
-					: 'bg-olf-beige text-olf-darkbrown'}"
+			<FilterDropdown
+				label={categoryTriggerLabel}
+				triggerClass={category ? CATEGORY_COLOR[category] : 'bg-olf-beige text-olf-darkbrown'}
 			>
-				{m.posts_rating_all()}
-			</button>
-			{#each [1, 2, 3, 4, 5] as r (r)}
-				<button
-					type="button"
-					onclick={() => selectRating(r)}
-					aria-label={m.posts_rating_min({ rating: r })}
-					class="flex items-center gap-0.5 rounded-full px-3 py-1 font-oswald text-xs font-bold {minRating ===
-					r
-						? 'bg-olf-darkbrown text-white'
-						: 'bg-olf-beige text-olf-darkbrown'}"
-				>
-					{r}<Star
-						size={12}
-						class={minRating === r
-							? 'fill-white text-white'
-							: 'fill-olf-darkgreen text-olf-darkgreen'}
-					/>+
-				</button>
-			{/each}
+				{#snippet children(close)}
+					{#each CATEGORIES as c (c.value ?? 'all')}
+						<li>
+							<button
+								type="button"
+								role="option"
+								aria-selected={category === c.value}
+								onclick={() => {
+									selectCategory(c.value);
+									close();
+								}}
+								class="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left font-oswald text-sm text-olf-darkbrown transition-colors hover:bg-olf-darkgreen/10 {category ===
+								c.value
+									? 'font-bold'
+									: ''}"
+							>
+								<span
+									class="h-3 w-3 shrink-0 rounded-full {c.value
+										? CATEGORY_COLOR[c.value]
+										: 'bg-olf-darkgreen'}"
+								></span>
+								<span>{c.label()}</span>
+							</button>
+						</li>
+					{/each}
+				{/snippet}
+			</FilterDropdown>
+
+			<FilterDropdown label={ratingTriggerLabel}>
+				{#snippet children(close)}
+					<li>
+						<button
+							type="button"
+							role="option"
+							aria-selected={minRating === null}
+							onclick={() => {
+								selectRating(null);
+								close();
+							}}
+							class="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left font-oswald text-sm text-olf-darkbrown transition-colors hover:bg-olf-darkgreen/10 {minRating ===
+							null
+								? 'font-bold'
+								: ''}"
+						>
+							{m.posts_rating_all()}
+						</button>
+					</li>
+					{#each [1, 2, 3, 4, 5] as r (r)}
+						<li>
+							<button
+								type="button"
+								role="option"
+								aria-selected={minRating === r}
+								aria-label={m.posts_rating_min({ rating: r })}
+								onclick={() => {
+									selectRating(r);
+									close();
+								}}
+								class="flex w-full cursor-pointer items-center gap-1 rounded-lg px-3 py-2 text-left font-oswald text-sm text-olf-darkbrown transition-colors hover:bg-olf-darkgreen/10 {minRating ===
+								r
+									? 'font-bold'
+									: ''}"
+							>
+								{r}<Star size={13} class="fill-olf-yolk text-olf-darkgreen" />+
+							</button>
+						</li>
+					{/each}
+				{/snippet}
+			</FilterDropdown>
 		</div>
 
 		<!-- Grid -->

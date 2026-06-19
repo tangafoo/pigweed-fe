@@ -2,7 +2,8 @@
 	import type { Post } from '@meteorclass/pigweed-contract';
 	import { m } from '$lib/paraglide/messages.js';
 	import Avatar from '$lib/components/Avatar.svelte';
-	import { Star, ArrowBigUp } from '@lucide/svelte';
+	import { Star, ArrowBigUp, ArrowBigDown, MessageSquare } from '@lucide/svelte';
+	import { CATEGORY_COLOR } from '$lib/categories';
 
 	interface PostCardProps {
 		post: Post;
@@ -31,7 +32,7 @@
 </script>
 
 <article
-	class="flex flex-col overflow-hidden rounded-xl bg-olf-beige {compact
+	class="flex flex-col overflow-hidden rounded-xl bg-olf-beige shadow-md {compact
 		? 'h-full w-64 shrink-0'
 		: 'w-full'} {post.moderated ? '' : 'shiny'}"
 	style="border: {bushiness}px solid var(--color-olf-darkgreen)"
@@ -84,27 +85,30 @@
 					</span>
 				{/if}
 			</div>
-			<span
-				class="ml-auto flex shrink-0 items-center gap-0.5 font-oswald text-xs text-olf-darkbrown/70"
-			>
-				<ArrowBigUp size={14} class="text-olf-darkgreen" />
-				<span class="tabular-nums">{net}</span>
-			</span>
 		</div>
 
 		<!-- Title + body -->
 		<p class="line-clamp-2 font-oswald font-bold text-olf-darkbrown">{post.title}</p>
-		{#if !compact && post.body}
-			<p class="line-clamp-3 font-oswald text-sm text-olf-darkbrown/80">{post.body}</p>
-		{/if}
 
 		<!-- Category tag (when no thumbnail carried it) -->
-		{#if post.category && !thumb}
+		{#if post.category}
 			<span
-				class="mr-auto rounded-full bg-olf-darkgreen px-2 py-0.5 font-oswald text-xxs font-bold tracking-widest text-white uppercase"
+				class="mr-auto rounded-full px-2 py-0.5 font-oswald text-xxs font-bold tracking-widest uppercase {CATEGORY_COLOR[
+					post.category
+				]}"
 			>
 				{categoryLabel(post.category)}
 			</span>
+		{/if}
+
+		{#if post.body}
+			{#if !compact}
+				<p class="line-clamp-3 font-oswald text-sm text-olf-darkbrown/80">{post.body}</p>
+			{:else}
+				<p class="line-clamp-3 truncate font-oswald text-sm text-olf-darkbrown/80">
+					{post.body}
+				</p>
+			{/if}
 		{/if}
 
 		<!-- Award stack -->
@@ -125,13 +129,6 @@
 	{#if thumb}
 		<div class="relative {compact ? 'h-28' : 'h-44'} w-full overflow-hidden bg-olf-lightbrown">
 			<img src={thumb.url} alt={post.title} class="h-full w-full object-cover" loading="lazy" />
-			{#if post.category}
-				<span
-					class="absolute bottom-2 left-2 rounded-full bg-olf-darkgreen px-2 py-0.5 font-oswald text-xxs font-bold tracking-widest text-white uppercase"
-				>
-					{categoryLabel(post.category)}
-				</span>
-			{/if}
 			{#if !post.moderated}
 				<span
 					class="absolute right-2 bottom-2 rounded-full bg-black/60 px-2 py-0.5 font-oswald text-xxs font-bold tracking-widest text-white uppercase"
@@ -141,6 +138,17 @@
 			{/if}
 		</div>
 	{/if}
+	<div class="flex items-center justify-between bg-olf-darkbrown px-3 py-1.5 text-white">
+		<span class="flex shrink-0 items-center gap-1 font-oswald text-xs text-olf-eggshell">
+			<MessageSquare size={15} class="text-white" />
+			<span class="tabular-nums">{post.commentCount}</span>
+		</span>
+		<span class="flex shrink-0 items-center gap-0.5 font-oswald text-xs text-olf-eggshell">
+			<ArrowBigUp size={16} class="text-white" />
+			<span class="tabular-nums">{net}</span>
+			<ArrowBigDown size={16} class="text-white" />
+		</span>
+	</div>
 </article>
 
 <style>

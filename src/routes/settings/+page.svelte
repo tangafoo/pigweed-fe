@@ -3,10 +3,11 @@
 	import Seo from '$lib/components/Seo.svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import { formatDate } from '$lib/utils/date';
-	import { Fingerprint, KeyRound, Trash2, Plus, UserRound } from '@lucide/svelte';
+	import { Fingerprint, KeyRound, Trash2, Plus, UserRound, LogOut } from '@lucide/svelte';
 	import type { PageData } from './$types';
 	import { ANIMAL_LABEL, GENDER_LABEL } from '$lib/utils/labels';
 	import { asset } from '$lib/assets';
+	import { goto, invalidateAll } from '$app/navigation';
 
 	let { data }: { data: PageData } = $props();
 	// `+page.server.ts` redirects unauthenticated visitors, so the layout's
@@ -100,6 +101,19 @@
 			error = m.passkey_delete_error();
 		} finally {
 			deleteBusy = null;
+		}
+	}
+
+	let signingOut = $state(false);
+	async function signOut() {
+		if (signingOut) return;
+		signingOut = true;
+		try {
+			await authClient.signOut();
+			await invalidateAll();
+			await goto('/');
+		} catch {
+			signingOut = false;
 		}
 	}
 </script>
@@ -290,5 +304,15 @@
 				</button>
 			{/if}
 		</section>
+
+		<button
+			type="button"
+			onclick={signOut}
+			disabled={signingOut}
+			class="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-olf-darkbrown px-4 py-3 font-oswald text-lg font-bold text-olf-beige disabled:opacity-50"
+		>
+			<LogOut size={18} />
+			{signingOut ? m.home_signout_in_progress() : m.home_signout_button()}
+		</button>
 	</div>
 </div>

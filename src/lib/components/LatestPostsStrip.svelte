@@ -4,7 +4,7 @@
 	import PostCard from '$lib/components/PostCard.svelte';
 	import Avatar from '$lib/components/Avatar.svelte';
 	import { asset } from '$lib/assets';
-	import { ArrowRight } from '@lucide/svelte';
+	import { ArrowRight, Plus } from '@lucide/svelte';
 
 	interface LatestPostsStripProps {
 		posts: Post[];
@@ -12,223 +12,72 @@
 	}
 	let { posts, session }: LatestPostsStripProps = $props();
 
-	// Padded to a comfortable card count (in case the feed is near-empty),
-	// then doubled so the auto-scroll loops seamlessly — at half the scroll
-	// width the second (identical) half is on screen, so the jump back to 0
-	// is invisible.
-	const filled = $derived(
+	// Padded to a comfortable card count so a near-empty feed still fills the strip.
+	const cards = $derived(
 		posts.length > 0 ? Array.from({ length: Math.ceil(8 / posts.length) }, () => posts).flat() : []
 	);
-	const track = $derived([...filled, ...filled]);
 
-	/**
-	 * GSAP-driven horizontal carousel: a continuous auto-scroll plus
-	 * grab-to-drag, both operating on the container's native scroll position
-	 * (no transform/scroll conflict). Honors prefers-reduced-motion (no
-	 * auto-scroll, plain native scrolling). GSAP is async-imported so it
-	 * never lands in the initial bundle — same pattern as Parallax.svelte.
-	 */
-	function carousel(node: HTMLElement) {
-		let cleanup: (() => void) | undefined;
-		// Guards the async-import race: if the node unmounts before gsap
-		// resolves, we skip setup entirely (otherwise listeners/tween leak
-		// because `cleanup` was still undefined when destroy() ran).
-		let destroyed = false;
+	// Gentle auto-advance over NATIVE horizontal scroll — no GSAP, no transforms.
+	// The browser owns the scroll position, so a manual swipe/drag/wheel never
+	// fights an animation (the old hand-rolled GSAP loop drove scrollLeft itself,
+	// which is what felt "clashy"). A timer nudges one card forward every few
+	// seconds with a smooth scrollBy; any real user gesture pauses it, and it
+	// resumes after a short idle. Reduced-motion → no auto-advance at all.
+	function autoScroll(node: HTMLElement) {
+		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-		(async () => {
-			const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-			const { gsap } = await import('gsap');
-			if (destroyed) return;
+		const STEP_MS = 3000; // how long each card holds before advancing
+		const RESUME_MS = 4000; // idle after you interact before it resumes
+		let timer: ReturnType<typeof setInterval> | undefined;
+		let idle: ReturnType<typeof setTimeout> | undefined;
 
-			// Hand-rolled step-and-dwell loop. A single GSAP timeline would snap
-			// its playhead back to the previous card after a manual drag/click;
-			// tracking the index ourselves lets manual interaction simply hand
-			// off — the loop continues from whatever post you land on.
+		// One card's worth of scroll (fixed-width card + the flex gap).
+		const cardStep = () => {
+			const card = node.querySelector('article');
+			const gap = parseFloat(getComputedStyle(node).columnGap) || 0;
+			return card ? card.getBoundingClientRect().width + gap : node.clientWidth;
+		};
+		const tick = () => {
+			const end = node.scrollWidth - node.clientWidth;
+			// At the end, loop back to the start; otherwise step one card on.
+			if (node.scrollLeft >= end - 4) node.scrollTo({ left: 0, behavior: 'smooth' });
+			else node.scrollBy({ left: cardStep(), behavior: 'smooth' });
+		};
 
-			// Geometry — cards are fixed-width so centres are stable; measured
-			// once. targets[i] = scrollLeft that centres card i. The track is
-			// doubled, so index n is card 0's duplicate: gliding onto it then
-			// snapping back one copy gives an endless, seamless loop.
-			const n = Math.max(1, Math.floor(node.children.length / 2));
-			const centreAt = (i: number) => {
-				const c = node.getBoundingClientRect();
-				const k = (node.children[i] as HTMLElement).getBoundingClientRect();
-				return node.scrollLeft + (k.left - c.left) - (node.clientWidth - k.width) / 2;
-			};
-			const targets = Array.from({ length: n + 1 }, (_, i) => centreAt(i));
-			const copy = targets[n] - targets[0];
-			const step = copy / n;
-			const glideSec = reduce ? 0 : 0.7;
-			const DWELL_MS = 2000;
+		const stop = () => {
+			clearInterval(timer);
+			timer = undefined;
+		};
+		const play = () => {
+			stop();
+			timer = setInterval(tick, STEP_MS);
+		};
+		// Pause on a real user gesture, then resume after a beat. These events are
+		// only ever fired by the user — a programmatic scrollBy never triggers
+		// them, so the loop can't accidentally pause itself.
+		const interrupt = () => {
+			stop();
+			clearTimeout(idle);
+			idle = setTimeout(play, RESUME_MS);
+		};
 
-			let index = 0; // currently-centred card
-			let autoOn = !reduce; // whether the loop keeps advancing
-			let tween: ReturnType<typeof gsap.to> | null = null;
-			let dwell: ReturnType<typeof setTimeout> | undefined;
+		node.addEventListener('pointerenter', stop);
+		node.addEventListener('pointerleave', play);
+		node.addEventListener('pointerdown', interrupt);
+		node.addEventListener('wheel', interrupt, { passive: true });
+		node.addEventListener('touchstart', interrupt, { passive: true });
 
-			const clearScheduled = () => {
-				tween?.kill();
-				tween = null;
-				clearTimeout(dwell);
-			};
-			const scheduleNext = () => {
-				if (!autoOn) return;
-				clearTimeout(dwell);
-				dwell = setTimeout(advance, DWELL_MS);
-			};
-			// Glide card i to centre, then (if auto) dwell + advance.
-			function glideTo(i: number) {
-				clearScheduled();
-				index = ((i % n) + n) % n;
-				tween = gsap.to(node, {
-					scrollLeft: targets[index],
-					duration: glideSec,
-					ease: 'power2.inOut',
-					onComplete: scheduleNext
-				});
-			}
-			// Step forward, wrapping seamlessly through the duplicate.
-			function advance() {
-				if (!autoOn) return;
-				if (index + 1 < n) {
-					glideTo(index + 1);
-					return;
-				}
-				clearScheduled();
-				tween = gsap.to(node, {
-					scrollLeft: targets[n],
-					duration: glideSec,
-					ease: 'power2.inOut',
-					onComplete: () => {
-						gsap.set(node, { scrollLeft: targets[0] }); // invisible snap-back
-						index = 0;
-						scheduleNext();
-					}
-				});
-			}
-			// After a drag: settle on the post nearest the current scroll,
-			// folding the duplicate region back into the first copy first.
-			function snapNearest() {
-				let s = node.scrollLeft;
-				while (s >= targets[0] + copy - step / 2) s -= copy;
-				if (s !== node.scrollLeft) gsap.set(node, { scrollLeft: s });
-				glideTo(Math.round((s - targets[0]) / step));
-			}
-
-			const pause = () => {
-				autoOn = false;
-				clearTimeout(dwell); // let any in-flight glide land; just stop advancing
-			};
-			const resume = () => {
-				if (autoOn || reduce) return;
-				autoOn = true;
-				if (!tween?.isActive()) scheduleNext();
-			};
-			const cardIndexOf = (t: EventTarget | null) => {
-				const art = (t as Element | null)?.closest('article');
-				return art ? Array.prototype.indexOf.call(node.children, art) : -1;
-			};
-
-			// --- pointer: tap-to-centre + grab-to-drag. We capture only once the
-			//     pointer actually MOVES, so a plain click still reaches the
-			//     card's links. ---
-			let downX = 0;
-			let startScroll = 0;
-			let downCard = -1;
-			let dragging = false;
-			let captured = false;
-
-			const onDown = (e: PointerEvent) => {
-				downX = e.clientX;
-				startScroll = node.scrollLeft;
-				downCard = cardIndexOf(e.target);
-				dragging = false;
-				pause();
-				// Touch/pen scroll natively (see touch-action below); kill any in-flight
-				// glide so the finger isn't fighting a GSAP tween.
-				if (e.pointerType !== 'mouse') clearScheduled();
-			};
-			const onMove = (e: PointerEvent) => {
-				if (downCard === -1) return;
-				// On touch we let the browser do horizontal scrolling — far smoother
-				// than driving scrollLeft by hand, and it was what felt broken before.
-				if (e.pointerType !== 'mouse') return;
-				if (!dragging && Math.abs(e.clientX - downX) > 5) {
-					dragging = true;
-					captured = true;
-					node.setPointerCapture(e.pointerId);
-					node.classList.add('dragging');
-					clearScheduled();
-				}
-				if (dragging) node.scrollLeft = startScroll - (e.clientX - downX);
-			};
-			const onUp = (e: PointerEvent) => {
-				if (captured) {
-					node.releasePointerCapture?.(e.pointerId);
-					captured = false;
-					node.classList.remove('dragging');
-				}
-				const onLink = !!(e.target as Element | null)?.closest('a, button');
-				// Touch/pen: the browser already scrolled. Settle on the nearest post
-				// if it moved, otherwise treat it as a tap-to-centre.
-				if (e.pointerType !== 'mouse') {
-					if (Math.abs(node.scrollLeft - startScroll) > 8) {
-						autoOn = !reduce;
-						snapNearest();
-					} else if (downCard !== -1 && !onLink) {
-						autoOn = !reduce;
-						if (reduce) gsap.set(node, { scrollLeft: targets[((downCard % n) + n) % n] });
-						else glideTo(downCard);
-					} else {
-						resume();
-					}
-					downCard = -1;
-					dragging = false;
-					return;
-				}
-				if (dragging) {
-					autoOn = !reduce;
-					snapNearest(); // dragged → settle on the nearest post
-				} else if (downCard !== -1 && !onLink) {
-					autoOn = !reduce;
-					if (reduce) gsap.set(node, { scrollLeft: targets[((downCard % n) + n) % n] });
-					else glideTo(downCard); // tapped a card body → centre that post
-				} else {
-					resume(); // tapped a link, or pressed the padding — carry on
-				}
-				downCard = -1;
-				dragging = false;
-			};
-			node.addEventListener('pointerdown', onDown);
-			node.addEventListener('pointermove', onMove);
-			node.addEventListener('pointerup', onUp);
-			node.addEventListener('pointercancel', onUp);
-
-			// --- hover pause/resume ---
-			const onEnter = () => pause();
-			const onLeave = () => {
-				if (downCard === -1) resume();
-			};
-			node.addEventListener('pointerenter', onEnter);
-			node.addEventListener('pointerleave', onLeave);
-
-			scheduleNext(); // kick off the first dwell → advance
-
-			cleanup = () => {
-				clearScheduled();
-				node.removeEventListener('pointerdown', onDown);
-				node.removeEventListener('pointermove', onMove);
-				node.removeEventListener('pointerup', onUp);
-				node.removeEventListener('pointercancel', onUp);
-				node.removeEventListener('pointerenter', onEnter);
-				node.removeEventListener('pointerleave', onLeave);
-			};
-		})();
+		play();
 
 		return {
 			destroy() {
-				destroyed = true;
-				cleanup?.();
+				stop();
+				clearTimeout(idle);
+				node.removeEventListener('pointerenter', stop);
+				node.removeEventListener('pointerleave', play);
+				node.removeEventListener('pointerdown', interrupt);
+				node.removeEventListener('wheel', interrupt);
+				node.removeEventListener('touchstart', interrupt);
 			}
 		};
 	}
@@ -249,31 +98,43 @@
 					</a>
 					<p class="font-semibold">{session.user.username}</p>
 				</div>
-				<div class="flex gap-2">
+				<div class="flex items-center gap-2">
 					<div class="flex items-center gap-1.5 rounded-full bg-olf-beige px-3 text-sm shadow-md">
 						<img src={asset('egg05.webp')} alt="" class="h-4 w-4 shrink-0 object-contain" />
 						<p>{session.user.coinBalance}</p>
 					</div>
+					<a
+						href="/posts/new"
+						aria-label={m.home_post_review()}
+						class="flex size-7 shrink-0 items-center justify-center rounded-full bg-olf-darkgreen text-olf-beige shadow-md"
+					>
+						<Plus size={18} />
+					</a>
 				</div>
 			</div>
 		{:else}
-			<a
-				href="/login"
-				class="ml-auto rounded-full bg-olf-lightgreen px-3 py-1 text-sm font-bold shadow-md lg:ml-0"
-			>
-				{m.home_signin_link()} 🐓
-			</a>
+			<div class="ml-auto flex items-center gap-2 lg:ml-0">
+				<a href="/login" class="rounded-full bg-olf-beige px-3 py-1 text-sm font-bold shadow-md">
+					{m.home_signin_link()} 🐓
+				</a>
+				<a
+					href="/signup"
+					class="flex items-center gap-1.5 rounded-full bg-olf-darkbrown px-3 py-1 text-sm font-bold text-olf-beige shadow-md"
+				>
+					{m.home_post_review()}
+				</a>
+			</div>
 		{/if}
 	</div>
 
 	{#if posts.length > 0}
 		<!-- px is half-the-viewport minus half a card (cards are w-64 = 16rem),
-		     so the first/last post can sit dead-centre and the loop stays seamless. -->
+		     so the first/last post can sit dead-centre. -->
 		<div
-			use:carousel
+			use:autoScroll
 			class="carousel flex max-h-[50dvh] gap-3 overflow-x-auto px-[max(0px,calc(50%-8rem))] pb-2"
 		>
-			{#each track as post, i (post.id + '-' + i)}
+			{#each cards as post, i (post.id + '-' + i)}
 				<PostCard {post} compact />
 			{/each}
 		</div>
@@ -295,20 +156,12 @@
 </section>
 
 <style>
+	/* Native horizontal scroller; just hide the scrollbar. The browser handles
+	   touch/trackpad scrolling, and the auto-advance uses native smooth scroll. */
 	.carousel {
-		cursor: grab;
-		scrollbar-width: none; /* Firefox — the auto-scroll is the affordance */
-		touch-action: pan-x pan-y; /* touch scrolls the strip natively; mouse uses our drag */
+		scrollbar-width: none; /* Firefox */
 	}
 	.carousel::-webkit-scrollbar {
 		display: none;
-	}
-	.carousel:global(.dragging) {
-		cursor: grabbing;
-		scroll-behavior: auto;
-	}
-	/* Cards must not shrink in the flex row. */
-	.carousel :global(article) {
-		scroll-snap-align: start;
 	}
 </style>

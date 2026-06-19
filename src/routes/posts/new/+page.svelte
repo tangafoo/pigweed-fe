@@ -4,11 +4,13 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { createPost, uploadMedia, ContentFlaggedError } from '$lib/api/posts';
 	import { MANTIN_COORDS } from '$lib/seo';
+	import { CATEGORY_COLOR } from '$lib/categories';
 
 	import Spinner from '$lib/components/Spinner.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import { m } from '$lib/paraglide/messages.js';
-	import { Star, ImagePlus, X, MapPin } from '@lucide/svelte';
+	import { Star, ImagePlus, X, MapPin, Mail } from '@lucide/svelte';
+	import { fade } from 'svelte/transition';
 
 	const CATEGORIES: PostCategory[] = ['EGGS', 'VEGGIES', 'FRUITS', 'ANIMALS'];
 	const categoryLabel = (c: PostCategory) =>
@@ -24,6 +26,8 @@
 	let body = $state('');
 	let category = $state<PostCategory | ''>('');
 	let rating = $state<number | null>(null);
+	// A rating turns this post into a "review" — the heading's noun swaps to match.
+	const isReview = $derived(rating != null);
 	let files = $state<File[]>([]);
 
 	let submitting = $state(false);
@@ -146,7 +150,16 @@
 <div class="flex-1 bg-olf-lightgreen px-4 py-8 sm:px-6">
 	<form onsubmit={submit} class="mx-auto flex max-w-xl flex-col gap-4 rounded-2xl bg-olf-beige p-6">
 		<h1 class="font-homemade-apple text-3xl font-bold text-olf-darkgreen">
-			{m.posts_new_title()}
+			{m.posts_new_title_prefix()}<!--
+			Only the noun crossfades. The keyed spans share one grid cell so they
+			overlap during the fade instead of shoving the layout. -->
+			<span class="inline-grid">
+				{#key isReview}
+					<span style="grid-area: 1 / 1" in:fade={{ duration: 250 }} out:fade={{ duration: 150 }}>
+						{isReview ? m.posts_new_noun_review() : m.posts_new_noun_post()}
+					</span>
+				{/key}
+			</span>{m.posts_new_title_suffix()}
 		</h1>
 
 		{#if error}
@@ -183,7 +196,8 @@
 				<button
 					type="button"
 					onclick={() => (category = '')}
-					class="rounded-full px-3 py-1 text-sm font-bold {category === ''
+					class="rounded-full px-3 py-1 text-sm font-bold transition-colors duration-200 {category ===
+					''
 						? 'bg-olf-darkgreen text-white'
 						: 'bg-olf-darkbrown/10 text-olf-darkbrown'}"
 				>
@@ -193,8 +207,9 @@
 					<button
 						type="button"
 						onclick={() => (category = c)}
-						class="rounded-full px-3 py-1 text-sm font-bold {category === c
-							? 'bg-olf-darkgreen text-white'
+						class="rounded-full px-3 py-1 text-sm font-bold transition-colors duration-200 {category ===
+						c
+							? CATEGORY_COLOR[c]
 							: 'bg-olf-darkbrown/10 text-olf-darkbrown'}"
 					>
 						{categoryLabel(c)}
@@ -215,9 +230,9 @@
 					>
 						<Star
 							size={26}
-							class={rating != null && r <= rating
-								? 'fill-olf-lightgreen text-olf-darkgreen'
-								: 'text-olf-darkbrown/30'}
+							class="transition-colors duration-200 {rating != null && r <= rating
+								? 'fill-olf-yolk text-olf-yolk'
+								: 'text-olf-darkbrown/30'}"
 						/>
 					</button>
 				{/each}
@@ -271,7 +286,8 @@
 				<Spinner size={16} />
 				{stage === 'uploading' ? m.posts_new_stage_uploading() : m.posts_new_stage_posting()}
 			{:else}
-				{m.posts_new_submit()}
+				<Mail size={18} class="shrink-0" />
+				{isReview ? m.posts_new_submit_review() : m.posts_new_submit_post()}
 			{/if}
 		</button>
 
