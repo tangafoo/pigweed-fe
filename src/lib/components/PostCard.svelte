@@ -138,7 +138,7 @@
 			{/if}
 		</div>
 	{/if}
-	<div class="flex items-center justify-between bg-olf-darkbrown px-3 py-1.5 text-white">
+	<div class="flex items-center justify-between bg-olf-darkgreen px-3 py-1.5 text-white">
 		<span class="flex shrink-0 items-center gap-1 font-oswald text-xs text-olf-eggshell">
 			<MessageSquare size={15} class="text-white" />
 			<span class="tabular-nums">{post.commentCount}</span>
