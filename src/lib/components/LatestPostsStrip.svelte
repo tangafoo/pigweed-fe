@@ -132,7 +132,7 @@
 		     so the first/last post can sit dead-centre. -->
 		<div
 			use:autoScroll
-			class="carousel flex max-h-[50dvh] gap-3 overflow-x-auto px-[max(0px,calc(50%-8rem))] pb-2"
+			class="carousel flex gap-3 overflow-x-auto px-[max(0px,calc(50%-8rem))] pb-2"
 		>
 			{#each cards as post, i (post.id + '-' + i)}
 				<PostCard {post} compact />

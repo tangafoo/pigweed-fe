@@ -80,6 +80,32 @@ export async function fetchFeed(
 	}
 }
 
+/**
+ * Fetch a single post by id. Returns `null` on 404 / any failure so the
+ * detail route can throw its own SvelteKit `error(404)`. Pass the `load`
+ * `fetch` (+ forwarded cookie) for SSR; in the browser the cookie rides along.
+ */
+export async function fetchPost(
+	id: string,
+	fetchImpl?: typeof globalThis.fetch,
+	cookie?: string
+): Promise<Post | null> {
+	const path = `/posts/${encodeURIComponent(id)}`;
+	try {
+		const res = fetchImpl
+			? await fetchImpl(`${API_BASE}${path}`, {
+					credentials: 'include',
+					headers: cookie ? { cookie } : undefined
+				})
+			: await api(path);
+		if (!res.ok) return null;
+		const data = (await res.json()) as { post: Post };
+		return data.post;
+	} catch {
+		return null;
+	}
+}
+
 /** Thrown when moderation blocks a post (422 CONTENT_FLAGGED). */
 export class ContentFlaggedError extends Error {
 	/** Moderation categories that tripped (e.g. "hate") — NOT post categories. */
@@ -98,7 +124,7 @@ export class ContentFlaggedError extends Error {
  */
 export async function createPost(input: PostInput): Promise<Post> {
 	const res = await api('/posts', { method: 'POST', body: JSON.stringify(input) });
-	
+
 	if (res.status === 422) {
 		const data = (await res.json().catch(() => null)) as {
 			error?: string;

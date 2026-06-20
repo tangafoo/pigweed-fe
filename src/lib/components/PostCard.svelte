@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Post, Session, VoteValue, VoteResponse } from '@meteorclass/pigweed-contract';
+	import { untrack } from 'svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
@@ -20,8 +21,18 @@
 		post: Post;
 		/** Fixed-width, shorter card for the home carousel strip. */
 		compact?: boolean;
+		/**
+		 * Live comment count for the detail page, which owns the thread and
+		 * updates as comments are posted. Omitted in the feed → the post's own
+		 * server count is shown.
+		 */
+		liveCommentCount?: number;
+		/** Start with the image expanded (full height) — used on the detail page. */
+		expandImage?: boolean;
 	}
-	let { post, compact = false }: PostCardProps = $props();
+	let { post, compact = false, liveCommentCount, expandImage = false }: PostCardProps = $props();
+
+	const commentCount = $derived(liveCommentCount ?? post.commentCount);
 
 	const signedIn = $derived(!!(page.data as { session?: Session | null }).session?.user);
 
@@ -90,7 +101,8 @@
 	// its full natural height, animated as a height slide. We animate an explicit
 	// px height (CSS can't transition to `auto`): full height = the box's current
 	// width × the image's aspect ratio, measured on load so it stays responsive.
-	let expanded = $state(false);
+	// Initial value only — the viewer can still toggle it afterward.
+	let expanded = $state(untrack(() => expandImage));
 	let boxW = $state(0);
 	let aspect = $state<number | null>(null);
 	const collapsedH = $derived(compact ? 144 : 176); // h-36 / h-44 in px
@@ -108,12 +120,21 @@
 		: 'w-full'} {post.moderated ? '' : 'shiny'}"
 	style="border: {bushiness}px solid var(--color-olf-darkgreen)"
 >
-	<div class="flex flex-1 flex-col gap-2 p-3">
+	<!-- Stretched link scoped to the text block only — the beige whitespace
+	     opens the post. The image (its own expand control) and the footer
+	     (votes + comment link) are deliberately outside this region. Author
+	     links sit above it (z-20) so they still go to the profile. -->
+	<div class="group relative flex flex-1 flex-col gap-2 p-3">
+		<a
+			href="/posts/{post.id}"
+			aria-label={post.title}
+			class="absolute inset-0 z-10 focus-visible:ring-2 focus-visible:ring-olf-darkgreen focus-visible:outline-none"
+		></a>
 		<!-- Author row -->
 		<div class="flex items-center gap-2">
 			<a
 				href="/users/{post.author.id}"
-				class="flex items-center gap-2"
+				class="relative z-20 flex items-center gap-2"
 				aria-label={post.author.username}
 			>
 				<Avatar
@@ -127,7 +148,7 @@
 				<span class="flex items-center gap-1.5">
 					<a
 						href="/users/{post.author.id}"
-						class="truncate font-supermercado-one text-sm text-olf-darkbrown"
+						class="relative z-20 truncate font-supermercado-one text-sm text-olf-darkbrown hover:underline"
 					>
 						{post.author.username}
 					</a>
@@ -163,8 +184,11 @@
 		</div>
 
 		<div class="flex items-center gap-1.5">
-			<!-- Title + body -->
-			<p class="line-clamp-2 font-oswald font-bold tracking-wide text-olf-darkbrown">
+			<!-- Plain text: the content-block stretched link owns navigation;
+			     underlines when the text block (the `group`) is hovered. -->
+			<p
+				class="line-clamp-2 font-oswald font-bold tracking-wide text-olf-darkbrown group-hover:underline"
+			>
 				{post.title}
 			</p>
 
@@ -245,10 +269,14 @@
 		</div>
 	{/if}
 	<div class="flex items-center justify-between bg-olf-darkgreen px-3 py-1.5 text-white">
-		<span class="flex shrink-0 items-center gap-2 font-oswald text-xs text-olf-eggshell">
+		<a
+			href="/posts/{post.id}"
+			aria-label={m.posts_comments_heading()}
+			class="flex shrink-0 items-center gap-2 font-oswald text-xs text-olf-eggshell transition-transform hover:scale-110"
+		>
 			<MessageSquare size={18} class="text-white" />
-			<span class="tabular-nums">{post.commentCount}</span>
-		</span>
+			<span class="tabular-nums">{commentCount}</span>
+		</a>
 		<span class="flex shrink-0 items-center gap-2.5 font-oswald text-xs text-olf-eggshell">
 			<button
 				type="button"

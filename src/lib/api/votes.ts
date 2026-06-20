@@ -11,10 +11,7 @@ import type { VoteResponse, VoteValue } from '@meteorclass/pigweed-contract';
  */
 
 /** PUT a vote. Idempotent server-side; re-sending the same value is a no-op. */
-export async function setPostVote(
-	postId: string,
-	value: VoteValue
-): Promise<VoteResponse | null> {
+export async function setPostVote(postId: string, value: VoteValue): Promise<VoteResponse | null> {
 	try {
 		const res = await api(`/posts/${encodeURIComponent(postId)}/vote`, {
 			method: 'PUT',
@@ -31,6 +28,34 @@ export async function setPostVote(
 export async function clearPostVote(postId: string): Promise<VoteResponse | null> {
 	try {
 		const res = await api(`/posts/${encodeURIComponent(postId)}/vote`, { method: 'DELETE' });
+		if (!res.ok) return null;
+		return (await res.json()) as VoteResponse;
+	} catch {
+		return null;
+	}
+}
+
+/** PUT a comment vote. Same idempotent semantics as the post endpoint. */
+export async function setCommentVote(
+	commentId: string,
+	value: VoteValue
+): Promise<VoteResponse | null> {
+	try {
+		const res = await api(`/comments/${encodeURIComponent(commentId)}/vote`, {
+			method: 'PUT',
+			body: JSON.stringify({ value })
+		});
+		if (!res.ok) return null;
+		return (await res.json()) as VoteResponse;
+	} catch {
+		return null;
+	}
+}
+
+/** DELETE a comment vote (un-vote / toggle off). */
+export async function clearCommentVote(commentId: string): Promise<VoteResponse | null> {
+	try {
+		const res = await api(`/comments/${encodeURIComponent(commentId)}/vote`, { method: 'DELETE' });
 		if (!res.ok) return null;
 		return (await res.json()) as VoteResponse;
 	} catch {
