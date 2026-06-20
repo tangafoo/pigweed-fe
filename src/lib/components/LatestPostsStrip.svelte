@@ -147,7 +147,7 @@
 	<div class="mt-6 flex justify-center">
 		<a
 			href="/posts"
-			class="flex items-center gap-2 rounded-full bg-olf-darkbrown px-5 py-2 font-oswald text-sm font-bold tracking-widest text-olf-beige uppercase"
+			class="flex items-center gap-2 rounded-full bg-olf-darkgreen px-5 py-1.5 font-oswald text-sm font-bold tracking-widest text-olf-eggshell uppercase shadow-lg"
 		>
 			{m.home_enter_farm()}
 			<ArrowRight size={16} class="shrink-0" />

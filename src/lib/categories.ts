@@ -10,3 +10,11 @@ export const CATEGORY_COLOR: Record<PostCategory, string> = {
 	FRUITS: 'bg-olf-rose text-white',
 	ANIMALS: 'bg-olf-darkbrown text-white'
 };
+
+// A little glyph per category, used as a separator/flair next to the tag.
+export const CATEGORY_EMOJI: Record<PostCategory, string> = {
+	EGGS: '🥚',
+	VEGGIES: '🥬',
+	FRUITS: '🍍',
+	ANIMALS: '🐕'
+};

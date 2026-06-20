@@ -59,15 +59,13 @@
 		<a href="/" class="font-homemade-apple font-bold tracking-wider text-white">Our Little Farm</a>
 		<div class="ml-auto flex items-center gap-2">
 			<LocaleSwitcher />
-			{#if userId}
-				<a
-					href="/users/{userId}"
-					aria-label={m.home_profile_link()}
-					class="flex size-8 items-center justify-center rounded-full bg-olf-beige/15 text-white hover:bg-olf-beige/25"
-				>
-					<UserRound size={18} />
-				</a>
-			{/if}
+			<a
+				href={userId ? `/users/${userId}` : '/login'}
+				aria-label={userId ? m.home_profile_link() : m.home_signin_link()}
+				class="flex size-8 items-center justify-center rounded-full bg-olf-beige/15 text-white hover:bg-olf-beige/25"
+			>
+				<UserRound size={18} />
+			</a>
 		</div>
 	</div>
 

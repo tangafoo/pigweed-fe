@@ -160,50 +160,59 @@
 			/>
 		</div>
 		<div class="min-w-0 flex-1 self-center py-3 pr-4 font-oswald">
-			<p class="truncate {deleted ? 'italic text-white/40' : ''}">{primary}</p>
+			<p class="truncate {deleted ? 'text-white/40 italic' : ''}">{primary}</p>
 			<p class="text-xs text-white/60">{formatRelative(createdAt)}</p>
 		</div>
 	</li>
 {/snippet}
 
-<div class="mb-4 flex gap-2">
+<div
+	role="tablist"
+	class="mb-2.5 flex gap-1 overflow-hidden rounded-full bg-olf-beige p-1 shadow-md"
+>
 	<button
 		type="button"
+		role="tab"
+		aria-selected={activeTab === 'posts'}
 		onclick={() => selectTab('posts')}
-		class="flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2 font-oswald font-bold {activeTab ===
+		class="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-2 py-2 font-oswald text-sm font-medium transition-colors duration-200 {activeTab ===
 		'posts'
 			? 'bg-olf-darkbrown text-white'
-			: 'bg-olf-beige text-olf-darkbrown'}"
+			: 'text-olf-darkbrown hover:bg-olf-darkbrown/10'}"
 	>
-		<Newspaper size={16} />
-		{m.profile_tab_posts()}
+		<Newspaper size={12} class="shrink-0" />
+		<span class="truncate">{m.profile_tab_posts()}</span>
 	</button>
 	<button
 		type="button"
-		onclick={() => selectTab('achievements')}
-		class="flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2 font-oswald font-bold {activeTab ===
-		'achievements'
-			? 'bg-olf-darkbrown text-white'
-			: 'bg-olf-beige text-olf-darkbrown'}"
-	>
-		<Trophy size={16} />
-		{m.profile_tab_achievements()}
-	</button>
-	<button
-		type="button"
+		role="tab"
+		aria-selected={activeTab === 'activity'}
 		onclick={() => selectTab('activity')}
-		class="flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2 font-oswald font-bold {activeTab ===
+		class="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-2 py-2 font-oswald text-sm font-medium transition-colors duration-200 {activeTab ===
 		'activity'
 			? 'bg-olf-darkbrown text-white'
-			: 'bg-olf-beige text-olf-darkbrown'}"
+			: 'text-olf-darkbrown hover:bg-olf-darkbrown/10'}"
 	>
-		<Activity size={16} />
-		{m.profile_tab_activity()}
+		<Activity size={12} class="shrink-0" />
+		<span class="truncate">{m.profile_tab_activity()}</span>
+	</button>
+	<button
+		type="button"
+		role="tab"
+		aria-selected={activeTab === 'achievements'}
+		onclick={() => selectTab('achievements')}
+		class="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-2 py-2 font-oswald text-sm font-medium transition-colors duration-200 {activeTab ===
+		'achievements'
+			? 'bg-olf-darkbrown text-white'
+			: 'text-olf-darkbrown hover:bg-olf-darkbrown/10'}"
+	>
+		<Trophy size={12} class="shrink-0" />
+		<span class="truncate">{m.profile_tab_achievements()}</span>
 	</button>
 </div>
 
 {#if activeTab === 'posts'}
-	<section class="rounded-2xl bg-olf-beige p-6">
+	<section class="rounded-2xl bg-olf-beige p-3">
 		{#if postsLoading}
 			<div class="flex justify-center py-8 text-olf-darkbrown/60">
 				<Spinner />
@@ -227,7 +236,9 @@
 {:else if activeTab === 'achievements'}
 	<section class="rounded-2xl bg-olf-beige p-6">
 		{#if achLoading}
-			<p class="font-oswald text-olf-darkbrown/60">{m.profile_achievements_loading()}</p>
+			<div class="flex justify-center py-8 text-olf-darkbrown/60">
+				<Spinner />
+			</div>
 		{:else if achError}
 			<p class="font-oswald text-red-700">{m.profile_achievements_error()}</p>
 		{:else if achievements.length === 0}
@@ -242,7 +253,8 @@
 					<li class="flex flex-col gap-1 rounded-xl bg-olf-darkbrown p-4 text-white">
 						<span class="font-oswald font-bold">{earned.achievement.name}</span>
 						{#if earned.achievement.description}
-							<span class="font-oswald text-xs text-white/70">{earned.achievement.description}</span>
+							<span class="font-oswald text-xs text-white/70">{earned.achievement.description}</span
+							>
 						{/if}
 						<span class="mt-1 font-oswald text-xs text-white/50">
 							{m.profile_achievement_granted({ date: formatDate(earned.grantedAt) })}
@@ -284,12 +296,12 @@
 				<ul class="flex flex-col gap-2">
 					{#each postVotes as v (v.postId)}
 						{@render voteRow(
-						v.value,
-						v.post.upvoteCount - v.post.downvoteCount,
-						v.post.title,
-						v.createdAt,
-						v.post.deletedAt !== null
-					)}
+							v.value,
+							v.post.upvoteCount - v.post.downvoteCount,
+							v.post.title,
+							v.createdAt,
+							v.post.deletedAt !== null
+						)}
 					{/each}
 				</ul>
 			{:else if !voteLoading && !voteError}

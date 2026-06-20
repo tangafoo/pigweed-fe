@@ -9,7 +9,7 @@
 	"passkey_signin_generic_error": "Couldn't sign in with passkey. Try again.",
 
 	"settings_page_title": "Settings · Our Little Farm",
-	"settings_heading": "Your perch",
+	"settings_heading": "Settings",
 	"passkeys_heading": "Passkeys",
 	"passkeys_intro": "Sign in with your face, fingerprint, or device PIN instead of a password.",
 	"passkeys_empty": "No passkeys yet. Add one to skip the password on this device.",
@@ -141,12 +141,13 @@
 
 	"profile_page_title": "{username} · Our Little Farm",
 	"profile_animal_line": "A {animal} on the farm",
-	"profile_hatched": "Hatched {when}",
+	"profile_hatched": "Joined {when}",
 	"profile_stat_posts": "{count} posts",
 	"profile_stat_comments": "{count} comments",
+	"profile_stat_coins": "{count} coins",
 	"profile_settings_button": "Settings",
 	"profile_tab_achievements": "Achievements",
-	"profile_tab_activity": "Activity",
+	"profile_tab_activity": "Votes",
 	"profile_achievements_empty": "No achievements yet.",
 	"profile_achievements_loading": "…",
 	"profile_achievements_error": "Couldn't load achievements.",
@@ -184,6 +185,8 @@
 	"posts_op_badge": "OP",
 	"posts_op_tooltip": "Posted by an Our Little Farm owner",
 	"posts_unmoderated": "Unmoderated",
+	"posts_image_expand": "Expand image",
+	"posts_image_collapse": "Collapse image",
 	"posts_empty": "The coop's quiet here — nothing to show yet.",
 	"posts_load_error": "Couldn't load the farm. Try again.",
 

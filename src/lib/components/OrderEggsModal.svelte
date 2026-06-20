@@ -2,6 +2,7 @@
 	import { Minus, Plus, X } from '@lucide/svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import { orderModal } from '$lib/stores/orderModal.svelte';
+	import RollingNumber from '$lib/components/RollingNumber.svelte';
 
 	// Egg ordering is the only live product, so the modal is hardcoded for it:
 	// fixed-size boxes of 15, ordered over WhatsApp.
@@ -83,7 +84,7 @@
 				{m.home_order_box_note({ count: UNIT })}
 			</span>
 			<span class="font-oswald text-xl font-bold tabular-nums">
-				{m.home_order_eggs_total({ count: total })}
+				<RollingNumber text={m.home_order_eggs_total({ count: total })} />
 			</span>
 		</div>
 		<p class="-mt-2 text-center font-oswald text-xs text-olf-darkgreen/70">

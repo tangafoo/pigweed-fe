@@ -2,8 +2,16 @@
 	import type { Post } from '@meteorclass/pigweed-contract';
 	import { m } from '$lib/paraglide/messages.js';
 	import Avatar from '$lib/components/Avatar.svelte';
-	import { Star, ArrowBigUp, ArrowBigDown, MessageSquare } from '@lucide/svelte';
-	import { CATEGORY_COLOR } from '$lib/categories';
+	import {
+		Star,
+		ArrowBigUp,
+		ArrowBigDown,
+		MessageSquare,
+		Maximize2,
+		Minimize2
+	} from '@lucide/svelte';
+	import { CATEGORY_COLOR, CATEGORY_EMOJI } from '$lib/categories';
+	import { formatRelative } from '$lib/utils/date';
 
 	interface PostCardProps {
 		post: Post;
@@ -29,10 +37,25 @@
 					: m.posts_cat_animals();
 
 	const topAwards = $derived(post.awards.slice(0, 3));
+
+	// Tap the expand button to let the image grow from the cropped thumbnail to
+	// its full natural height, animated as a height slide. We animate an explicit
+	// px height (CSS can't transition to `auto`): full height = the box's current
+	// width × the image's aspect ratio, measured on load so it stays responsive.
+	let expanded = $state(false);
+	let boxW = $state(0);
+	let aspect = $state<number | null>(null);
+	const collapsedH = $derived(compact ? 144 : 176); // h-36 / h-44 in px
+	const fullH = $derived(aspect && boxW ? Math.round(boxW * aspect) : collapsedH);
+	const boxH = $derived(expanded ? fullH : collapsedH);
+	function onImgLoad(e: Event) {
+		const img = e.currentTarget as HTMLImageElement;
+		if (img.naturalWidth) aspect = img.naturalHeight / img.naturalWidth;
+	}
 </script>
 
 <article
-	class="flex flex-col overflow-hidden rounded-xl bg-olf-beige shadow-md {compact
+	class="flex flex-col overflow-hidden rounded-xl bg-olf-eggshell shadow-md {compact
 		? 'h-full w-64 shrink-0'
 		: 'w-full'} {post.moderated ? '' : 'shiny'}"
 	style="border: {bushiness}px solid var(--color-olf-darkgreen)"
@@ -52,7 +75,7 @@
 					size="sm"
 				/>
 			</a>
-			<div class="flex min-w-0 flex-col">
+			<div class="flex min-w-0 flex-col gap-0.5">
 				<span class="flex items-center gap-1.5">
 					<a
 						href="/users/{post.author.id}"
@@ -76,36 +99,49 @@
 					>
 						{#each [0, 1, 2, 3, 4] as i (i)}
 							<Star
-								size={12}
-								class={i < post.rating
-									? 'fill-olf-lightgreen text-olf-darkgreen'
-									: 'text-olf-darkbrown/25'}
+								size={16}
+								class={i < post.rating ? 'fill-olf-yolk text-olf-yolk' : 'text-olf-darkbrown/25'}
 							/>
 						{/each}
 					</span>
 				{/if}
 			</div>
+			<time
+				datetime={String(post.createdAt)}
+				class="ml-auto shrink-0 self-start font-oswald text-xxs text-olf-darkbrown/45"
+			>
+				{formatRelative(post.createdAt)}
+			</time>
 		</div>
 
-		<!-- Title + body -->
-		<p class="line-clamp-2 font-oswald font-bold text-olf-darkbrown">{post.title}</p>
+		<div class="flex items-center gap-1.5">
+			<!-- Title + body -->
+			<p class="line-clamp-2 font-oswald font-bold tracking-wide text-olf-darkbrown">
+				{post.title}
+			</p>
 
-		<!-- Category tag (when no thumbnail carried it) -->
-		{#if post.category}
-			<span
-				class="mr-auto rounded-full px-2 py-0.5 font-oswald text-xxs font-bold tracking-widest uppercase {CATEGORY_COLOR[
-					post.category
-				]}"
-			>
-				{categoryLabel(post.category)}
-			</span>
-		{/if}
+			<p class="text-xxs">{post.category ? CATEGORY_EMOJI[post.category] : '🌳'}</p>
+			<!-- Category tag (when no thumbnail carried it) -->
+			{#if post.category}
+				<span
+					class="rounded-lg px-1.5 py-0.5 text-xxs font-normal tracking-wider uppercase {CATEGORY_COLOR[
+						post.category
+					]}"
+				>
+					{categoryLabel(post.category)}
+				</span>
+			{/if}
+		</div>
 
 		{#if post.body}
 			{#if !compact}
-				<p class="line-clamp-3 font-oswald text-sm text-olf-darkbrown/80">{post.body}</p>
+				<p class="line-clamp-3 font-oswald text-[0.95rem] tracking-wide text-olf-darkbrown/90">
+					{post.body}
+				</p>
 			{:else}
-				<p class="line-clamp-3 truncate font-oswald text-sm text-olf-darkbrown/80">
+				<p
+					class="line-clamp-3 truncate font-oswald text-[0.95rem] tracking-wide text-olf-darkbrown/90"
+				>
 					{post.body}
 				</p>
 			{/if}
@@ -127,26 +163,48 @@
 	</div>
 
 	{#if thumb}
-		<div class="relative {compact ? 'h-28' : 'h-44'} w-full overflow-hidden bg-olf-lightbrown">
-			<img src={thumb.url} alt={post.title} class="h-full w-full object-cover" loading="lazy" />
+		<div
+			bind:clientWidth={boxW}
+			class="relative w-full overflow-hidden bg-olf-lightbrown transition-[height] duration-300 ease-out motion-reduce:transition-none"
+			style="height: {boxH}px"
+		>
+			<img
+				src={thumb.url}
+				alt={post.title}
+				onload={onImgLoad}
+				class="h-full w-full object-cover"
+				loading="lazy"
+			/>
 			{#if !post.moderated}
 				<span
-					class="absolute right-2 bottom-2 rounded-full bg-black/60 px-2 py-0.5 font-oswald text-xxs font-bold tracking-widest text-white uppercase"
+					class="absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-0.5 font-oswald text-xxs font-bold tracking-widest text-white uppercase"
 				>
 					{m.posts_unmoderated()}
 				</span>
 			{/if}
+			<button
+				type="button"
+				onclick={() => (expanded = !expanded)}
+				aria-label={expanded ? m.posts_image_collapse() : m.posts_image_expand()}
+				class="absolute right-2 bottom-2 flex size-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/75"
+			>
+				{#if expanded}
+					<Minimize2 size={15} />
+				{:else}
+					<Maximize2 size={15} />
+				{/if}
+			</button>
 		</div>
 	{/if}
 	<div class="flex items-center justify-between bg-olf-darkgreen px-3 py-1.5 text-white">
-		<span class="flex shrink-0 items-center gap-1 font-oswald text-xs text-olf-eggshell">
-			<MessageSquare size={15} class="text-white" />
+		<span class="flex shrink-0 items-center gap-2 font-oswald text-xs text-olf-eggshell">
+			<MessageSquare size={18} class="text-white" />
 			<span class="tabular-nums">{post.commentCount}</span>
 		</span>
-		<span class="flex shrink-0 items-center gap-0.5 font-oswald text-xs text-olf-eggshell">
-			<ArrowBigUp size={16} class="text-white" />
+		<span class="flex shrink-0 items-center gap-2.5 font-oswald text-xs text-olf-eggshell">
+			<ArrowBigUp size={20} class="text-white" />
 			<span class="tabular-nums">{net}</span>
-			<ArrowBigDown size={16} class="text-white" />
+			<ArrowBigDown size={20} class="text-white" />
 		</span>
 	</div>
 </article>

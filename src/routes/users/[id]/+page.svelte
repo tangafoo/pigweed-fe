@@ -8,6 +8,7 @@
 	import Seo from '$lib/components/Seo.svelte';
 	import { absoluteUrl, SITE_NAME } from '$lib/seo';
 	import { ANIMAL_LABEL } from '$lib/utils/labels';
+	import { asset } from '$lib/assets';
 	import { Settings } from '@lucide/svelte';
 
 	let { data }: { data: PageData } = $props();
@@ -51,21 +52,18 @@
 
 <div class="flex-1 bg-olf-lightgreen px-4 py-10">
 	<div class="mx-auto max-w-2xl">
-		<section class="mb-6 rounded-2xl bg-olf-beige p-6">
-			<div class="flex items-center gap-5">
+		<section class="mb-5 rounded-2xl bg-olf-eggshell p-4 shadow-md">
+			<div class="flex items-center gap-3.5">
 				<Avatar
-					size="lg"
+					size="md"
 					animal={profile.animal}
 					avatarSeed={profile.avatarSeed}
 					gender={profile.gender}
 				/>
 				<div class="min-w-0 flex-1">
-					<h1 class="font-supermercado-one text-2xl font-bold wrap-break-word text-olf-darkbrown">
+					<h1 class="font-supermercado-one text-xl font-bold wrap-break-word text-olf-darkbrown">
 						{profile.username}
 					</h1>
-					<p class="font-oswald text-olf-darkbrown/70">
-						{m.profile_animal_line({ animal: ANIMAL_LABEL[profile.animal]() })}
-					</p>
 					<p class="font-oswald text-sm text-olf-darkbrown/60">
 						{m.profile_hatched({ when: formatRelative(profile.createdAt) })}
 					</p>
@@ -73,10 +71,18 @@
 			</div>
 
 			<div class="mt-4 flex flex-wrap items-center gap-2 font-oswald text-sm">
-				<span class="rounded-full bg-olf-darkbrown px-3 py-1 text-white">
+				{#if data.isOwner && data.coinBalance != null}
+					<span
+						class="flex items-center gap-1.5 rounded-full bg-olf-darkbrown px-3 py-1 text-white"
+					>
+						<img src={asset('egg05.webp')} alt="" class="h-4 w-4 shrink-0 object-contain" />
+						{m.profile_stat_coins({ count: data.coinBalance })}
+					</span>
+				{/if}
+				<span class=" text-olf-darkbrown">
 					{m.profile_stat_posts({ count: profile.postCount })}
 				</span>
-				<span class="rounded-full bg-olf-darkbrown px-3 py-1 text-white">
+				<span class=" text-olf-darkbrown">
 					{m.profile_stat_comments({ count: profile.commentCount })}
 				</span>
 			</div>
@@ -84,7 +90,7 @@
 			{#if data.isOwner}
 				<a
 					href="/settings"
-					class="mt-4 inline-flex items-center gap-1.5 rounded-full bg-olf-darkbrown px-4 py-2 font-oswald text-sm font-bold text-white"
+					class="mt-2 ml-auto flex w-fit items-center gap-1.5 rounded-full bg-olf-moss px-3 py-1 font-oswald text-sm font-bold text-olf-eggshell"
 				>
 					<Settings size={16} />
 					{m.profile_settings_button()}

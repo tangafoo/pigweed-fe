@@ -122,11 +122,19 @@
 
 <div class="flex-1 bg-olf-lightgreen px-4 py-10">
 	<div class="mx-auto max-w-2xl">
-		<h1 class="mb-6 font-homemade-apple text-4xl font-bold text-olf-darkbrown">
-			{m.settings_heading()}
-		</h1>
+		<div class="mb-6 flex items-center justify-between gap-3">
+			<h1 class="font-homemade-apple text-4xl font-bold text-olf-darkbrown">
+				{m.settings_heading()}
+			</h1>
+			<!-- Auto-loop: faces left & hops left ×3, flips to face right, hops back
+			     ×3, flips back — then repeats. Hop (translate) + facing (scaleX)
+			     animate together on the wrapper, so the img itself is unflipped. -->
+			<span class="hop inline-flex shrink-0">
+				<img src={asset('chicken-drawing-white.webp')} alt="" class="h-14 w-auto" />
+			</span>
+		</div>
 
-		<section class="mb-6 rounded-2xl bg-olf-beige p-6">
+		<section class="mb-6 rounded-2xl bg-olf-eggshell p-6 shadow-md">
 			<div class="mb-4 flex items-center gap-2">
 				<UserRound size={22} class="text-olf-darkbrown" />
 				<h2 class="font-homemade-apple text-2xl font-bold text-olf-darkbrown">
@@ -176,7 +184,7 @@
 			</dl>
 		</section>
 
-		<section class="rounded-2xl bg-olf-beige p-6">
+		<section class="rounded-2xl bg-olf-beige p-6 shadow-md">
 			<div class="mb-2 flex items-center gap-2">
 				<KeyRound size={22} class="text-olf-darkbrown" />
 				<h2 class="font-homemade-apple text-2xl font-bold text-olf-darkbrown">
@@ -239,7 +247,7 @@
 									type="button"
 									onclick={() => (confirmingId = pk.id)}
 									aria-label={m.passkey_delete_button()}
-									class="flex h-9 w-9 items-center justify-center rounded-full bg-olf-lightbrown text-olf-darkbrown"
+									class="flex h-9 w-9 items-center justify-center rounded-full bg-olf-rose text-olf-eggshell"
 								>
 									<Trash2 size={16} />
 								</button>
@@ -297,9 +305,9 @@
 				<button
 					type="button"
 					onclick={() => (addingMode = true)}
-					class="flex w-full items-center justify-center gap-2 rounded-full bg-olf-darkbrown px-4 py-2 font-oswald text-lg font-bold text-white"
+					class="inline-flex items-center gap-1.5 font-oswald font-semibold text-olf-darkbrown underline underline-offset-2 hover:text-olf-darkgreen"
 				>
-					<Plus size={18} />
+					<Plus size={16} class="shrink-0" />
 					{m.passkey_add_button()}
 				</button>
 			{/if}
@@ -309,10 +317,99 @@
 			type="button"
 			onclick={signOut}
 			disabled={signingOut}
-			class="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-olf-darkbrown px-4 py-3 font-oswald text-lg font-bold text-olf-beige disabled:opacity-50"
+			class="mt-4.5 inline-flex items-center gap-1.5 font-oswald font-semibold text-olf-darkbrown underline underline-offset-2 hover:text-olf-darkgreen disabled:opacity-50"
 		>
-			<LogOut size={18} />
+			<LogOut size={16} class="shrink-0" />
 			{signingOut ? m.home_signout_in_progress() : m.home_signout_button()}
 		</button>
 	</div>
 </div>
+
+<style>
+	/* hop ×3 left → wait 2s → flip to right → wait 1s → hop ×3 back → flip to
+	   left (no wait) → wait 5s → loop. ~12s total. translate + scaleX share one
+	   transform so hop and facing never fight; per-keyframe easing gives each hop
+	   a gravity feel (rise eases out, fall eases in). Reduced-motion rests left. */
+	.hop {
+		transform: scaleX(-1);
+		transform-origin: center bottom;
+		animation: chicken-pace 12s infinite;
+	}
+	@keyframes chicken-pace {
+		/* hop left ×3 */
+		0% {
+			transform: translate(0, 0) scaleX(-1);
+			animation-timing-function: ease-out;
+		}
+		2.08% {
+			transform: translate(-7px, -11px) scaleX(-1);
+			animation-timing-function: ease-in;
+		}
+		4.17% {
+			transform: translate(-14px, 0) scaleX(-1);
+			animation-timing-function: ease-out;
+		}
+		6.25% {
+			transform: translate(-21px, -11px) scaleX(-1);
+			animation-timing-function: ease-in;
+		}
+		8.33% {
+			transform: translate(-28px, 0) scaleX(-1);
+			animation-timing-function: ease-out;
+		}
+		10.42% {
+			transform: translate(-35px, -11px) scaleX(-1);
+			animation-timing-function: ease-in;
+		}
+		12.5% {
+			transform: translate(-42px, 0) scaleX(-1);
+		}
+		/* wait 2s, then flip to face right */
+		29.17% {
+			transform: translate(-42px, 0) scaleX(-1);
+		}
+		33.33% {
+			transform: translate(-42px, 0) scaleX(1);
+		}
+		/* wait 1s, then hop right ×3 back to origin */
+		41.67% {
+			transform: translate(-42px, 0) scaleX(1);
+			animation-timing-function: ease-out;
+		}
+		43.75% {
+			transform: translate(-35px, -11px) scaleX(1);
+			animation-timing-function: ease-in;
+		}
+		45.83% {
+			transform: translate(-28px, 0) scaleX(1);
+			animation-timing-function: ease-out;
+		}
+		47.92% {
+			transform: translate(-21px, -11px) scaleX(1);
+			animation-timing-function: ease-in;
+		}
+		50% {
+			transform: translate(-14px, 0) scaleX(1);
+			animation-timing-function: ease-out;
+		}
+		52.08% {
+			transform: translate(-7px, -11px) scaleX(1);
+			animation-timing-function: ease-in;
+		}
+		54.17% {
+			transform: translate(0, 0) scaleX(1);
+		}
+		/* straight flip back to left (no wait), then wait 5s before looping */
+		58.33% {
+			transform: translate(0, 0) scaleX(-1);
+		}
+		100% {
+			transform: translate(0, 0) scaleX(-1);
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.hop {
+			animation: none;
+		}
+	}
+</style>

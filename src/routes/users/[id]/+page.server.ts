@@ -14,8 +14,13 @@ export const load: PageServerLoad = async ({ params, parent, request }) => {
 	const profile = await getUserProfile(params.id, cookie);
 	if (!profile) throw error(404, 'No such user');
 
+	const isOwner = session?.user.id === params.id;
+
 	return {
 		profile,
-		isOwner: session?.user.id === params.id
+		isOwner,
+		// Coin balance is private — only surfaced on your own profile, from the
+		// session (the public profile shape doesn't carry it).
+		coinBalance: isOwner ? (session?.user.coinBalance ?? null) : null
 	};
 };

@@ -10,7 +10,7 @@
 
 	import { m } from '$lib/paraglide/messages.js';
 	import { Plus, Star } from '@lucide/svelte';
-	import { CATEGORY_COLOR } from '$lib/categories';
+	import { CATEGORY_COLOR, CATEGORY_EMOJI } from '$lib/categories';
 
 	let { data }: { data: PageData } = $props();
 	const session = $derived(data.session);
@@ -124,11 +124,7 @@
 									? 'font-bold'
 									: ''}"
 							>
-								<span
-									class="h-3 w-3 shrink-0 rounded-full {c.value
-										? CATEGORY_COLOR[c.value]
-										: 'bg-olf-darkgreen'}"
-								></span>
+								<span class="w-5 shrink-0 text-center">{c.value ? CATEGORY_EMOJI[c.value] : '🌳'}</span>
 								<span>{c.label()}</span>
 							</button>
 						</li>
