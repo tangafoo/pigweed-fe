@@ -185,6 +185,8 @@
 	"posts_op_badge": "投稿者",
 	"posts_op_tooltip": "Our Little Farm のオーナーが投稿",
 	"posts_unmoderated": "未審査",
+	"posts_upvote": "高評価",
+	"posts_downvote": "低評価",
 	"posts_image_expand": "画像を拡大",
 	"posts_image_collapse": "画像を縮小",
 	"posts_empty": "ここは静かです——まだ表示するものがありません。",

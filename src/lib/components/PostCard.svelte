@@ -1,6 +1,9 @@
 <script lang="ts">
-	import type { Post } from '@meteorclass/pigweed-contract';
+	import type { Post, Session, VoteValue, VoteResponse } from '@meteorclass/pigweed-contract';
 	import { m } from '$lib/paraglide/messages.js';
+	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
+	import { setPostVote, clearPostVote } from '$lib/api/votes';
 	import Avatar from '$lib/components/Avatar.svelte';
 	import {
 		Star,
@@ -20,7 +23,52 @@
 	}
 	let { post, compact = false }: PostCardProps = $props();
 
-	const net = $derived(post.upvoteCount - post.downvoteCount);
+	const signedIn = $derived(!!(page.data as { session?: Session | null }).session?.user);
+
+	// Optimistic override of the post's vote tallies. `null` → show the prop's
+	// server values; set the moment the viewer votes, then reconciled to the
+	// server's authoritative numbers on response. Cleared when the card is
+	// reused for a different post id (feed refetch / carousel reuse).
+	let override = $state<VoteResponse | null>(null);
+	let voting = $state(false);
+	$effect(() => {
+		// Reading post.id registers it as the only dependency, so the override
+		// resets exactly when this card is reused for a different post.
+		if (post.id) override = null;
+	});
+
+	const myVote = $derived(override ? override.myVote : post.myVote);
+	const upvotes = $derived(override ? override.upvoteCount : post.upvoteCount);
+	const downvotes = $derived(override ? override.downvoteCount : post.downvoteCount);
+	const net = $derived(upvotes - downvotes);
+
+	async function vote(value: VoteValue) {
+		// Voting needs a session; bounce signed-out viewers to login.
+		if (!signedIn) return void goto('/login');
+		if (voting) return;
+		voting = true;
+
+		// Toggle: clicking the active vote clears it; otherwise set/switch.
+		const removing = myVote === value;
+		const rollback = override;
+
+		// Optimistic update — back out any existing vote, then apply the new one.
+		let up = upvotes;
+		let down = downvotes;
+		if (myVote === 'UP') up--;
+		else if (myVote === 'DOWN') down--;
+		if (!removing) {
+			if (value === 'UP') up++;
+			else down++;
+		}
+		override = { upvoteCount: up, downvoteCount: down, myVote: removing ? null : value };
+
+		const res = removing ? await clearPostVote(post.id) : await setPostVote(post.id, value);
+		// Reconcile against the server's authoritative counts, or roll back on
+		// failure (incl. a stale-session 401).
+		override = res ?? rollback;
+		voting = false;
+	}
 
 	// Brand: a card's border grows bushier with its net score (1px–6px).
 	const bushiness = $derived(Math.max(1, Math.min(6, 1 + net / 4)));
@@ -202,9 +250,33 @@
 			<span class="tabular-nums">{post.commentCount}</span>
 		</span>
 		<span class="flex shrink-0 items-center gap-2.5 font-oswald text-xs text-olf-eggshell">
-			<ArrowBigUp size={20} class="text-white" />
+			<button
+				type="button"
+				onclick={() => vote('UP')}
+				disabled={voting}
+				aria-pressed={myVote === 'UP'}
+				aria-label={m.posts_upvote()}
+				class="transition-transform hover:scale-115 disabled:opacity-60"
+			>
+				<ArrowBigUp
+					size={20}
+					class={myVote === 'UP' ? 'fill-olf-lightgreen text-olf-lightgreen' : 'text-white'}
+				/>
+			</button>
 			<span class="tabular-nums">{net}</span>
-			<ArrowBigDown size={20} class="text-white" />
+			<button
+				type="button"
+				onclick={() => vote('DOWN')}
+				disabled={voting}
+				aria-pressed={myVote === 'DOWN'}
+				aria-label={m.posts_downvote()}
+				class="transition-transform hover:scale-115 disabled:opacity-60"
+			>
+				<ArrowBigDown
+					size={20}
+					class={myVote === 'DOWN' ? 'fill-olf-yolk text-olf-yolk' : 'text-white'}
+				/>
+			</button>
 		</span>
 	</div>
 </article>

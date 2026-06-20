@@ -185,6 +185,8 @@
 	"posts_op_badge": "OP",
 	"posts_op_tooltip": "Posted by an Our Little Farm owner",
 	"posts_unmoderated": "Unmoderated",
+	"posts_upvote": "Upvote",
+	"posts_downvote": "Downvote",
 	"posts_image_expand": "Expand image",
 	"posts_image_collapse": "Collapse image",
 	"posts_empty": "The coop's quiet here — nothing to show yet.",

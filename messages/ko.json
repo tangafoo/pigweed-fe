@@ -185,6 +185,8 @@
 	"posts_op_badge": "OP",
 	"posts_op_tooltip": "Our Little Farm 운영자가 작성",
 	"posts_unmoderated": "미검열",
+	"posts_upvote": "추천",
+	"posts_downvote": "비추천",
 	"posts_image_expand": "이미지 확대",
 	"posts_image_collapse": "이미지 축소",
 	"posts_empty": "아직 조용하네요 — 보여줄 글이 없어요.",
