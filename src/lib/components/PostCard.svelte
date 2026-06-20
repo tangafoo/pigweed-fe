@@ -207,7 +207,7 @@
 
 		{#if post.body}
 			{#if !compact}
-				<p class="line-clamp-3 font-oswald text-[0.95rem] tracking-wide text-olf-darkbrown/90">
+				<p class="font-oswald text-[0.95rem] tracking-wide text-olf-darkbrown/90">
 					{post.body}
 				</p>
 			{:else}

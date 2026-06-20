@@ -126,7 +126,8 @@
 			<p class="mb-6 text-olf-darkbrown/70">{m.signup_subtitle()}</p>
 
 			<label class="mb-4 block">
-				<span class="mb-1 block text-sm font-bold text-olf-darkbrown">{m.signup_email_label()}</span>
+				<span class="mb-1 block text-sm font-bold text-olf-darkbrown">{m.signup_email_label()}</span
+				>
 				<input
 					bind:value={email}
 					type="email"
@@ -158,6 +159,9 @@
 					required
 					class="w-full rounded-lg border-2 border-olf-lightbrown bg-white/80 px-3 py-2 focus:border-olf-darkbrown focus:outline-none"
 				/>
+				<span class="mt-1 block text-xs tracking-wide text-olf-darkbrown/60"
+					>{m.signup_username_instructions()}</span
+				>
 				<p class="mt-1 text-sm">
 					{#if usernameError}
 						<span class=" text-red-700">{usernameError}</span>
@@ -173,7 +177,9 @@
 			</div>
 
 			<label class="mb-4 block">
-				<span class="mb-1 block text-sm font-bold text-olf-darkbrown">{m.signup_password_label()}</span>
+				<span class="mb-1 block text-sm font-bold text-olf-darkbrown"
+					>{m.signup_password_label()}</span
+				>
 				<input
 					bind:value={password}
 					type="password"
@@ -182,11 +188,15 @@
 					required
 					class="w-full rounded-lg border-2 border-olf-lightbrown bg-white/80 px-3 py-2 focus:border-olf-darkbrown focus:outline-none"
 				/>
-				<span class="mt-1 block text-xs text-olf-darkbrown/60">{m.signup_password_hint()}</span>
+				<span class="mt-1 block text-xs tracking-wide text-olf-darkbrown/60"
+					>{m.signup_password_hint()}</span
+				>
 			</label>
 
 			<label class="mb-6 block">
-				<span class="mb-1 block text-sm font-bold text-olf-darkbrown">{m.signup_gender_label()}</span>
+				<span class="mb-1 block text-sm font-bold text-olf-darkbrown"
+					>{m.signup_gender_label()}</span
+				>
 				<select
 					bind:value={gender}
 					class="w-full rounded-lg border-2 border-olf-lightbrown bg-white/80 px-3 py-2 focus:border-olf-darkbrown focus:outline-none"
