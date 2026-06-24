@@ -103,7 +103,7 @@
 	"home_visit_view_map": "지도 크게 보기",
 	"home_latest_kicker": "최신 리뷰와 소식",
 	"home_latest_empty": "지금은 닭장이 조용하네요 — 가장 먼저 떠들썩하게 만들어 보세요.",
-	"home_enter_farm": "전체 보기",
+	"home_enter_farm": "전체 보기 ({count})",
 	"home_post_review": "후기 작성",
 
 	"home_faq_kicker": "알아두면 좋아요",
@@ -172,6 +172,10 @@
 	"home_profile_link": "내 프로필",
 
 	"posts_page_title": "농장",
+	"posts_near_me": "내 주변",
+	"posts_everywhere": "전체",
+	"posts_locating": "위치 찾는 중…",
+	"posts_distance": "~{km}km 거리",
 	"posts_new_button": "새 글",
 	"posts_signin_to_post": "로그인하고 글쓰기",
 	"posts_cat_all": "전체",
@@ -181,6 +185,7 @@
 	"posts_cat_animals": "동물",
 	"posts_rating_all": "전체 별점",
 	"posts_rating_min": "별 {rating}개 이상",
+	"posts_rating_max": "{rating}★ 이하",
 	"posts_rating_label": "별 5개 중 {rating}개",
 	"posts_op_badge": "OP",
 	"posts_op_tooltip": "Our Little Farm 운영자가 작성",

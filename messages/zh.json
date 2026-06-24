@@ -103,7 +103,7 @@
 	"home_visit_view_map": "查看大地圖",
 	"home_latest_kicker": "最新評論與動態",
 	"home_latest_empty": "雞舍此刻很安靜——來當第一個發聲的吧。",
-	"home_enter_farm": "查看全部",
+	"home_enter_farm": "查看全部 ({count})",
 	"home_post_review": "發表評論",
 
 	"home_faq_kicker": "先了解一下",
@@ -172,6 +172,10 @@
 	"home_profile_link": "你的主頁",
 
 	"posts_page_title": "農場",
+	"posts_near_me": "附近",
+	"posts_everywhere": "全部",
+	"posts_locating": "定位中…",
+	"posts_distance": "~{km} 公里外",
 	"posts_new_button": "發文",
 	"posts_signin_to_post": "登入後發文",
 	"posts_cat_all": "全部",
@@ -181,6 +185,7 @@
 	"posts_cat_animals": "動物",
 	"posts_rating_all": "任何評分",
 	"posts_rating_min": "{rating} 星及以上",
+	"posts_rating_max": "{rating}★ 及以下",
 	"posts_rating_label": "5 星中的 {rating} 星",
 	"posts_op_badge": "樓主",
 	"posts_op_tooltip": "由 Our Little Farm 農場主發布",

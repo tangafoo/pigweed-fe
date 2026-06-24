@@ -103,7 +103,7 @@
 	"home_visit_view_map": "View larger map",
 	"home_latest_kicker": "Latest Reviews and Updates",
 	"home_latest_empty": "The coop's quiet right now — be the first to make some noise.",
-	"home_enter_farm": "See All",
+	"home_enter_farm": "See All ({count})",
 	"home_post_review": "Post a review",
 
 	"home_faq_kicker": "Good to know",
@@ -172,6 +172,10 @@
 	"home_profile_link": "Your profile",
 
 	"posts_page_title": "The farm",
+	"posts_near_me": "Near me",
+	"posts_everywhere": "Everywhere",
+	"posts_locating": "Finding you…",
+	"posts_distance": "~{km} km away",
 	"posts_new_button": "New post",
 	"posts_signin_to_post": "Sign in to post",
 	"posts_cat_all": "All",
@@ -181,6 +185,7 @@
 	"posts_cat_animals": "Animals",
 	"posts_rating_all": "Any rating",
 	"posts_rating_min": "{rating} stars and up",
+	"posts_rating_max": "Up to {rating}★",
 	"posts_rating_label": "{rating} out of 5 stars",
 	"posts_op_badge": "OP",
 	"posts_op_tooltip": "Posted by an Our Little Farm owner",
