@@ -44,6 +44,22 @@ export async function getUserAchievements(
 	}
 }
 
+/**
+ * The full achievement catalog (every active achievement) — GET /achievements.
+ * The profile "View all" modal cross-references this against the user's earned
+ * list to show locked vs unlocked. Public; returns [] on failure.
+ */
+export async function getAchievementCatalog(cookie?: string): Promise<Achievement[]> {
+	try {
+		const res = await api('/achievements', cookieHeaders(cookie));
+		if (!res.ok) return [];
+		const data = (await res.json()) as { achievements?: Achievement[] };
+		return data.achievements ?? [];
+	} catch {
+		return [];
+	}
+}
+
 export async function getUserVotes(
 	id: string,
 	target: VoteTarget,

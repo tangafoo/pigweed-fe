@@ -4,8 +4,10 @@
 	import { slide } from 'svelte/transition';
 
 	interface FilterDropdownProps {
-		// What the trigger shows for the current selection.
+		// What the trigger shows for the current selection (text + aria fallback).
 		label: string;
+		// Optional rich trigger content (e.g. a gold star icon). Falls back to `label`.
+		labelSnippet?: Snippet;
 		// Trigger pill colour — lets a selected category tint its own trigger.
 		triggerClass?: string;
 		// The open panel's option rows. Receives `close` so a pick can dismiss it.
@@ -13,6 +15,7 @@
 	}
 	let {
 		label,
+		labelSnippet,
 		triggerClass = 'bg-olf-beige text-olf-darkbrown',
 		children
 	}: FilterDropdownProps = $props();
@@ -47,7 +50,7 @@
 		aria-expanded={open}
 		class="flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 font-oswald text-sm font-bold transition-colors duration-200 {triggerClass}"
 	>
-		<span>{label}</span>
+		<span>{#if labelSnippet}{@render labelSnippet()}{:else}{label}{/if}</span>
 		<ChevronDown size={14} class="shrink-0 transition-transform duration-200 {open ? 'rotate-180' : ''}" />
 	</button>
 

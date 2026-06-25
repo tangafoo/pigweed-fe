@@ -8,9 +8,11 @@
 
 	interface LatestPostsStripProps {
 		posts: Post[];
+		/** Total posts across the feed — drives the "See All (x)" count. */
+		totalCount: number;
 		session: Session | null;
 	}
-	let { posts, session }: LatestPostsStripProps = $props();
+	let { posts, totalCount, session }: LatestPostsStripProps = $props();
 
 	// Padded to a comfortable card count so a near-empty feed still fills the strip.
 	const cards = $derived(
@@ -149,7 +151,7 @@
 			href="/posts"
 			class="flex items-center gap-2 rounded-full bg-olf-darkgreen px-5 py-1.5 font-oswald text-sm font-bold tracking-widest text-olf-eggshell uppercase shadow-lg"
 		>
-			{m.home_enter_farm()}
+			{m.home_enter_farm({ count: totalCount })}
 			<ArrowRight size={16} class="shrink-0" />
 		</a>
 	</div>

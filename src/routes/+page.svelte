@@ -222,7 +222,7 @@
 	</p>
 </div>
 
-<LatestPostsStrip posts={latestPosts} session={data.session} />
+<LatestPostsStrip posts={latestPosts} totalCount={data.postCount} session={data.session} />
 
 <FarmPromise />
 

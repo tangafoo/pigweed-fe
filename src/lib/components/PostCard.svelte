@@ -12,10 +12,12 @@
 		ArrowBigDown,
 		MessageSquare,
 		Maximize2,
-		Minimize2
+		Minimize2,
+		MapPin
 	} from '@lucide/svelte';
 	import { CATEGORY_COLOR, CATEGORY_EMOJI } from '$lib/categories';
 	import { formatRelative } from '$lib/utils/date';
+	import { distanceKm, type LatLng } from '$lib/geo';
 
 	interface PostCardProps {
 		post: Post;
@@ -29,8 +31,19 @@
 		liveCommentCount?: number;
 		/** Start with the image expanded (full height) — used on the detail page. */
 		expandImage?: boolean;
+		/**
+		 * Viewer's current location, when known (feed "Near me"). Drives the
+		 * "~N km away" suffix on the origin line. Omitted → no distance shown.
+		 */
+		viewerLocation?: LatLng | null;
 	}
-	let { post, compact = false, liveCommentCount, expandImage = false }: PostCardProps = $props();
+	let {
+		post,
+		compact = false,
+		liveCommentCount,
+		expandImage = false,
+		viewerLocation = null
+	}: PostCardProps = $props();
 
 	const commentCount = $derived(liveCommentCount ?? post.commentCount);
 
@@ -96,6 +109,19 @@
 					: m.posts_cat_animals();
 
 	const topAwards = $derived(post.awards.slice(0, 3));
+
+	// Origin line bits, kept as two separate values so the template can place
+	// the place label and the distance independently (distance is pushed to
+	// the right). "~N km away" only when we know the viewer's location; floored
+	// at 1 km so a nearby post never reads "~0 km".
+	const kmAway = $derived(
+		viewerLocation
+			? Math.max(
+					1,
+					Math.round(distanceKm(viewerLocation, { lat: post.latitude, lng: post.longitude }))
+				)
+			: null
+	);
 
 	// Tap the expand button to let the image grow from the cropped thumbnail to
 	// its full natural height, animated as a height slide. We animate an explicit
@@ -307,6 +333,26 @@
 			</button>
 		</span>
 	</div>
+
+	<!-- Origin line: place label on the left (coarse town/city, reverse-geocoded
+	     once at creation — never a precise address); distance on the right,
+	     shown only when the viewer's location is known. Each is its own element
+	     so they can be styled independently. Hidden when neither exists. -->
+	{#if post.locationName || kmAway != null}
+		<div
+			class="flex items-center gap-1 bg-olf-darkgreen bg-linear-to-r from-olf-moss to-olf-darkgreen px-3 py-1 font-caveat text-sm text-olf-eggshell/90"
+		>
+			{#if post.locationName}
+				<MapPin size={12} class="shrink-0" />
+				<span class="truncate tracking-wider">{post.locationName}</span>
+			{/if}
+			{#if kmAway != null}
+				<span class="ml-auto shrink-0 tracking-wider">
+					{m.posts_distance({ km: kmAway })}
+				</span>
+			{/if}
+		</div>
+	{/if}
 </article>
 
 <style>

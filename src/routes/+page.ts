@@ -1,6 +1,7 @@
 import { env } from '$env/dynamic/public';
 import type { PageLoad } from './$types';
-import type { FeedResponse, Post } from '@meteorclass/pigweed-contract';
+import type { Post, PostCount } from '@meteorclass/pigweed-contract';
+import { fetchFeed } from '$lib/api/posts';
 
 const MANTIN_LAT = 2.7;
 const MANTIN_LNG = 101.93;
@@ -35,25 +36,45 @@ async function fetchUserCount(fetch: typeof globalThis.fetch): Promise<number | 
 }
 
 async function fetchLatestPosts(fetch: typeof globalThis.fetch): Promise<Post[]> {
+	// Route through the shared feed seam so the auth cookie rides along
+	// (fetchFeed sets credentials: 'include'). A bare fetch here dropped the
+	// cookie on client-side navigation after login — the cross-origin
+	// :5173→:3000 request went out anonymous, so every post came back with
+	// myVote: null and the vote buttons rendered un-voted until a full
+	// refresh (SSR's fetch forwards the cookie). fetchFeed never throws.
+	const feed = await fetchFeed({ sort: 'newest', page: 1, limit: 10 }, fetch);
+	return feed.posts;
+}
+
+// Total post count for the "See All (x)" link — a cheap COUNT(*) via the
+// dedicated /posts/count endpoint (mirrors /users/count). Replaces the old
+// hack that pulled a 200-row page just to read its length.
+async function fetchPostCount(fetch: typeof globalThis.fetch): Promise<number> {
 	try {
-		const res = await fetch(`${API_BASE}/posts?sort=newest&page=1&limit=10`);
-		if (!res.ok) return [];
-		const json = (await res.json()) as FeedResponse;
-		return json.posts ?? [];
+		const res = await fetch(`${API_BASE}/posts/count`);
+		if (!res.ok) return 0;
+		const json = (await res.json()) as PostCount;
+		return json.count;
 	} catch {
-		return [];
+		return 0;
 	}
 }
 
-export const load: PageLoad = async ({ fetch, setHeaders }) => {
-	setHeaders({ 'cache-control': 'public, max-age=600' });
-	const [weather, userCount, latestPosts] = await Promise.all([
+export const load: PageLoad = async ({ fetch, setHeaders, parent }) => {
+	const { session } = await parent();
+	// The latest-posts strip now carries the viewer's per-user myVote when
+	// signed in, so the signed-in response must NOT be shared-cached — a CDN
+	// would otherwise serve one user's vote highlights (or a stale anonymous
+	// render) to the next visitor. Anonymous landing stays publicly cacheable.
+	setHeaders({ 'cache-control': session ? 'private, no-store' : 'public, max-age=600' });
+	const [weather, userCount, latestPosts, postCount] = await Promise.all([
 		fetchWeather(fetch),
 		fetchUserCount(fetch),
-		fetchLatestPosts(fetch)
+		fetchLatestPosts(fetch),
+		fetchPostCount(fetch)
 	]);
 	// Random egg photo (1–4) for the "why pay more" section. Chosen in load so
 	// SSR renders the final image — no onMount glimpse, no hydration mismatch.
 	const eggNum = 1 + Math.floor(Math.random() * 4);
-	return { weather, userCount, latestPosts, eggNum };
+	return { weather, userCount, latestPosts, postCount, eggNum };
 };
