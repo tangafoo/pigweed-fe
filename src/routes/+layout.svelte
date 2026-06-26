@@ -4,6 +4,7 @@
 	import LocaleSwitcher from '$lib/components/LocaleSwitcher.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import OrderEggsModal from '$lib/components/OrderEggsModal.svelte';
+	import SubscriptionModal from '$lib/components/SubscriptionModal.svelte';
 	import { UserRound } from '@lucide/svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import JsonLd from '$lib/components/JsonLd.svelte';
@@ -76,4 +77,5 @@
 	<Footer />
 </div>
 <OrderEggsModal />
+<SubscriptionModal />
 <Toast />
