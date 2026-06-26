@@ -5,14 +5,26 @@
 	import Avatar from '$lib/components/Avatar.svelte';
 	import JsonLd from '$lib/components/JsonLd.svelte';
 	import ProfileTabs from '$lib/components/ProfileTabs.svelte';
+	import SubscriptionPanel from '$lib/components/SubscriptionPanel.svelte';
+	import AchievementsPanel from '$lib/components/AchievementsPanel.svelte';
+	import DashboardNav from '$lib/components/DashboardNav.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import { absoluteUrl, SITE_NAME } from '$lib/seo';
 	import { ANIMAL_LABEL } from '$lib/utils/labels';
 	import { asset } from '$lib/assets';
-	import { Settings } from '@lucide/svelte';
+	import { page } from '$app/state';
 
 	let { data }: { data: PageData } = $props();
 	const profile = $derived(data.profile);
+
+	// Owner side-menu section (profile | subscription | achievements) via ?tab=.
+	type Section = 'profile' | 'subscription' | 'achievements';
+	const SECTIONS: Section[] = ['profile', 'subscription', 'achievements'];
+	const tab = $derived(
+		(SECTIONS.includes(page.url.searchParams.get('tab') as Section)
+			? page.url.searchParams.get('tab')
+			: 'profile') as Section
+	);
 
 	const profileDescription = $derived(
 		`${profile.username} on ${SITE_NAME} — a ${ANIMAL_LABEL[profile.animal]().toLowerCase()} with ${profile.postCount} posts and ${profile.commentCount} comments.`
@@ -50,9 +62,10 @@
 />
 <JsonLd data={profileJsonLd} />
 
-<div class="flex-1 bg-olf-lightgreen px-4 py-10">
-	<div class="mx-auto max-w-2xl">
-		<section class="mb-5 rounded-2xl bg-olf-eggshell p-4 shadow-md">
+<div class="flex-1 bg-olf-lightgreen px-4 py-8">
+	<div class="mx-auto {data.isOwner ? 'max-w-6xl' : 'max-w-2xl'}">
+		<!-- Identity card -->
+		<section class="rounded-2xl bg-olf-eggshell p-4 shadow-md">
 			<div class="flex items-center gap-3.5">
 				<Avatar
 					size="md"
@@ -79,27 +92,39 @@
 						{m.profile_stat_coins({ count: data.coinBalance })}
 					</span>
 				{/if}
-				<span class=" text-olf-darkbrown">
-					{m.profile_stat_posts({ count: profile.postCount })}
-				</span>
-				<span class=" text-olf-darkbrown">
-					{m.profile_stat_comments({ count: profile.commentCount })}
-				</span>
-			</div>
-
-			{#if data.isOwner}
-				<a
-					href="/settings"
-					class="mt-2 ml-auto flex w-fit items-center gap-1.5 rounded-full bg-olf-moss px-3 py-1 font-oswald text-sm font-bold text-olf-eggshell"
+				<span class="text-olf-darkbrown">{m.profile_stat_posts({ count: profile.postCount })}</span>
+				<span class="text-olf-darkbrown"
+					>{m.profile_stat_comments({ count: profile.commentCount })}</span
 				>
-					<Settings size={16} />
-					{m.profile_settings_button()}
-				</a>
-			{/if}
+			</div>
 		</section>
 
-		{#key profile.id}
-			<ProfileTabs userId={profile.id} />
-		{/key}
+		{#if data.isOwner}
+			<!-- Dashboard: shared side menu + section -->
+			<div class="mt-5 flex flex-col gap-5 sm:flex-row">
+				<DashboardNav userId={profile.id} active={tab} />
+				<div class="min-w-0 flex-1">
+					{#if tab === 'subscription'}
+						<SubscriptionPanel
+							plans={data.plans}
+							subscription={data.subscription}
+							stats={data.stats}
+						/>
+					{:else if tab === 'achievements'}
+						<AchievementsPanel userId={profile.id} />
+					{:else}
+						{#key profile.id}
+							<ProfileTabs userId={profile.id} />
+						{/key}
+					{/if}
+				</div>
+			</div>
+		{:else}
+			<div class="mt-5">
+				{#key profile.id}
+					<ProfileTabs userId={profile.id} />
+				{/key}
+			</div>
+		{/if}
 	</div>
 </div>
