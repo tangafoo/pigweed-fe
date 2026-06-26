@@ -64,7 +64,7 @@
 	"home_order_close": "閉じる",
 	"home_order_how_many": "いくつ？",
 	"home_order_eggs": "卵を注文",
-	"home_eggs_order_message": "こんにちは Our Little Farm！卵を{boxes}箱（合計{total}個）注文したいです。",
+	"home_eggs_order_message": "こんにちは ourlittlefarm！卵を{boxes}箱（合計{total}個）注文したいです。",
 	"home_feed_teaser": "動物たちの声をのぞいてみる",
 	"home_signed_in_as": "この名前で活動中",
 	"home_stranger": "見知らぬ者として閲覧中",
@@ -292,7 +292,7 @@
 	"subscribe_cta": "WhatsApp で申し込む",
 	"subscribe_see_all": "詳細を見る",
 	"subscribe_empty": "利用可能な定期購入プランはまだありません。",
-	"subscribe_whatsapp_message": "こんにちは Our Little Farm！{name} プラン（{price}）を定期購入したいです。",
+	"subscribe_whatsapp_message": "こんにちは ourlittlefarm！{name} プラン（{price}）を定期購入したいです。",
 	"subscribe_per_week": "週あたり",
 	"subscribe_per_fortnight": "隔週あたり",
 	"subscribe_price_per_egg": "たまご1個 RM2",
@@ -314,5 +314,5 @@
 	"subscribe_since": "{date}から購読中",
 	"subscribe_delivery_every": "毎週{day}にお届け",
 	"subscribe_request_day": "別の曜日をリクエスト",
-	"subscribe_request_day_message": "こんにちは Our Little Farm！たまごのお届け曜日を変更したいです。"
+	"subscribe_request_day_message": "こんにちは ourlittlefarm！たまごのお届け曜日を変更したいです。"
 }

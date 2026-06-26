@@ -64,7 +64,7 @@
 	"home_order_close": "닫기",
 	"home_order_how_many": "몇 개?",
 	"home_order_eggs": "달걀 주문",
-	"home_eggs_order_message": "안녕하세요 Our Little Farm! 달걀 {boxes}박스 (총 {total}개) 주문하고 싶어요.",
+	"home_eggs_order_message": "안녕하세요 ourlittlefarm! 달걀 {boxes}박스 (총 {total}개) 주문하고 싶어요.",
 	"home_feed_teaser": "닭들이 무슨 말 하는지 보기",
 	"home_signed_in_as": "활동 닉네임",
 	"home_stranger": "익명으로 둘러보는 중",
@@ -292,7 +292,7 @@
 	"subscribe_cta": "WhatsApp으로 구독하기",
 	"subscribe_see_all": "자세히 보기",
 	"subscribe_empty": "아직 이용 가능한 구독 요금제가 없습니다.",
-	"subscribe_whatsapp_message": "안녕하세요 Our Little Farm! {name} 요금제({price})를 구독하고 싶어요.",
+	"subscribe_whatsapp_message": "안녕하세요 ourlittlefarm! {name} 요금제({price})를 구독하고 싶어요.",
 	"subscribe_per_week": "주당",
 	"subscribe_per_fortnight": "격주당",
 	"subscribe_price_per_egg": "달걀 한 알 RM2",
@@ -314,5 +314,5 @@
 	"subscribe_since": "{date}부터 구독 중",
 	"subscribe_delivery_every": "매주 {day} 배송",
 	"subscribe_request_day": "다른 요일 요청하기",
-	"subscribe_request_day_message": "안녕하세요 Our Little Farm! 달걀 배송 요일을 변경하고 싶어요."
+	"subscribe_request_day_message": "안녕하세요 ourlittlefarm! 달걀 배송 요일을 변경하고 싶어요."
 }
