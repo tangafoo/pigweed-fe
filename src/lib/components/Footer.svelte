@@ -2,6 +2,7 @@
 	import { m } from '$lib/paraglide/messages.js';
 	import { page } from '$app/state';
 	import { orderModal } from '$lib/stores/orderModal.svelte';
+	import { subscriptionModal } from '$lib/stores/subscriptionModal.svelte';
 	import type { Session } from '@meteorclass/pigweed-contract';
 
 	const year = new Date().getFullYear();
@@ -28,6 +29,13 @@
 				class="hover:text-olf-lightgreen"
 			>
 				{m.home_order_eggs()}
+			</button>
+			<button
+				type="button"
+				onclick={() => (subscriptionModal.open = true)}
+				class="hover:text-olf-lightgreen"
+			>
+				{m.subscribe_nav()}
 			</button>
 		</nav>
 	</div>

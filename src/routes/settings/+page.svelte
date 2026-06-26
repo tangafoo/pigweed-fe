@@ -111,7 +111,7 @@
 		try {
 			await authClient.signOut();
 			await invalidateAll();
-			await goto('/');
+			await goto('/login');
 		} catch {
 			signingOut = false;
 		}
