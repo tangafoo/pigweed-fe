@@ -11,3 +11,11 @@ const ASSET_BASE =
 
 /** URL for an asset key in the bucket. `encodeURI` handles spaces, keeps `/`. */
 export const asset = (key: string) => `${ASSET_BASE}/${encodeURI(key)}`;
+
+/**
+ * The brand logo, served from the assets bucket. Single source of truth for
+ * every on-site logo (navbar, etc.) — swap the file in R2 (same key) or repoint
+ * PUBLIC_ASSET_BASE_URL to change it everywhere. Email templates use their own
+ * BE-side URL (EMAIL_LOGO_URL) since email clients can't read this code.
+ */
+export const LOGO = asset('olf-logo.png');

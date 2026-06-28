@@ -56,7 +56,7 @@ export const fetchAdminUsers = (
 export const fetchAdminStats = (fetchImpl?: typeof globalThis.fetch, cookie?: string) =>
 	getJson<AdminStats>(
 		'/admin/stats',
-		{ totalUsers: 0, activeSubscribers: 0, totalPosts: 0, totalReviews: 0 },
+		{ totalUsers: 0, activeSubscribers: 0, totalPosts: 0, totalReviews: 0, totalEggs: 0 },
 		fetchImpl,
 		cookie
 	);
@@ -90,7 +90,8 @@ export async function registerUser(input: {
 		| { username: string; animal: string; existed: boolean }
 		| { error?: string }
 		| null;
-	if (!res.ok) return { error: (json as { error?: string })?.error ?? 'Could not register that user.' };
+	if (!res.ok)
+		return { error: (json as { error?: string })?.error ?? 'Could not register that user.' };
 	return json as { username: string; animal: string; existed: boolean };
 }
 
@@ -98,7 +99,10 @@ export async function registerUser(input: {
 export async function previewIdentity(
 	email: string
 ): Promise<{ username: string; animal: string } | null> {
-	const res = await api('/admin/users/preview', { method: 'POST', body: JSON.stringify({ email }) });
+	const res = await api('/admin/users/preview', {
+		method: 'POST',
+		body: JSON.stringify({ email })
+	});
 	if (!res.ok) return null;
 	return (await res.json()) as { username: string; animal: string };
 }
@@ -122,6 +126,9 @@ export const unsubscribeUser = (userId: string) =>
 	send(`/admin/users/${userId}/unsubscribe`, 'POST');
 export const pauseUser = (userId: string) => send(`/admin/users/${userId}/pause`, 'POST');
 export const resumeUser = (userId: string) => send(`/admin/users/${userId}/resume`, 'POST');
+
+// Hard-delete a user (cascades to their posts, comments, votes, orders, …).
+export const deleteUser = (userId: string) => send(`/admin/users/${userId}`, 'DELETE');
 
 export const setUserFlags = (
 	userId: string,

@@ -2,7 +2,7 @@ import { createAuthClient } from 'better-auth/svelte';
 import { passkeyClient } from '@better-auth/passkey/client';
 import { usernameClient } from 'better-auth/client/plugins';
 import { api, API_BASE } from './client';
-import type { Session, Animal, Gender } from '@meteorclass/pigweed-contract';
+import type { Session, Animal, Gender, MyEggStats } from '@meteorclass/pigweed-contract';
 
 // Shapes live in the shared contract package (single source of truth,
 // mirrors pigweed-be). Re-exported so existing `$lib/api/auth` imports
@@ -71,6 +71,8 @@ export type SignUpInput = {
 	username: string;
 	password: string;
 	gender: Gender;
+	/** Optional contact number. */
+	phoneNumber?: string;
 };
 export type SignUpResult = { ok: true } | { ok: false; message: string; field?: 'username' };
 
@@ -92,7 +94,8 @@ export async function signUp(input: SignUpInput): Promise<SignUpResult> {
 			password: input.password,
 			name: input.username,
 			username: input.username,
-			gender: input.gender
+			gender: input.gender,
+			...(input.phoneNumber ? { phoneNumber: input.phoneNumber } : {})
 		} as Parameters<typeof authClient.signUp.email>[0]);
 		if (!error) return { ok: true };
 		const code = error.code ?? '';
@@ -136,9 +139,15 @@ export async function isUsernameAvailable(username: string): Promise<boolean | n
  * the act of choosing (per both CLAUDE.md briefs). No shared-contract
  * type for the response, so it's typed inline against contract `Animal`.
  */
-export async function rerollAvatar(): Promise<{ animal: Animal; avatarSeed: number } | null> {
+export async function rerollAvatar(
+	limited = false
+): Promise<{ animal: Animal; avatarSeed: number } | { error: 'limit' } | null> {
 	try {
-		const res = await api('/users/me/avatar/reroll', { method: 'POST' });
+		const res = await api(`/users/me/avatar/reroll${limited ? '?limited=1' : ''}`, {
+			method: 'POST'
+		});
+		// 403 = the once-only settings reroll is used up.
+		if (res.status === 403) return { error: 'limit' };
 		if (!res.ok) return null;
 		const data = (await res.json().catch(() => null)) as {
 			animal?: Animal;
@@ -147,6 +156,54 @@ export async function rerollAvatar(): Promise<{ animal: Animal; avatarSeed: numb
 		return data && data.animal && typeof data.avatarSeed === 'number'
 			? { animal: data.animal, avatarSeed: data.avatarSeed }
 			: null;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Update the signed-in user's gender (the one mutable identity field —
+ * username/email are immutable). Goes through Better Auth's updateUser, which
+ * accepts `gender` because it's an `input: true` additionalField. Returns
+ * whether it stuck; callers invalidate the session to repaint.
+ */
+export async function updateGender(gender: Gender): Promise<boolean> {
+	try {
+		// `gender` is a server-side additionalField; the client's updateUser type
+		// is inferred without it, so cast through a loose signature.
+		const update = authClient.updateUser as unknown as (
+			input: Record<string, unknown>
+		) => Promise<{ error?: unknown }>;
+		const res = await update({ gender });
+		return !res?.error;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Update the signed-in user's optional phone number (no verification). Empty
+ * string clears it. Same `updateUser` route as gender (a `phoneNumber`
+ * additionalField).
+ */
+export async function updatePhone(phoneNumber: string): Promise<boolean> {
+	try {
+		const update = authClient.updateUser as unknown as (
+			input: Record<string, unknown>
+		) => Promise<{ error?: unknown }>;
+		const res = await update({ phoneNumber });
+		return !res?.error;
+	} catch {
+		return false;
+	}
+}
+
+/** The signed-in user's own egg-ledger rollup (eggs eaten + last order). */
+export async function fetchMyEggStats(): Promise<MyEggStats | null> {
+	try {
+		const res = await api('/users/me/egg-stats');
+		if (!res.ok) return null;
+		return (await res.json()) as MyEggStats;
 	} catch {
 		return null;
 	}
