@@ -25,7 +25,7 @@ A few things I'm happy with, engineering-wise:
   rare foil treatment, low-score comments collapse. All pure reactive math off
   the API payload, no manual memoization. (`src/lib/components/PostCard.svelte`)
 - **A privacy invariant the code enforces.** User location is never persisted
-  server-side — the browser passes `lat`/`lng` per request and only *post* geo
+  server-side — the browser passes `lat`/`lng` per request and only _post_ geo
   is stored. The client never sends identity-derivable params the server can get
   from the session.
 - **Thin BFF, not a second backend.** The `+*.server.ts` layer resolves Better
@@ -64,15 +64,15 @@ By default the app expects the backend on `http://localhost:3000`; override with
 
 ### Useful scripts
 
-| Task | Command |
-|---|---|
-| Dev server | `bun run dev` |
-| Production build | `bun run build` |
-| Preview the build | `bun run preview` |
-| Typecheck | `bun run check` |
-| Lint / format | `bun run lint` / `bun run format` |
-| Unit tests | `bun run test:unit` |
-| E2E tests | `bun run test:e2e` |
+| Task              | Command                           |
+| ----------------- | --------------------------------- |
+| Dev server        | `bun run dev`                     |
+| Production build  | `bun run build`                   |
+| Preview the build | `bun run preview`                 |
+| Typecheck         | `bun run check`                   |
+| Lint / format     | `bun run lint` / `bun run format` |
+| Unit tests        | `bun run test:unit`               |
+| E2E tests         | `bun run test:e2e`                |
 
 ## Layout
 
