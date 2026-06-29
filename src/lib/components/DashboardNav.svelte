@@ -26,11 +26,18 @@
 			icon: Trophy,
 			href: `/users/${userId}?tab=achievements`
 		},
-		{ id: 'settings', label: m.profile_settings_button(), icon: Settings, href: '/settings' }
+		{
+			id: 'settings',
+			label: m.profile_settings_button(),
+			icon: Settings,
+			href: `/users/${userId}?tab=settings`
+		}
 	] as const);
 </script>
 
-<aside class="flex flex-wrap gap-2 sm:w-44 sm:shrink-0 sm:flex-col">
+<aside
+	class="flex flex-wrap gap-2 sm:sticky sm:top-16 sm:w-44 sm:shrink-0 sm:flex-col sm:self-start"
+>
 	{#each items as it (it.id)}
 		{@const Icon = it.icon}
 		<a

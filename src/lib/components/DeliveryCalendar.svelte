@@ -35,7 +35,9 @@
 </script>
 
 <div class="rounded-xl bg-olf-beige/10 p-4">
-	<p class="mb-2 text-center font-oswald text-xs uppercase tracking-widest opacity-70">{monthLabel}</p>
+	<p class="mb-2 text-center font-oswald text-xs tracking-widest uppercase opacity-70">
+		{monthLabel}
+	</p>
 	<div class="grid grid-cols-7 gap-1 text-center">
 		{#each headers as h, i (i)}
 			<span class="font-oswald text-xxs uppercase opacity-50">{h}</span>

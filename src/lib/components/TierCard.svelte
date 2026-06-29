@@ -18,7 +18,9 @@
 	const PHONE = '60172332992';
 
 	const price = $derived(`RM${(plan.priceCents / 100).toFixed(0)}`);
-	const period = $derived(plan.cadenceWeeks === 1 ? m.subscribe_per_week() : m.subscribe_per_fortnight());
+	const period = $derived(
+		plan.cadenceWeeks === 1 ? m.subscribe_per_week() : m.subscribe_per_fortnight()
+	);
 	const priceLabel = $derived(`${price} ${period}`);
 
 	const whatsAppUrl = $derived(
@@ -40,16 +42,20 @@
 		<div class="flex items-center justify-between gap-2">
 			<h3 class="font-supermercado-one text-xl">{plan.name}</h3>
 			{#if current}
-				<span class="shrink-0 rounded bg-olf-yolk px-2 py-0.5 font-oswald text-xxs font-bold tracking-wider text-olf-darkgreen uppercase">
+				<span
+					class="shrink-0 rounded bg-olf-yolk px-2 py-0.5 font-oswald text-xxs font-bold tracking-wider text-olf-darkgreen uppercase"
+				>
 					{m.subscribe_current_tier()}
 				</span>
 			{/if}
 		</div>
 		<p class="font-oswald">
 			<span class="text-3xl font-bold tabular-nums">{price}</span>
-			<span class="text-sm uppercase tracking-wide opacity-70">{period}</span>
+			<span class="text-sm tracking-wide uppercase opacity-70">{period}</span>
 		</p>
-		<p class="font-oswald text-xs uppercase tracking-wide opacity-60">{m.subscribe_price_per_egg()}</p>
+		<p class="font-oswald text-xs tracking-wide uppercase opacity-60">
+			{m.subscribe_price_per_egg()}
+		</p>
 	</div>
 
 	{#if shown.length > 0}

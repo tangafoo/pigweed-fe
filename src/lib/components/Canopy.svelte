@@ -31,7 +31,14 @@
 	const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 	const f = (n: number) => n.toFixed(1);
 
-	type Crown = { fill: string; hull: string; trunk: string; veins: string[]; ox: number; oy: number };
+	type Crown = {
+		fill: string;
+		hull: string;
+		trunk: string;
+		veins: string[];
+		ox: number;
+		oy: number;
+	};
 
 	// Smooth closed path through points (quadratics via midpoints).
 	function smoothClosed(pts: [number, number][]): string {
@@ -82,13 +89,19 @@
 				const mx = (hubx + p[0]) / 2;
 				const my = (huby + p[1]) / 2;
 				const bow = (r() - 0.5) * R * 0.14;
-				veins.push(`M${f(hubx)} ${f(huby)} Q${f(mx + bow)} ${f(my - Math.abs(bow))} ${f(p[0])} ${f(p[1])}`);
+				veins.push(
+					`M${f(hubx)} ${f(huby)} Q${f(mx + bow)} ${f(my - Math.abs(bow))} ${f(p[0])} ${f(p[1])}`
+				);
 				const fx = lerp(hubx, p[0], 0.6);
 				const fy = lerp(huby, p[1], 0.6);
 				const ang = Math.atan2(p[1] - huby, p[0] - hubx);
 				const fl = R * 0.2;
-				veins.push(`M${f(fx)} ${f(fy)} L${f(fx + Math.cos(ang - 0.5) * fl)} ${f(fy + Math.sin(ang - 0.5) * fl)}`);
-				veins.push(`M${f(fx)} ${f(fy)} L${f(fx + Math.cos(ang + 0.5) * fl)} ${f(fy + Math.sin(ang + 0.5) * fl)}`);
+				veins.push(
+					`M${f(fx)} ${f(fy)} L${f(fx + Math.cos(ang - 0.5) * fl)} ${f(fy + Math.sin(ang - 0.5) * fl)}`
+				);
+				veins.push(
+					`M${f(fx)} ${f(fy)} L${f(fx + Math.cos(ang + 0.5) * fl)} ${f(fy + Math.sin(ang + 0.5) * fl)}`
+				);
 			}
 
 			return { fill: GREENS[Math.floor(r() * GREENS.length)], hull, trunk, veins, ox: tx, oy: 0 };

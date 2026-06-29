@@ -53,7 +53,12 @@
 	{#if code === 'en'}
 		<!-- Jalur Gemilang: 14 stripes (7 red on white), blue canton
 		     with a yellow crescent + 14-pointed star. -->
-		<svg viewBox="0 0 28 14" class="h-3 w-5 shrink-0" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+		<svg
+			viewBox="0 0 28 14"
+			class="h-3 w-5 shrink-0"
+			xmlns="http://www.w3.org/2000/svg"
+			aria-hidden="true"
+		>
 			<rect width="28" height="14" fill="#fff" />
 			<rect y="0" width="28" height="1" fill="#cc0001" />
 			<rect y="2" width="28" height="1" fill="#cc0001" />
@@ -72,7 +77,12 @@
 		</svg>
 	{:else if code === 'ko'}
 		<!-- Taegeukgi: red+blue taegeuk on white, four black trigrams. -->
-		<svg viewBox="0 0 36 24" class="h-3 w-5 shrink-0" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+		<svg
+			viewBox="0 0 36 24"
+			class="h-3 w-5 shrink-0"
+			xmlns="http://www.w3.org/2000/svg"
+			aria-hidden="true"
+		>
 			<rect width="36" height="24" fill="#fff" />
 			<g transform="translate(18,12)">
 				<circle r="6" fill="#cd2e3a" />
@@ -109,7 +119,12 @@
 		</svg>
 	{:else if code === 'zh'}
 		<!-- Qingtian Bairi Mandi Hong: red field, blue canton, white 12-rayed sun. -->
-		<svg viewBox="0 0 30 20" class="h-3 w-5 shrink-0" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+		<svg
+			viewBox="0 0 30 20"
+			class="h-3 w-5 shrink-0"
+			xmlns="http://www.w3.org/2000/svg"
+			aria-hidden="true"
+		>
 			<rect width="30" height="20" fill="#fe0000" />
 			<rect width="15" height="10" fill="#000095" />
 			<g transform="translate(7.5,5)">
@@ -129,7 +144,12 @@
 		</svg>
 	{:else if code === 'ja'}
 		<!-- Hinomaru: a single red disc, centred, on white. -->
-		<svg viewBox="0 0 30 20" class="h-3 w-5 shrink-0" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+		<svg
+			viewBox="0 0 30 20"
+			class="h-3 w-5 shrink-0"
+			xmlns="http://www.w3.org/2000/svg"
+			aria-hidden="true"
+		>
 			<rect width="30" height="20" fill="#fff" />
 			<circle cx="15" cy="10" r="6" fill="#bc002d" />
 		</svg>
@@ -143,11 +163,14 @@
 		aria-haspopup="listbox"
 		aria-expanded={open}
 		aria-label={m.locale_switcher_label()}
-		class="flex cursor-pointer items-center gap-1.5 rounded-full border border-white/60 bg-olf-darkbrown/40 px-2.5 py-1 text-white"
+		class="flex cursor-pointer items-center gap-1.5 rounded-full border border-olf-darkgreen/25 bg-olf-eggshell px-2.5 py-1 text-olf-darkgreen"
 	>
 		{@render flag(current)}
 		<span class="font-oswald text-xs">{names[current] ?? current}</span>
-		<ChevronDown size={14} class="shrink-0 transition-transform duration-200 {open ? 'rotate-180' : ''}" />
+		<ChevronDown
+			size={14}
+			class="shrink-0 transition-transform duration-200 {open ? 'rotate-180' : ''}"
+		/>
 	</button>
 
 	{#if open}

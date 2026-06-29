@@ -50,8 +50,13 @@
 		aria-expanded={open}
 		class="flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 font-oswald text-sm font-bold transition-colors duration-200 {triggerClass}"
 	>
-		<span>{#if labelSnippet}{@render labelSnippet()}{:else}{label}{/if}</span>
-		<ChevronDown size={14} class="shrink-0 transition-transform duration-200 {open ? 'rotate-180' : ''}" />
+		<span
+			>{#if labelSnippet}{@render labelSnippet()}{:else}{label}{/if}</span
+		>
+		<ChevronDown
+			size={14}
+			class="shrink-0 transition-transform duration-200 {open ? 'rotate-180' : ''}"
+		/>
 	</button>
 
 	{#if open}

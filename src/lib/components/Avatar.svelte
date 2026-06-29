@@ -28,5 +28,5 @@
 		size
 	]}"
 >
-	<span class="font-supermercado-one text-white">{animal}</span>
+	<span class="font-oswald text-white">{animal}</span>
 </div>

@@ -7,8 +7,15 @@
 	let {
 		value = $bindable(''),
 		placeholder = 'Pick a date',
-		onchange
-	}: { value?: string; placeholder?: string; onchange?: (value: string) => void } = $props();
+		onchange,
+		align = 'left'
+	}: {
+		value?: string;
+		placeholder?: string;
+		onchange?: (value: string) => void;
+		/** Which edge the popover anchors to — use 'right' near the viewport edge. */
+		align?: 'left' | 'right';
+	} = $props();
 
 	let open = $state(false);
 	let root = $state<HTMLElement>();
@@ -59,8 +66,10 @@
 		open = false;
 		onchange?.('');
 	}
-	const prev = () => (view = view.m === 0 ? { y: view.y - 1, m: 11 } : { y: view.y, m: view.m - 1 });
-	const next = () => (view = view.m === 11 ? { y: view.y + 1, m: 0 } : { y: view.y, m: view.m + 1 });
+	const prev = () =>
+		(view = view.m === 0 ? { y: view.y - 1, m: 11 } : { y: view.y, m: view.m - 1 });
+	const next = () =>
+		(view = view.m === 11 ? { y: view.y + 1, m: 0 } : { y: view.y, m: view.m + 1 });
 
 	// Close on outside-click / Escape (listeners attach only while open, after
 	// the opening click has finished propagating — same pattern as LocaleSwitcher).
@@ -94,14 +103,27 @@
 	{#if open}
 		<div
 			transition:slide={{ duration: 120 }}
-			class="absolute z-50 mt-1 w-64 rounded-xl border border-olf-darkgreen/15 bg-olf-beige p-3 text-olf-darkgreen shadow-xl"
+			class="absolute z-50 mt-1 w-64 rounded-xl border border-olf-darkgreen/15 bg-olf-beige p-3 text-olf-darkgreen shadow-xl {align ===
+			'right'
+				? 'right-0'
+				: 'left-0'}"
 		>
 			<div class="mb-2 flex items-center justify-between">
-				<button type="button" onclick={prev} aria-label="Previous month" class="flex size-7 items-center justify-center rounded-md hover:bg-olf-darkgreen/10">
+				<button
+					type="button"
+					onclick={prev}
+					aria-label="Previous month"
+					class="flex size-7 items-center justify-center rounded-md hover:bg-olf-darkgreen/10"
+				>
 					<ChevronLeft size={16} />
 				</button>
 				<span class="font-oswald text-sm font-bold">{monthLabel}</span>
-				<button type="button" onclick={next} aria-label="Next month" class="flex size-7 items-center justify-center rounded-md hover:bg-olf-darkgreen/10">
+				<button
+					type="button"
+					onclick={next}
+					aria-label="Next month"
+					class="flex size-7 items-center justify-center rounded-md hover:bg-olf-darkgreen/10"
+				>
 					<ChevronRight size={16} />
 				</button>
 			</div>

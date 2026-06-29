@@ -24,6 +24,8 @@ export type FeedParams = {
 	category?: PostCategory;
 	/** 1–5; returns posts with rating >= this. */
 	minRating?: number;
+	/** 1–5; returns reviews with rating <= this (non-reviews excluded). */
+	maxRating?: number;
 	/** Filter to a single author — powers the profile "Posts" tab. */
 	authorId?: string;
 	page?: number;
@@ -42,6 +44,7 @@ function feedQuery(p: FeedParams): string {
 	if (p.sort) qs.set('sort', p.sort);
 	if (p.category) qs.set('category', p.category);
 	if (p.minRating != null) qs.set('minRating', String(p.minRating));
+	if (p.maxRating != null) qs.set('maxRating', String(p.maxRating));
 	if (p.authorId) qs.set('authorId', p.authorId);
 
 	qs.set('page', String(p.page ?? 1));

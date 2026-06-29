@@ -62,7 +62,9 @@
 	{:else if achError}
 		<p class="font-oswald text-red-700">{m.profile_achievements_error()}</p>
 	{:else if achievements.length === 0}
-		<p class="rounded-xl bg-olf-darkbrown/10 px-4 py-6 text-center font-oswald text-olf-darkbrown/70">
+		<p
+			class="rounded-xl bg-olf-darkbrown/10 px-4 py-6 text-center font-oswald text-olf-darkbrown/70"
+		>
 			{m.profile_achievements_empty()}
 		</p>
 	{:else}
@@ -138,7 +140,7 @@
 							{:else}
 								<Lock size={22} class="shrink-0" />
 							{/if}
-							<span class="font-oswald text-xs font-bold leading-tight">{a.name}</span>
+							<span class="font-oswald text-xs leading-tight font-bold">{a.name}</span>
 							{#if a.description}
 								<span class="font-oswald text-xxs leading-tight opacity-80">{a.description}</span>
 							{/if}

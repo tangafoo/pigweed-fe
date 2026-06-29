@@ -5,7 +5,9 @@
 </script>
 
 {#if toasts.items.length > 0}
-	<div class="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4">
+	<div
+		class="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4"
+	>
 		{#each toasts.items as t (t.id)}
 			<div
 				transition:fly={{ y: 20, duration: 250 }}

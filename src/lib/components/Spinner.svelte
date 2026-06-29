@@ -8,7 +8,8 @@
 	let { size = 24, label = 'Loading' }: SpinnerProps = $props();
 </script>
 
-<span class="spinner rounded-full" style="--spinner-size: {size}px" role="status" aria-label={label}></span>
+<span class="spinner rounded-full" style="--spinner-size: {size}px" role="status" aria-label={label}
+></span>
 
 <style>
 	.spinner {

@@ -70,7 +70,13 @@
 	{#if variant === 'broad'}
 		<defs><clipPath id={clip}><path d={BODY.broad} /></clipPath></defs>
 		<path d={BODY.broad} fill="var(--fill)" />
-		<g clip-path="url(#{clip})" fill="none" stroke="var(--vein)" stroke-width="2.4" stroke-linecap="round">
+		<g
+			clip-path="url(#{clip})"
+			fill="none"
+			stroke="var(--vein)"
+			stroke-width="2.4"
+			stroke-linecap="round"
+		>
 			<path d="M50 14 L50 130" />
 			<path d="M50 36 C 40 34 32 36 24 44" />
 			<path d="M50 56 C 39 54 30 56 22 66" />
@@ -84,7 +90,13 @@
 	{:else if variant === 'lance'}
 		<defs><clipPath id={clip}><path d={BODY.lance} /></clipPath></defs>
 		<path d={BODY.lance} fill="var(--fill)" />
-		<g clip-path="url(#{clip})" fill="none" stroke="var(--vein)" stroke-width="2.2" stroke-linecap="round">
+		<g
+			clip-path="url(#{clip})"
+			fill="none"
+			stroke="var(--vein)"
+			stroke-width="2.2"
+			stroke-linecap="round"
+		>
 			<path d="M32 10 L32 144" />
 			<path d="M32 26 L22 20" />
 			<path d="M32 44 L21 38" />
@@ -102,7 +114,13 @@
 	{:else if variant === 'oval'}
 		<defs><clipPath id={clip}><path d={BODY.oval} /></clipPath></defs>
 		<path d={BODY.oval} fill="var(--fill)" />
-		<g clip-path="url(#{clip})" fill="none" stroke="var(--vein)" stroke-width="2.3" stroke-linecap="round">
+		<g
+			clip-path="url(#{clip})"
+			fill="none"
+			stroke="var(--vein)"
+			stroke-width="2.3"
+			stroke-linecap="round"
+		>
 			<path d="M46 12 L46 112" />
 			<path d="M46 40 C 38 38 32 42 27 50" />
 			<path d="M46 62 C 38 60 33 64 28 73" />
@@ -113,7 +131,13 @@
 		</g>
 	{:else}
 		<!-- fern / compound frond -->
-		<path d="M48 146 L48 18" fill="none" stroke="var(--vein)" stroke-width="2.6" stroke-linecap="round" />
+		<path
+			d="M48 146 L48 18"
+			fill="none"
+			stroke="var(--vein)"
+			stroke-width="2.6"
+			stroke-linecap="round"
+		/>
 		<g fill="var(--fill)">
 			{#each fernLeaflets as d, i (i)}
 				<path {d} />

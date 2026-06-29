@@ -175,7 +175,9 @@
 		{/each}
 	</div>
 
-	<p class="relative z-10 text-center font-oswald text-xs tracking-[0.25em] text-olf-lightgreen uppercase">
+	<p
+		class="relative z-10 text-center font-oswald text-xs tracking-[0.25em] text-olf-lightgreen uppercase"
+	>
 		{m.home_promise_kicker()}
 	</p>
 	<h2 class="relative z-10 mt-1 text-center font-homemade-apple text-3xl">
@@ -189,7 +191,9 @@
 					<Icon size={36} strokeWidth={1.5} class={p.iconClass} />
 				</span>
 				<p class="font-supermercado-one text-lg">{p.title()}</p>
-				<p class="max-w-xs font-oswald text-[0.95rem] tracking-wide text-olf-beige/85">{p.body()}</p>
+				<p class="max-w-xs font-oswald text-[0.95rem] tracking-wide text-olf-beige/85">
+					{p.body()}
+				</p>
 			</div>
 		{/each}
 	</div>
