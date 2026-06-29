@@ -2,6 +2,18 @@
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
 
+/* Tailwind v4 dropped the default pointer cursor on buttons — put it back on
+   everything interactive (disabled buttons keep the default). */
+@layer base {
+	button:not(:disabled),
+	[role='button'],
+	[role='tab'],
+	summary,
+	label:has(> input:is([type='checkbox'], [type='radio'])) {
+		cursor: pointer;
+	}
+}
+
 @theme {
 	--font-sans: 'Oswald', sans-serif;
 	--font-oswald: 'Oswald', sans-serif;
@@ -20,6 +32,7 @@
 	--color-olf-lightgreen: #ccd67f;
 	--color-olf-moss: #6b8746;
 	--color-olf-darkgreen: #3f5e2e;
+	--color-olf-red: #c1352c;
 }
 
 @utility border-0\.5 {

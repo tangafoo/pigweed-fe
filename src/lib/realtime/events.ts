@@ -24,7 +24,9 @@ export function connectEvents(): void {
 	es.addEventListener('achievement_unlocked', (e) => {
 		try {
 			const data = JSON.parse((e as MessageEvent).data) as AchievementUnlockedEvent;
-			console.log(`[sse] achievement_unlocked: ${data.achievement.name} (+${data.achievement.rewardCoins})`);
+			console.log(
+				`[sse] achievement_unlocked: ${data.achievement.name} (+${data.achievement.rewardCoins})`
+			);
 			toasts.push({
 				title: `🏆 ${data.achievement.name}`,
 				subtitle: `+${data.achievement.rewardCoins} coins`

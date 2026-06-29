@@ -5,8 +5,8 @@
 	import Footer from '$lib/components/Footer.svelte';
 	import OrderEggsModal from '$lib/components/OrderEggsModal.svelte';
 	import SubscriptionModal from '$lib/components/SubscriptionModal.svelte';
-	import { UserRound } from '@lucide/svelte';
-	import { m } from '$lib/paraglide/messages.js';
+	import UserMenu from '$lib/components/UserMenu.svelte';
+	import { LOGO } from '$lib/assets';
 	import JsonLd from '$lib/components/JsonLd.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import { connectEvents, disconnectEvents } from '$lib/realtime/events';
@@ -22,9 +22,7 @@
 	// and an achievement event arriving in that window (exactly what the
 	// post→toast flow triggers) would be missed. Depending on the id means the
 	// stream only opens/closes on actual login/logout.
-	const userId = $derived(
-		(page.data as { session?: Session | null }).session?.user.id ?? null
-	);
+	const userId = $derived((page.data as { session?: Session | null }).session?.user.id ?? null);
 	$effect(() => {
 		if (!userId) return;
 		connectEvents();
@@ -56,17 +54,13 @@
 <JsonLd data={organizationJsonLd} />
 
 <div class="flex min-h-dvh flex-col">
-	<div class="flex w-full items-center gap-3 bg-olf-darkbrown px-2 py-3">
-		<a href="/" class="font-homemade-apple font-bold tracking-wider text-white">Our Little Farm</a>
+	<div class="sticky top-0 z-50 flex w-full items-center gap-3 bg-olf-beige px-2 py-3 shadow-sm">
+		<a href="/" aria-label="Our Little Farm" class="flex items-center">
+			<img src={LOGO} alt="Our Little Farm" class="h-7 w-auto rounded-md" />
+		</a>
 		<div class="ml-auto flex items-center gap-2">
 			<LocaleSwitcher />
-			<a
-				href={userId ? `/users/${userId}` : '/login'}
-				aria-label={userId ? m.home_profile_link() : m.home_signin_link()}
-				class="flex size-8 items-center justify-center rounded-full bg-olf-beige/15 text-white hover:bg-olf-beige/25"
-			>
-				<UserRound size={18} />
-			</a>
+			<UserMenu {userId} />
 		</div>
 	</div>
 

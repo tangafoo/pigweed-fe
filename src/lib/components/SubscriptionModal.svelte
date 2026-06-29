@@ -2,21 +2,35 @@
 	import { X } from '@lucide/svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import { subscriptionModal } from '$lib/stores/subscriptionModal.svelte';
-	import { fetchPlans } from '$lib/api/subscriptions';
-	import TierCard from '$lib/components/TierCard.svelte';
+	import { fetchPlans, fetchMySubscription } from '$lib/api/subscriptions';
+	import SubscriptionCard from '$lib/components/SubscriptionCard.svelte';
+	import TierPicker from '$lib/components/TierPicker.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
-	import type { SubscriptionPlanWithBenefits } from '@meteorclass/pigweed-contract';
+	import type {
+		SubscriptionPlanWithBenefits,
+		SubscriptionSummary,
+		SubscriptionStats
+	} from '@meteorclass/pigweed-contract';
 
 	let dialog = $state<HTMLDialogElement>();
 	let plans = $state<SubscriptionPlanWithBenefits[]>([]);
+	let subscription = $state<SubscriptionSummary | null>(null);
+	let stats = $state<SubscriptionStats | null>(null);
 	let loaded = $state(false);
 	let loading = $state(false);
 
-	// Lazy-load the tiers the first time the modal is opened (public endpoint).
-	async function ensurePlans() {
+	const subscribed = $derived(!!(subscription && stats));
+
+	// Lazy-load the tiers (public) + the viewer's own subscription (cookie) the
+	// first time the modal opens. Subscribers see their plan card; everyone else
+	// gets the tier picker.
+	async function ensureData() {
 		if (loaded || loading) return;
 		loading = true;
-		plans = await fetchPlans();
+		const [tiers, mine] = await Promise.all([fetchPlans(), fetchMySubscription()]);
+		plans = tiers;
+		subscription = mine.subscription;
+		stats = mine.stats;
 		loaded = true;
 		loading = false;
 	}
@@ -26,7 +40,7 @@
 		if (!dialog) return;
 		if (subscriptionModal.open && !dialog.open) {
 			dialog.showModal();
-			ensurePlans();
+			ensureData();
 		} else if (!subscriptionModal.open && dialog.open) {
 			dialog.close();
 		}
@@ -61,14 +75,12 @@
 
 		{#if loading}
 			<div class="flex justify-center py-12 text-olf-darkgreen"><Spinner size={32} /></div>
+		{:else if subscribed && subscription && stats}
+			<SubscriptionCard {subscription} {stats} />
 		{:else if plans.length === 0}
 			<p class="py-10 text-center font-oswald opacity-70">{m.subscribe_empty()}</p>
 		{:else}
-			<div class="grid gap-4 sm:grid-cols-3">
-				{#each plans as plan (plan.id)}
-					<TierCard {plan} compact />
-				{/each}
-			</div>
+			<TierPicker {plans} showHeading={false} />
 		{/if}
 
 		<a
