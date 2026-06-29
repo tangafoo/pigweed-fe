@@ -2,8 +2,8 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { signUp, isUsernameAvailable, rerollAvatar, getSession } from '$lib/api/auth';
 	import type { Gender, SessionUser } from '$lib/api/auth';
-	import Seo from '$lib/components/Seo.svelte';
-	import { randomUsername } from '$lib/username';
+	import Seo from '$lib/components/seo/Seo.svelte';
+	import { randomUsername } from '$lib/utils/username';
 	import { m } from '$lib/paraglide/messages.js';
 	import { ANIMAL_LABEL } from '$lib/utils/labels';
 	import type { Animal } from '@meteorclass/pigweed-contract';

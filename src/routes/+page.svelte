@@ -1,18 +1,18 @@
 <script lang="ts">
-	import FarmStory from '$lib/components/FarmStory.svelte';
-	import FarmYolk from '$lib/components/FarmYolk.svelte';
-	import FarmPromise from '$lib/components/FarmPromise.svelte';
-	import FarmVisit from '$lib/components/FarmVisit.svelte';
-	import FAQ from '$lib/components/FAQ.svelte';
-	import JsonLd from '$lib/components/JsonLd.svelte';
-	import LatestPostsStrip from '$lib/components/LatestPostsStrip.svelte';
-	import NoIcon from '$lib/components/NoIcon.svelte';
-	import Parallax from '$lib/components/Parallax.svelte';
-	import ProduceOrderButtons from '$lib/components/ProduceOrderButtons.svelte';
-	import Seo from '$lib/components/Seo.svelte';
+	import FarmStory from '$lib/components/home/FarmStory.svelte';
+	import FarmYolk from '$lib/components/home/FarmYolk.svelte';
+	import FarmPromise from '$lib/components/home/FarmPromise.svelte';
+	import FarmVisit from '$lib/components/home/FarmVisit.svelte';
+	import FAQ from '$lib/components/home/FAQ.svelte';
+	import JsonLd from '$lib/components/seo/JsonLd.svelte';
+	import LatestPostsStrip from '$lib/components/home/LatestPostsStrip.svelte';
+	import NoIcon from '$lib/components/ui/NoIcon.svelte';
+	import Parallax from '$lib/components/decor/Parallax.svelte';
+	import ProduceOrderButtons from '$lib/components/home/ProduceOrderButtons.svelte';
+	import Seo from '$lib/components/seo/Seo.svelte';
 
-	import { produceSections } from '$lib/produceSections';
-	import { asset } from '$lib/assets';
+	import { produceSections } from '$lib/data/produceSections';
+	import { asset } from '$lib/config/assets';
 	import {
 		MANTIN_COORDS,
 		SITE_DESCRIPTION,
@@ -21,7 +21,7 @@
 		SITE_OG_IMAGE,
 		SITE_TAGLINE,
 		SITE_URL
-	} from '$lib/seo';
+	} from '$lib/config/seo';
 	import { m } from '$lib/paraglide/messages.js';
 	import { Sun, CloudRain, HeartCrack, FlaskConical } from '@lucide/svelte';
 	import type { PageData } from './$types';

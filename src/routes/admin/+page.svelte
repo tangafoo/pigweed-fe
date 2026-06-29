@@ -3,8 +3,8 @@
 	import { invalidateAll, goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
-	import { createAutosave } from '$lib/autosave.svelte';
-	import Avatar from '$lib/components/Avatar.svelte';
+	import { createAutosave } from '$lib/stores/autosave.svelte';
+	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import {
 		Egg,
 		Crown,
@@ -34,13 +34,13 @@
 		Download,
 		RotateCcw
 	} from '@lucide/svelte';
-	import Spinner from '$lib/components/Spinner.svelte';
-	import Button from '$lib/components/Button.svelte';
-	import DatePicker from '$lib/components/DatePicker.svelte';
-	import RollingNumber from '$lib/components/RollingNumber.svelte';
-	import AddUserModal from '$lib/components/AddUserModal.svelte';
-	import EggOrderEntry from '$lib/components/EggOrderEntry.svelte';
-	import { eggStats } from '$lib/eggFacts';
+	import Spinner from '$lib/components/ui/Spinner.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import DatePicker from '$lib/components/ui/DatePicker.svelte';
+	import RollingNumber from '$lib/components/ui/RollingNumber.svelte';
+	import AddUserModal from '$lib/components/admin/AddUserModal.svelte';
+	import EggOrderEntry from '$lib/components/admin/EggOrderEntry.svelte';
+	import { eggStats } from '$lib/data/eggFacts';
 	import * as admin from '$lib/api/admin';
 	import type {
 		AdminUserRow,

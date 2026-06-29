@@ -2,17 +2,17 @@
 	import type { PageData } from './$types';
 	import { m } from '$lib/paraglide/messages.js';
 	import { formatRelative } from '$lib/utils/date';
-	import Avatar from '$lib/components/Avatar.svelte';
-	import JsonLd from '$lib/components/JsonLd.svelte';
-	import ProfileTabs from '$lib/components/ProfileTabs.svelte';
-	import SubscriptionPanel from '$lib/components/SubscriptionPanel.svelte';
-	import AchievementsPanel from '$lib/components/AchievementsPanel.svelte';
-	import SettingsPanel from '$lib/components/SettingsPanel.svelte';
-	import DashboardNav from '$lib/components/DashboardNav.svelte';
-	import Seo from '$lib/components/Seo.svelte';
-	import { absoluteUrl, SITE_NAME } from '$lib/seo';
+	import Avatar from '$lib/components/ui/Avatar.svelte';
+	import JsonLd from '$lib/components/seo/JsonLd.svelte';
+	import ProfileTabs from '$lib/components/posts/ProfileTabs.svelte';
+	import SubscriptionPanel from '$lib/components/subscription/SubscriptionPanel.svelte';
+	import AchievementsPanel from '$lib/components/settings/AchievementsPanel.svelte';
+	import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
+	import DashboardNav from '$lib/components/layout/DashboardNav.svelte';
+	import Seo from '$lib/components/seo/Seo.svelte';
+	import { absoluteUrl, SITE_NAME } from '$lib/config/seo';
 	import { ANIMAL_LABEL } from '$lib/utils/labels';
-	import { asset } from '$lib/assets';
+	import { asset } from '$lib/config/assets';
 	import { page } from '$app/state';
 
 	let { data }: { data: PageData } = $props();

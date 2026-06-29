@@ -3,16 +3,16 @@
 	import type { PostCategory, Post } from '@meteorclass/pigweed-contract';
 	import { fetchFeed } from '$lib/api/posts';
 
-	import PostCard from '$lib/components/PostCard.svelte';
-	import Spinner from '$lib/components/Spinner.svelte';
-	import Seo from '$lib/components/Seo.svelte';
-	import FilterDropdown from '$lib/components/FilterDropdown.svelte';
+	import PostCard from '$lib/components/posts/PostCard.svelte';
+	import Spinner from '$lib/components/ui/Spinner.svelte';
+	import Seo from '$lib/components/seo/Seo.svelte';
+	import FilterDropdown from '$lib/components/ui/FilterDropdown.svelte';
 
 	import { m } from '$lib/paraglide/messages.js';
 	import { Plus, Star, MapPin, Globe, X } from '@lucide/svelte';
-	import { CATEGORY_COLOR, CATEGORY_EMOJI } from '$lib/categories';
-	import { getViewerPosition, type LatLng } from '$lib/geo';
-	import { MANTIN_COORDS } from '$lib/seo';
+	import { CATEGORY_COLOR, CATEGORY_EMOJI } from '$lib/config/categories';
+	import { getViewerPosition, type LatLng } from '$lib/utils/geo';
+	import { MANTIN_COORDS } from '$lib/config/seo';
 
 	let { data }: { data: PageData } = $props();
 	const session = $derived(data.session);

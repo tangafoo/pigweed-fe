@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { m } from '$lib/paraglide/messages.js';
-	import Seo from '$lib/components/Seo.svelte';
-	import Button from '$lib/components/Button.svelte';
+	import Seo from '$lib/components/seo/Seo.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
 	import { submitFeedback } from '$lib/api/feedback';
 	import type { FeedbackTopic, Session } from '@meteorclass/pigweed-contract';
 	import { Send, CheckCircle2 } from '@lucide/svelte';

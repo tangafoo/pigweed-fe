@@ -3,11 +3,11 @@
 	import { onMount } from 'svelte';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { createPost, uploadMedia, ContentFlaggedError } from '$lib/api/posts';
-	import { MANTIN_COORDS } from '$lib/seo';
-	import { CATEGORY_COLOR } from '$lib/categories';
+	import { MANTIN_COORDS } from '$lib/config/seo';
+	import { CATEGORY_COLOR } from '$lib/config/categories';
 
-	import Spinner from '$lib/components/Spinner.svelte';
-	import Seo from '$lib/components/Seo.svelte';
+	import Spinner from '$lib/components/ui/Spinner.svelte';
+	import Seo from '$lib/components/seo/Seo.svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import { Star, ImagePlus, X, MapPin, Mail } from '@lucide/svelte';
 	import { fade } from 'svelte/transition';

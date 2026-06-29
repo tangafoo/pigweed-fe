@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages.js';
-	import SubscriptionPanel from '$lib/components/SubscriptionPanel.svelte';
+	import SubscriptionPanel from '$lib/components/subscription/SubscriptionPanel.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();

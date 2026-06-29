@@ -1,12 +1,12 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import type { Comment } from '@meteorclass/pigweed-contract';
-	import { buildCommentTree } from '$lib/comments-tree';
+	import { buildCommentTree } from '$lib/utils/comments-tree';
 	import { m } from '$lib/paraglide/messages.js';
-	import PostCard from '$lib/components/PostCard.svelte';
-	import CommentComposer from '$lib/components/CommentComposer.svelte';
-	import CommentCard from '$lib/components/CommentCard.svelte';
-	import Seo from '$lib/components/Seo.svelte';
+	import PostCard from '$lib/components/posts/PostCard.svelte';
+	import CommentComposer from '$lib/components/posts/CommentComposer.svelte';
+	import CommentCard from '$lib/components/posts/CommentCard.svelte';
+	import Seo from '$lib/components/seo/Seo.svelte';
 	import { ArrowLeft } from '@lucide/svelte';
 
 	let { data }: { data: PageData } = $props();

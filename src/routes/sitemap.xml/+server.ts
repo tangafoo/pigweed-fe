@@ -1,5 +1,5 @@
 import type { RequestHandler } from './$types';
-import { SITE_URL } from '$lib/seo';
+import { SITE_URL } from '$lib/config/seo';
 
 // Lists only canonical, indexable URLs. Login / signup / settings / demo are
 // noindex; public profile pages are discovered via crawl from the home page

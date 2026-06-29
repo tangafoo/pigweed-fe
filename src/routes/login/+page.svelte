@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
 	import { authClient, signIn } from '$lib/api/auth';
-	import Seo from '$lib/components/Seo.svelte';
+	import Seo from '$lib/components/seo/Seo.svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import { FingerprintPattern } from '@lucide/svelte';
 	import type { PageData } from './$types';

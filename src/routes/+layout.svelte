@@ -1,17 +1,17 @@
 <script lang="ts">
 	import './layout.css';
 	import { page } from '$app/state';
-	import LocaleSwitcher from '$lib/components/LocaleSwitcher.svelte';
-	import Footer from '$lib/components/Footer.svelte';
-	import OrderEggsModal from '$lib/components/OrderEggsModal.svelte';
-	import SubscriptionModal from '$lib/components/SubscriptionModal.svelte';
-	import UserMenu from '$lib/components/UserMenu.svelte';
-	import { LOGO } from '$lib/assets';
-	import JsonLd from '$lib/components/JsonLd.svelte';
-	import Toast from '$lib/components/Toast.svelte';
+	import LocaleSwitcher from '$lib/components/layout/LocaleSwitcher.svelte';
+	import Footer from '$lib/components/layout/Footer.svelte';
+	import OrderEggsModal from '$lib/components/home/OrderEggsModal.svelte';
+	import SubscriptionModal from '$lib/components/subscription/SubscriptionModal.svelte';
+	import UserMenu from '$lib/components/layout/UserMenu.svelte';
+	import { LOGO } from '$lib/config/assets';
+	import JsonLd from '$lib/components/seo/JsonLd.svelte';
+	import Toast from '$lib/components/ui/Toast.svelte';
 	import { connectEvents, disconnectEvents } from '$lib/realtime/events';
 	import type { Session } from '@meteorclass/pigweed-contract';
-	import { SITE_NAME, SITE_TAGLINE, SITE_URL } from '$lib/seo';
+	import { SITE_NAME, SITE_TAGLINE, SITE_URL } from '$lib/config/seo';
 
 	let { children } = $props();
 
