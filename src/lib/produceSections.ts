@@ -1,6 +1,7 @@
 import { Egg, LeafyGreen, Apple } from '@lucide/svelte';
 import { m } from '$lib/paraglide/messages.js';
 import { asset } from '$lib/assets';
+import { WHATSAPP_PHONE } from '$lib/contact';
 
 // Each entry maps 1:1 to <ProduceSection> props. brightnessClass steps down
 // (none -> 90 -> 75) so the stack reads as a freshness/availability gradient.
@@ -18,7 +19,7 @@ export const produceSections = [
 		brightnessClass: '',
 		disabled: false,
 		seam: false,
-		whatsAppPhone: '60172332992'
+		whatsAppPhone: WHATSAPP_PHONE
 	},
 	{
 		heading: m.home_veggies_heading,

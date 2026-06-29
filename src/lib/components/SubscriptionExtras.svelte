@@ -5,6 +5,7 @@
 	import { CalendarHeart, Sparkles } from '@lucide/svelte';
 	import { fade } from 'svelte/transition';
 	import { eggStats, eggTrivia } from '$lib/eggFacts';
+	import { whatsappUrl } from '$lib/contact';
 	import type { SubscriptionSummary, SubscriptionStats } from '@meteorclass/pigweed-contract';
 
 	// The "egg journey" detail strip shown BELOW the AMEX card on the /subscriptions
@@ -17,7 +18,6 @@
 	}
 	let { subscription: sub, stats }: SubscriptionExtrasProps = $props();
 
-	const PHONE = '60172332992';
 	const eggs = $derived(stats.totalEggs ?? 0);
 	const facts = $derived(eggStats(eggs));
 	const trivia = $derived(eggTrivia(eggs));
@@ -31,9 +31,7 @@
 	const deliveryDayName = $derived(
 		new Date(2024, 0, 7 + sub.deliveryDay).toLocaleDateString(undefined, { weekday: 'long' })
 	);
-	const requestDayUrl = $derived(
-		`https://wa.me/${PHONE}?text=${encodeURIComponent(m.subscribe_request_day_message())}`
-	);
+	const requestDayUrl = $derived(whatsappUrl(m.subscribe_request_day_message()));
 
 	let factIndex = $state(0);
 	const fact = $derived(facts.length ? facts[factIndex % facts.length] : null);

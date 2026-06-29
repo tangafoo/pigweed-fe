@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { m } from '$lib/paraglide/messages.js';
+	import { whatsappUrl } from '$lib/contact';
 	import { Check } from '@lucide/svelte';
 	import type {
 		SubscriptionPlanWithBenefits,
@@ -16,8 +17,6 @@
 	}
 	let { plans, subscription = null, showHeading = true }: TierPickerProps = $props();
 
-	const PHONE = '60172332992';
-
 	// Pick a tier → ONE WhatsApp CTA for the selected tier. Manual billing: the
 	// admin flips the subscription on after the WhatsApp handshake + payment.
 	let selectedId = $state(untrack(() => subscription?.plan.id ?? plans[0]?.id ?? ''));
@@ -28,9 +27,9 @@
 		`RM${(p.priceCents / 100).toFixed(0)} ${period(p.cadenceWeeks)}`;
 	const waUrl = $derived(
 		selectedPlan
-			? `https://wa.me/${PHONE}?text=${encodeURIComponent(
+			? whatsappUrl(
 					m.subscribe_whatsapp_message({ name: selectedPlan.name, price: priceLabel(selectedPlan) })
-				)}`
+				)
 			: '#'
 	);
 </script>

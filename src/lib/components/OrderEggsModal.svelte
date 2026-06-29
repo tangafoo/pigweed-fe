@@ -2,22 +2,18 @@
 	import { Minus, Plus, X } from '@lucide/svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import { orderModal } from '$lib/stores/orderModal.svelte';
+	import { whatsappUrl } from '$lib/contact';
 	import RollingNumber from '$lib/components/RollingNumber.svelte';
 
 	// Egg ordering is the only live product, so the modal is hardcoded for it:
 	// fixed-size boxes of 15, ordered over WhatsApp.
-	const PHONE = '60172332992';
 	const UNIT = 15;
 
 	let dialog = $state<HTMLDialogElement>();
 	let quantity = $state(1);
 
 	const total = $derived(quantity * UNIT);
-	const whatsAppUrl = $derived(
-		`https://wa.me/${PHONE}?text=${encodeURIComponent(
-			m.home_eggs_order_message({ boxes: quantity, total })
-		)}`
-	);
+	const whatsAppUrl = $derived(whatsappUrl(m.home_eggs_order_message({ boxes: quantity, total })));
 
 	// Drive the native <dialog> from the shared store, in both directions.
 	$effect(() => {

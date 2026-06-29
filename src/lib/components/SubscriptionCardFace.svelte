@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Pause, Play } from '@lucide/svelte';
 	import { m } from '$lib/paraglide/messages.js';
+	import { whatsappUrl } from '$lib/contact';
 	import type { SubscriptionSummary } from '@meteorclass/pigweed-contract';
 
 	interface SubscriptionCardFaceProps {
@@ -12,7 +13,6 @@
 
 	const cardholder = $derived(username || sub?.plan.name || '');
 
-	const PHONE = '60172332992';
 	const period = (cw: number) => (cw === 1 ? m.subscribe_per_week() : m.subscribe_per_fortnight());
 
 	const memberSince = $derived(
@@ -41,9 +41,9 @@
 	);
 	// Pause / resume is a manual WhatsApp request (no Stripe automation yet).
 	const pauseUrl = $derived(
-		`https://wa.me/${PHONE}?text=${encodeURIComponent(
+		whatsappUrl(
 			sub?.status === 'PAUSED' ? m.subscribe_resume_message() : m.subscribe_pause_message()
-		)}`
+		)
 	);
 </script>
 
