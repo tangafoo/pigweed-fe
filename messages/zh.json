@@ -133,6 +133,9 @@
 	"animal_chicken": "雞",
 	"animal_dog": "狗",
 	"animal_goose": "鵝",
+	"animal_duck": "鴨",
+	"animal_cat": "貓",
+	"animal_lizard": "蜥蜴",
 
 	"gender_male": "男",
 	"gender_female": "女",
@@ -349,5 +352,15 @@
 	"subscribe_since": "自 {date} 起訂閱",
 	"subscribe_delivery_every": "每{day}配送",
 	"subscribe_request_day": "申請更改配送日",
-	"subscribe_request_day_message": "你好 ourlittlefarm！我想更改我的雞蛋配送日。"
+	"subscribe_request_day_message": "你好 ourlittlefarm！我想更改我的雞蛋配送日。",
+	"card_flip": "翻面",
+	"card_section_details": "資料",
+	"card_section_egg_stats": "統計",
+	"card_section_coins": "金幣",
+	"subscribe_card_member_since": "加入於",
+	"subscribe_card_delivery_label": "配送",
+	"subscribe_card_no_plan": "尚無方案",
+	"subscribe_card_see_page": "查看訂閱頁面",
+	"subscribe_modal_no_sub": "尚無有效訂閱",
+	"subscribe_modal_browse": "瀏覽雞蛋方案"
 }

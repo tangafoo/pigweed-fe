@@ -133,6 +133,9 @@
 	"animal_chicken": "ニワトリ",
 	"animal_dog": "イヌ",
 	"animal_goose": "ガチョウ",
+	"animal_duck": "アヒル",
+	"animal_cat": "ネコ",
+	"animal_lizard": "トカゲ",
 
 	"gender_male": "男性",
 	"gender_female": "女性",
@@ -349,5 +352,15 @@
 	"subscribe_since": "{date}から購読中",
 	"subscribe_delivery_every": "毎週{day}にお届け",
 	"subscribe_request_day": "別の曜日をリクエスト",
-	"subscribe_request_day_message": "こんにちは ourlittlefarm！たまごのお届け曜日を変更したいです。"
+	"subscribe_request_day_message": "こんにちは ourlittlefarm！たまごのお届け曜日を変更したいです。",
+	"card_flip": "裏返す",
+	"card_section_details": "詳細",
+	"card_section_egg_stats": "統計",
+	"card_section_coins": "コイン",
+	"subscribe_card_member_since": "登録日",
+	"subscribe_card_delivery_label": "配達",
+	"subscribe_card_no_plan": "プランなし",
+	"subscribe_card_see_page": "定期購入ページを見る",
+	"subscribe_modal_no_sub": "有効な定期購入はありません",
+	"subscribe_modal_browse": "たまごプランを見る"
 }

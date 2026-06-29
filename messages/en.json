@@ -133,6 +133,9 @@
 	"animal_chicken": "Chicken",
 	"animal_dog": "Dog",
 	"animal_goose": "Goose",
+	"animal_duck": "Duck",
+	"animal_cat": "Cat",
+	"animal_lizard": "Lizard",
 
 	"gender_male": "Male",
 	"gender_female": "Female",
@@ -332,7 +335,7 @@
 	"subscribe_current_tier": "Your tier",
 	"subscribe_choose_tier_heading": "Choose your flock",
 	"subscribe_change_tier_heading": "Change your tier",
-	"subscribe_manual_note": "Subscriptions are arranged over WhatsApp — no card needed.",
+	"subscribe_manual_note": "Subscriptions arranged over WhatsApp — no card needed.",
 	"subscribe_your_plan": "Your subscription",
 	"subscribe_status_active": "Active",
 	"subscribe_pause": "Pause",
@@ -350,5 +353,15 @@
 	"subscribe_since": "Subscribing since {date}",
 	"subscribe_delivery_every": "Eggs every {day}",
 	"subscribe_request_day": "Request a different day",
-	"subscribe_request_day_message": "Hi ourlittlefarm! I'd like to change my egg delivery day."
+	"subscribe_request_day_message": "Hi ourlittlefarm! I'd like to change my egg delivery day.",
+	"card_flip": "Flip",
+	"card_section_details": "Details",
+	"card_section_egg_stats": "Stats",
+	"card_section_coins": "Coins",
+	"subscribe_card_member_since": "Member since",
+	"subscribe_card_delivery_label": "Delivery",
+	"subscribe_card_no_plan": "No active plan",
+	"subscribe_card_see_page": "See subscription page",
+	"subscribe_modal_no_sub": "No active subscription",
+	"subscribe_modal_browse": "Browse egg plans"
 }
