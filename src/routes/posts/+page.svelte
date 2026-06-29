@@ -9,7 +9,7 @@
 	import FilterDropdown from '$lib/components/FilterDropdown.svelte';
 
 	import { m } from '$lib/paraglide/messages.js';
-	import { Plus, Star, MapPin, Globe } from '@lucide/svelte';
+	import { Plus, Star, MapPin, Globe, X } from '@lucide/svelte';
 	import { CATEGORY_COLOR, CATEGORY_EMOJI } from '$lib/categories';
 	import { getViewerPosition, type LatLng } from '$lib/geo';
 	import { MANTIN_COORDS } from '$lib/seo';
@@ -33,14 +33,9 @@
 	const posts = $derived(override ?? data.feed.posts);
 	let category = $state<PostCategory | null>(null);
 	// Max-rating filter: "N stars and below" — surfaces the low/critical reviews.
-	// The BE only supports minRating, and "and below" isn't a server param, so
-	// this filters the loaded feed client-side. Non-reviews (rating null) are
-	// excluded when a max is set — the filter is about reviews.
+	// Filtered server-side via the feed's ?maxRating= param (the BE excludes
+	// non-reviews from a <= bound, same as the other filters).
 	let maxRating = $state<number | null>(null);
-	const visiblePosts = $derived.by(() => {
-		const max = maxRating; // capture so it narrows inside the filter closure
-		return max == null ? posts : posts.filter((p) => p.rating != null && p.rating <= max);
-	});
 	let loading = $state(false);
 	let errored = $state(false);
 
@@ -61,6 +56,7 @@
 				sort: 'newest',
 				limit: 30,
 				...(category ? { category } : {}),
+				...(maxRating != null ? { maxRating } : {}),
 				// Only bound the feed when "Near me" is on and we have coords.
 				...(nearMe && viewerCoords
 					? { lat: viewerCoords.lat, lng: viewerCoords.lng, radius: RADIUS_KM }
@@ -100,10 +96,25 @@
 		refetch();
 	}
 
-	// Rating is a client-side filter (see maxRating) — no refetch. Clicking the
-	// active value again clears it back to "all".
+	// Clicking the active value again clears it back to "all". Refetches since
+	// the rating filter now runs on the BE.
 	function selectRating(value: number | null) {
-		maxRating = maxRating === value ? null : value;
+		const next = maxRating === value ? null : value;
+		if (next === maxRating) return;
+		maxRating = next;
+		refetch();
+	}
+
+	// Any non-default filter active? Drives the active-filter chips + Clear.
+	const hasFilters = $derived(nearMe || category != null || maxRating != null);
+
+	// Reset every filter at once and refetch the unbounded, unfiltered feed.
+	function clearFilters() {
+		if (!hasFilters) return;
+		category = null;
+		maxRating = null;
+		nearMe = false;
+		refetch();
 	}
 
 	// Current-selection labels for the two filter dropdown triggers.
@@ -113,6 +124,10 @@
 	const ratingTriggerLabel = $derived(
 		maxRating == null ? m.posts_rating_all() : m.posts_rating_max({ rating: maxRating })
 	);
+
+	// Removable active-filter chip; clicking it clears that one filter.
+	const CHIP =
+		'inline-flex cursor-pointer items-center gap-1 rounded-full bg-olf-darkgreen/15 px-2.5 py-1 font-oswald text-xs font-bold text-olf-darkgreen transition-colors hover:bg-olf-darkgreen/25';
 </script>
 
 <!-- Renders a localized rating label with a real gold Lucide star in place of
@@ -122,7 +137,7 @@
 	{@const parts = text.split('★')}
 	{#each parts as part, i (i)}{part}{#if i < parts.length - 1}<Star
 				size={13}
-				class="mx-0.5 inline-block align-[-2px] fill-olf-yolk text-olf-yolk"
+				class="mx-0.5 inline-block fill-olf-yolk align-[-2px] text-olf-yolk"
 			/>{/if}{/each}
 {/snippet}
 
@@ -161,7 +176,9 @@
 			     filters) so it reads as a selector, not a mystery button. -->
 			<FilterDropdown
 				label={locating ? m.posts_locating() : nearMe ? m.posts_near_me() : m.posts_everywhere()}
-				triggerClass={nearMe ? 'bg-olf-darkgreen text-olf-eggshell' : 'bg-olf-beige text-olf-darkbrown'}
+				triggerClass={nearMe
+					? 'bg-olf-darkgreen text-olf-eggshell'
+					: 'bg-olf-beige text-olf-darkbrown'}
 			>
 				{#snippet children(close)}
 					<li>
@@ -221,7 +238,9 @@
 									? 'font-bold'
 									: ''}"
 							>
-								<span class="w-5 shrink-0 text-center">{c.value ? CATEGORY_EMOJI[c.value] : '🌳'}</span>
+								<span class="w-5 shrink-0 text-center"
+									>{c.value ? CATEGORY_EMOJI[c.value] : '🌳'}</span
+								>
 								<span>{c.label()}</span>
 							</button>
 						</li>
@@ -271,6 +290,39 @@
 					{/each}
 				{/snippet}
 			</FilterDropdown>
+
+			<!-- Active-filter chips: shown only when a filter is set. Each chip clears
+			     its own filter; "Clear" (pushed right via ml-auto) clears all. The
+			     parent flex-wrap lets them wrap to a new line when there are many. -->
+			{#if hasFilters}
+				{#if nearMe}
+					<button type="button" onclick={() => selectLocation(false)} class={CHIP}>
+						<MapPin size={12} class="shrink-0" />
+						{m.posts_near_me()}
+						<X size={12} class="shrink-0 opacity-60" />
+					</button>
+				{/if}
+				{#if category}
+					<button type="button" onclick={() => selectCategory(null)} class={CHIP}>
+						<span>{CATEGORY_EMOJI[category]}</span>
+						{categoryTriggerLabel}
+						<X size={12} class="shrink-0 opacity-60" />
+					</button>
+				{/if}
+				{#if maxRating != null}
+					<button type="button" onclick={() => selectRating(null)} class={CHIP}>
+						{@render ratingStars(ratingTriggerLabel)}
+						<X size={12} class="shrink-0 opacity-60" />
+					</button>
+				{/if}
+				<button
+					type="button"
+					onclick={clearFilters}
+					class="ml-auto cursor-pointer font-oswald text-xs font-bold text-olf-darkbrown/70 underline underline-offset-2 transition-colors hover:text-olf-darkbrown"
+				>
+					{m.posts_new_rating_clear()}
+				</button>
+			{/if}
 		</div>
 
 		<!-- Grid -->
@@ -282,7 +334,7 @@
 			<p class="rounded-xl bg-olf-beige px-4 py-10 text-center font-oswald text-red-700">
 				{m.posts_load_error()}
 			</p>
-		{:else if visiblePosts.length === 0}
+		{:else if posts.length === 0}
 			<p class="rounded-xl bg-olf-beige px-4 py-12 text-center font-oswald text-olf-darkbrown/70">
 				{m.posts_empty()}
 			</p>
@@ -291,7 +343,7 @@
 			     natural height instead of stretching to a shared grid-row height
 			     (which left tall whitespace under short, image-less posts). -->
 			<div class="columns-1 gap-4 sm:columns-2 lg:columns-3">
-				{#each visiblePosts as post (post.id)}
+				{#each posts as post (post.id)}
 					<div class="mb-4 break-inside-avoid">
 						<PostCard {post} viewerLocation={nearMe ? viewerCoords : null} />
 					</div>

@@ -17,6 +17,7 @@
 	let email = $state('');
 	let username = $state('');
 	let password = $state('');
+	let phone = $state('');
 	let gender = $state<Gender>('UNDISCLOSED');
 
 	let error = $state('');
@@ -78,7 +79,8 @@
 			email: email.trim(),
 			username: username.trim(),
 			password,
-			gender
+			gender,
+			phoneNumber: phone.trim() || undefined
 		});
 		if (result.ok) {
 			// Better Auth signed us in; pull the server-assigned animal + seed.
@@ -96,7 +98,8 @@
 		if (rerolling) return;
 		rerolling = true;
 		const next = await rerollAvatar();
-		if (next && me) me = { ...me, animal: next.animal, avatarSeed: next.avatarSeed };
+		if (next && 'animal' in next && me)
+			me = { ...me, animal: next.animal, avatarSeed: next.avatarSeed };
 		rerolling = false;
 	}
 
@@ -205,6 +208,19 @@
 						<option value={g.value}>{g.label()}</option>
 					{/each}
 				</select>
+			</label>
+
+			<label class="mb-6 block">
+				<span class="mb-1 block text-sm font-bold text-olf-darkbrown">
+					{m.account_field_phone()}
+					<span class="font-normal text-olf-darkbrown/50">({m.account_phone_hint()})</span>
+				</span>
+				<input
+					type="tel"
+					bind:value={phone}
+					placeholder="+60…"
+					class="w-full rounded-lg border-2 border-olf-lightbrown bg-white/80 px-3 py-2 focus:border-olf-darkbrown focus:outline-none"
+				/>
 			</label>
 
 			{#if error}

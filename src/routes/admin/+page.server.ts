@@ -20,9 +20,10 @@ export const load: PageServerLoad = async ({ parent, request, fetch, url }) => {
 
 	const cookie = request.headers.get('cookie') ?? undefined;
 	const q = url.searchParams.get('q') ?? '';
+	const orderedOn = url.searchParams.get('orderedOn') ?? '';
 	const page = Math.max(1, Number(url.searchParams.get('page') ?? 1));
 
-	const usersRes = await fetchAdminUsers(q, page, fetch, cookie);
+	const usersRes = await fetchAdminUsers(q, page, orderedOn, fetch, cookie);
 	if (!usersRes.ok && (usersRes.status === 401 || usersRes.status === 403)) {
 		throw error(404, 'Not found');
 	}
@@ -35,6 +36,7 @@ export const load: PageServerLoad = async ({ parent, request, fetch, url }) => {
 
 	return {
 		q,
+		orderedOn,
 		page,
 		users: usersRes.data.users,
 		total: usersRes.data.total,

@@ -1,21 +1,17 @@
+import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { fetchPlans, fetchMySubscription } from '$lib/api/subscriptions';
+import { fetchPlans } from '$lib/api/subscriptions';
 
 /**
- * Subscriptions page loader. Tiers are public (always loaded); the viewer's
- * own subscription + egg stats are loaded only when signed in. The BE is a
- * different origin, so the request cookie is forwarded explicitly.
+ * Subscriptions is just a tab on the user dashboard. Logged-in visitors are
+ * sent to their own tab (which has the side menu); this flat route stays as a
+ * public tier-browse entry (used by the subscribe modal / footer) for
+ * logged-out visitors.
  */
-export const load: PageServerLoad = async ({ parent, request, fetch }) => {
+export const load: PageServerLoad = async ({ parent, fetch }) => {
 	const { session } = await parent();
-	const cookie = request.headers.get('cookie') ?? undefined;
+	if (session) throw redirect(302, `/users/${session.user.id}?tab=subscription`);
 
-	const [plans, mine] = await Promise.all([
-		fetchPlans(fetch),
-		session
-			? fetchMySubscription(fetch, cookie)
-			: Promise.resolve({ subscription: null, stats: null })
-	]);
-
-	return { plans, subscription: mine.subscription, stats: mine.stats };
+	const plans = await fetchPlans(fetch);
+	return { plans, subscription: null, stats: null };
 };

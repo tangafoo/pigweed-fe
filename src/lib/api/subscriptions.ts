@@ -11,7 +11,7 @@ import type {
  * `fetch` (+ forwarded cookie) for SSR.
  *
  * Payments are MANUAL today — the FE only reads. Subscribing is a WhatsApp
- * link (TierCard); the admin flips the subscription on from the panel.
+ * link (TierPicker); the admin flips the subscription on from the panel.
  */
 
 /** Tiers (with each tier's benefit checklist) for the subscribe page/modal. Never throws. */

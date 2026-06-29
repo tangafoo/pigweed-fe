@@ -7,6 +7,7 @@
 	import ProfileTabs from '$lib/components/ProfileTabs.svelte';
 	import SubscriptionPanel from '$lib/components/SubscriptionPanel.svelte';
 	import AchievementsPanel from '$lib/components/AchievementsPanel.svelte';
+	import SettingsPanel from '$lib/components/SettingsPanel.svelte';
 	import DashboardNav from '$lib/components/DashboardNav.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import { absoluteUrl, SITE_NAME } from '$lib/seo';
@@ -17,9 +18,9 @@
 	let { data }: { data: PageData } = $props();
 	const profile = $derived(data.profile);
 
-	// Owner side-menu section (profile | subscription | achievements) via ?tab=.
-	type Section = 'profile' | 'subscription' | 'achievements';
-	const SECTIONS: Section[] = ['profile', 'subscription', 'achievements'];
+	// Owner side-menu section (profile | subscription | achievements | settings) via ?tab=.
+	type Section = 'profile' | 'subscription' | 'achievements' | 'settings';
+	const SECTIONS: Section[] = ['profile', 'subscription', 'achievements', 'settings'];
 	const tab = $derived(
 		(SECTIONS.includes(page.url.searchParams.get('tab') as Section)
 			? page.url.searchParams.get('tab')
@@ -112,9 +113,16 @@
 						/>
 					{:else if tab === 'achievements'}
 						<AchievementsPanel userId={profile.id} />
+					{:else if tab === 'settings'}
+						<SettingsPanel user={data.session!.user} />
 					{:else}
 						{#key profile.id}
-							<ProfileTabs userId={profile.id} />
+							<ProfileTabs
+								userId={profile.id}
+								postCount={profile.postCount}
+								postVoteCount={profile.postVoteCount}
+								commentVoteCount={profile.commentVoteCount}
+							/>
 						{/key}
 					{/if}
 				</div>
@@ -122,7 +130,12 @@
 		{:else}
 			<div class="mt-5">
 				{#key profile.id}
-					<ProfileTabs userId={profile.id} />
+					<ProfileTabs
+						userId={profile.id}
+						postCount={profile.postCount}
+						postVoteCount={profile.postVoteCount}
+						commentVoteCount={profile.commentVoteCount}
+					/>
 				{/key}
 			</div>
 		{/if}

@@ -79,7 +79,9 @@
 
 <div class="flex flex-1 items-center justify-center bg-olf-lightgreen px-4 py-10">
 	<form onsubmit={submit} class="w-full max-w-sm rounded-2xl bg-olf-beige p-6 shadow-lg" novalidate>
-		<h1 class="mb-1 font-homemade-apple text-3xl font-bold text-olf-darkbrown">{m.login_heading()}</h1>
+		<h1 class="mb-1 font-homemade-apple text-3xl font-bold text-olf-darkbrown">
+			{m.login_heading()}
+		</h1>
 		<p class="mb-6 font-oswald text-olf-darkbrown/70">{m.login_subtitle()}</p>
 
 		<label class="mb-4 block">
@@ -96,7 +98,9 @@
 		</label>
 
 		<label class="mb-6 block">
-			<span class="mb-1 block font-oswald text-sm font-bold text-olf-darkbrown">{m.login_password_label()}</span>
+			<span class="mb-1 block font-oswald text-sm font-bold text-olf-darkbrown"
+				>{m.login_password_label()}</span
+			>
 			<input
 				bind:value={password}
 				type="password"
