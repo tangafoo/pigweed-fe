@@ -3,6 +3,7 @@ import type {
 	AdminUsersResponse,
 	AdminStats,
 	AdminPlansResponse,
+	AdminEggLedgerResponse,
 	SubscriptionBenefit,
 	EggOrder
 } from '@meteorclass/pigweed-contract';
@@ -74,12 +75,13 @@ export const fetchAdminBenefits = (fetchImpl?: typeof globalThis.fetch, cookie?:
 
 // Pre-register a user from an email + send a magic link. Returns the assigned
 // identity (username + animal) so the modal can confirm what they were given.
+export type RegisterUserResult = { id: string; username: string; animal: string; existed: boolean };
 export async function registerUser(input: {
 	email: string;
 	username?: string;
 	gender?: string;
 	animal?: string;
-}): Promise<{ username: string; animal: string; existed: boolean } | { error: string }> {
+}): Promise<RegisterUserResult | { error: string }> {
 	let res: Response;
 	try {
 		res = await api('/admin/users', { method: 'POST', body: JSON.stringify(input) });
@@ -87,12 +89,12 @@ export async function registerUser(input: {
 		return { error: 'Network error — please try again.' };
 	}
 	const json = (await res.json().catch(() => null)) as
-		| { username: string; animal: string; existed: boolean }
+		| RegisterUserResult
 		| { error?: string }
 		| null;
 	if (!res.ok)
 		return { error: (json as { error?: string })?.error ?? 'Could not register that user.' };
-	return json as { username: string; animal: string; existed: boolean };
+	return json as RegisterUserResult;
 }
 
 // Preview a generatable identity (username + animal) for the reroll button.
@@ -141,9 +143,66 @@ export async function fetchOrders(userId: string): Promise<EggOrder[]> {
 	if (!res.ok) return [];
 	return ((await res.json()) as { orders: EggOrder[] }).orders ?? [];
 }
-export const recordOrder = (userId: string, input: { eggs: number; orderedAt?: string }) =>
-	send(`/admin/users/${userId}/orders`, 'POST', input);
+export const recordOrder = (
+	userId: string,
+	input: { eggs: number; unitPriceCents?: number; orderedAt?: string }
+) => send(`/admin/users/${userId}/orders`, 'POST', input);
+// Soft delete + restore (recoverable — mom-proofing).
 export const deleteOrder = (orderId: string) => send(`/admin/orders/${orderId}`, 'DELETE');
+export const restoreOrder = (orderId: string) => send(`/admin/orders/${orderId}/restore`, 'POST');
+
+// ─── Global egg ledger (accounting view) ────────────────────────────
+export type EggLedgerParams = {
+	page?: number;
+	limit?: number;
+	from?: string;
+	to?: string;
+	source?: string;
+	q?: string;
+	includeDeleted?: boolean;
+};
+function ledgerQuery(p: EggLedgerParams): URLSearchParams {
+	const qs = new URLSearchParams();
+	if (p.page) qs.set('page', String(p.page));
+	if (p.limit) qs.set('limit', String(p.limit));
+	if (p.from) qs.set('from', p.from);
+	if (p.to) qs.set('to', p.to);
+	if (p.source) qs.set('source', p.source);
+	if (p.q) qs.set('q', p.q);
+	if (p.includeDeleted) qs.set('includeDeleted', '1');
+	return qs;
+}
+export const fetchEggLedger = (
+	params: EggLedgerParams = {},
+	fetchImpl?: typeof globalThis.fetch,
+	cookie?: string
+) =>
+	getJson<AdminEggLedgerResponse>(
+		`/admin/orders?${ledgerQuery(params)}`,
+		{ rows: [], page: 1, limit: 50, total: 0, totals: { eggs: 0, revenueCents: 0, orderCount: 0 } },
+		fetchImpl,
+		cookie
+	);
+
+// Download the filtered ledger as a CSV (cookie-authed fetch → Blob → save).
+export async function exportEggLedgerCsv(params: EggLedgerParams = {}): Promise<boolean> {
+	try {
+		const res = await api(`/admin/orders/export.csv?${ledgerQuery(params)}`);
+		if (!res.ok) return false;
+		const blob = await res.blob();
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `egg-ledger-${new Date().toISOString().slice(0, 10)}.csv`;
+		document.body.appendChild(a);
+		a.click();
+		a.remove();
+		URL.revokeObjectURL(url);
+		return true;
+	} catch {
+		return false;
+	}
+}
 
 export const createBenefit = (label: string, sortOrder: number) =>
 	send('/admin/benefits', 'POST', { label, sortOrder });
