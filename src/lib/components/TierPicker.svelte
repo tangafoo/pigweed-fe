@@ -80,6 +80,15 @@
 		{/each}
 	</div>
 
+	<a
+		href={waUrl}
+		target="_blank"
+		rel="noopener noreferrer"
+		class="mx-auto flex items-center gap-2 rounded-full bg-olf-darkbrown px-10 py-4 font-oswald text-sm font-bold tracking-widest text-olf-beige uppercase shadow-lg transition-transform hover:scale-105"
+	>
+		🥚 {m.subscribe_cta()}
+	</a>
+
 	{#if selectedPlan && selectedPlan.benefits.length > 0}
 		<div class="rounded-[1.75rem] bg-olf-lightgreen/40 p-5">
 			<p
@@ -99,15 +108,7 @@
 	{/if}
 
 	<div class="flex flex-col items-center gap-2">
-		<a
-			href={waUrl}
-			target="_blank"
-			rel="noopener noreferrer"
-			class="flex items-center gap-2 rounded-full bg-olf-darkbrown px-10 py-4 font-oswald text-sm font-bold tracking-widest text-olf-beige uppercase shadow-lg transition-transform hover:scale-105"
-		>
-			🥚 {m.subscribe_cta()}
-		</a>
-		<p class="text-center font-oswald text-xs tracking-wide uppercase opacity-60">
+		<p class="text-center font-oswald text-xs font-light tracking-widest uppercase opacity-70">
 			{m.subscribe_manual_note()}
 		</p>
 	</div>

@@ -5,6 +5,7 @@
 	import Seo from '$lib/components/Seo.svelte';
 	import { randomUsername } from '$lib/username';
 	import { m } from '$lib/paraglide/messages.js';
+	import { ANIMAL_LABEL } from '$lib/utils/labels';
 	import type { Animal } from '@meteorclass/pigweed-contract';
 	import type { PageData } from './$types';
 	import { Dices, Check } from '@lucide/svelte';
@@ -39,8 +40,7 @@
 		{ value: 'UNDISCLOSED', label: () => m.gender_undisclosed() }
 	];
 
-	const animalLabel = (a: Animal) =>
-		a === 'CHICKEN' ? m.animal_chicken() : a === 'DOG' ? m.animal_dog() : m.animal_goose();
+	const animalLabel = (a: Animal) => ANIMAL_LABEL[a]();
 
 	// Already clucking — no reason to sit on the signup page.
 	$effect(() => {

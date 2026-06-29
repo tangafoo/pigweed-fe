@@ -29,24 +29,36 @@
 		RefreshCw,
 		CalendarDays,
 		ExternalLink,
-		Home
+		Home,
+		Receipt,
+		Download,
+		RotateCcw
 	} from '@lucide/svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import Button from '$lib/components/Button.svelte';
 	import DatePicker from '$lib/components/DatePicker.svelte';
 	import RollingNumber from '$lib/components/RollingNumber.svelte';
+	import AddUserModal from '$lib/components/AddUserModal.svelte';
+	import EggOrderEntry from '$lib/components/EggOrderEntry.svelte';
 	import { eggStats } from '$lib/eggFacts';
 	import * as admin from '$lib/api/admin';
-	import type { AdminUserRow, EggOrder, Animal, Gender } from '@meteorclass/pigweed-contract';
+	import type {
+		AdminUserRow,
+		EggOrder,
+		AdminEggLedgerRow,
+		AdminEggLedgerTotals,
+		Animal,
+		Gender
+	} from '@meteorclass/pigweed-contract';
 	import type { PageData } from './$types';
-	import { slide } from 'svelte/transition';
-	import { sineOut } from 'svelte/easing';
+	import { slide, fade } from 'svelte/transition';
+	import { sineOut, sineIn } from 'svelte/easing';
 
 	let { data }: { data: PageData } = $props();
 
 	// Which dashboard section is showing — driven by the ?view= URL param so it
 	// survives a refresh (and is shareable). Defaults to 'users'.
-	const VIEWS = ['home', 'users', 'tiers', 'benefits'] as const;
+	const VIEWS = ['home', 'users', 'eggs', 'tiers', 'benefits'] as const;
 	type View = (typeof VIEWS)[number];
 	const view = $derived(
 		(VIEWS.includes(page.url.searchParams.get('view') as View)
@@ -108,34 +120,11 @@
 	let ordersFor = $state<string | null>(null);
 	let ordersLoading = $state(false);
 
-	// Bulk egg-record entry: a list of draft rows (eggs + date), saved all at
-	// once. `orderByBox` flips the counter to boxes (×30 eggs) like the calculator.
-	type OrderDraft = { eggs: number; date: string };
-	let orderDrafts = $state<OrderDraft[]>([{ eggs: 30, date: '' }]);
-	let orderByBox = $state(false);
-	let savingOrders = $state(false);
-	const validDrafts = $derived(orderDrafts.filter((d) => d.eggs > 0).length);
-	function resetOrderDrafts() {
-		orderDrafts = [{ eggs: 30, date: '' }];
-		orderByBox = false;
-	}
-	function setDraftCount(i: number, v: number) {
-		const n = Math.max(0, Number.isFinite(v) ? v : 0);
-		orderDrafts[i].eggs = orderByBox ? Math.round(n * EGGS_PER_BOX) : Math.round(n);
-	}
-	async function saveOrderDrafts(userId: string) {
-		if (savingOrders || validDrafts === 0) return;
-		savingOrders = true;
-		for (const d of orderDrafts.filter((x) => x.eggs > 0)) {
-			await admin.recordOrder(userId, {
-				eggs: d.eggs,
-				orderedAt: d.date ? new Date(d.date).toISOString() : undefined
-			});
-		}
-		savingOrders = false;
-		resetOrderDrafts();
+	// After EggOrderEntry saves records for `userId`, refresh the ledger + the
+	// row's eggsEaten / home gauge.
+	async function onOrdersSaved(userId: string) {
 		await reloadOrders(userId);
-		await invalidateAll(); // refresh row eggsEaten + home gauge
+		await invalidateAll();
 	}
 
 	async function loadOrders(userId: string) {
@@ -159,7 +148,6 @@
 		formPlanId = u.subscription?.plan.id ?? data.plans[0]?.id ?? '';
 		formStart = (u.subscription?.startedAt ?? new Date().toISOString()).slice(0, 10);
 		formDay = u.subscription?.deliveryDay ?? 4;
-		resetOrderDrafts();
 		if (ordersFor !== u.id) void loadOrders(u.id);
 	}
 	// Clicking anywhere on the row toggles the Eggs tab — but not when the click
@@ -177,91 +165,9 @@
 		});
 
 	// ─── Add-user modal (pre-register by email + magic link) ────────
+	// The whole modal (state + handlers + the "log eggs for this user" step) now
+	// lives in AddUserModal.svelte; this page just toggles it open.
 	let addUserOpen = $state(false);
-	let addEmail = $state('');
-	let addUsername = $state('');
-	let addAnimal = $state('');
-	let addGender = $state('UNDISCLOSED');
-	let addResult = $state<{ username: string; animal: string; existed: boolean } | null>(null);
-	let addError = $state('');
-	let addBusy = $state(false);
-	let generating = $state(false);
-
-	// Once the admin hand-edits the username, stop auto-deriving it from the email.
-	let usernameLocked = $state(false);
-	let emailTimer: ReturnType<typeof setTimeout>;
-
-	function openAddUser() {
-		addUserOpen = true;
-		addEmail = '';
-		addUsername = '';
-		addAnimal = '';
-		addGender = 'UNDISCLOSED';
-		addResult = null;
-		addError = '';
-		usernameLocked = false;
-		// Seed a random identity; typing an email re-derives the username from it.
-		rerollIdentity();
-	}
-
-	// Email → username, automatically (debounced). Skipped once the admin
-	// hand-edits the username; waits for a plausible "x@y" before deriving.
-	function onAddEmailInput() {
-		clearTimeout(emailTimer);
-		emailTimer = setTimeout(async () => {
-			if (usernameLocked || !addEmail.includes('@')) return;
-			generating = true;
-			try {
-				const r = await admin.previewIdentity(addEmail.trim());
-				if (r) addUsername = r.username;
-			} finally {
-				generating = false;
-			}
-		}, 350);
-	}
-
-	// Reroll a fresh RANDOM username + animal (the "give me a different one" button).
-	async function rerollIdentity() {
-		if (generating) return;
-		generating = true;
-		try {
-			const r = await admin.previewIdentity('');
-			if (r) {
-				addUsername = r.username;
-				addAnimal = r.animal;
-			}
-		} finally {
-			generating = false;
-		}
-	}
-	async function submitAddUser() {
-		if (addBusy || !addEmail.trim()) return;
-		addBusy = true;
-		addError = '';
-		try {
-			const r = await admin.registerUser({
-				email: addEmail.trim(),
-				username: addUsername.trim() || undefined,
-				gender: addGender,
-				animal: addAnimal || undefined
-			});
-			if ('error' in r) {
-				addError = r.error;
-			} else {
-				addResult = r;
-				await invalidateAll();
-			}
-		} finally {
-			addBusy = false;
-		}
-	}
-
-	let addDialog = $state<HTMLDialogElement>();
-	$effect(() => {
-		if (!addDialog) return;
-		if (addUserOpen && !addDialog.open) addDialog.showModal();
-		else if (!addUserOpen && addDialog.open) addDialog.close();
-	});
 
 	// ─── Delete user (danger): type "delete" to confirm ─────────────
 	let userToDelete = $state<AdminUserRow | null>(null);
@@ -469,6 +375,7 @@
 
 	const NAV = [
 		{ id: 'home', label: 'Home', icon: Home },
+		{ id: 'eggs', label: 'Eggs', icon: Receipt },
 		{ id: 'users', label: 'Users', icon: UsersIcon },
 		{ id: 'tiers', label: 'Tiers', icon: Layers },
 		{ id: 'benefits', label: 'Benefits', icon: Gift }
@@ -553,7 +460,10 @@
 	async function addCalcOrder() {
 		if (!custSelected || custSaving || calcEggs <= 0) return;
 		custSaving = true;
-		const ok = await admin.recordOrder(custSelected.id, { eggs: calcEggs });
+		const ok = await admin.recordOrder(custSelected.id, {
+			eggs: calcEggs,
+			unitPriceCents: Math.max(1, Math.round((calcPrice || 0) * 100))
+		});
 		custSaving = false;
 		if (ok) {
 			rememberCustomer(custSelected);
@@ -588,6 +498,139 @@
 			/* ignore quota / unavailable */
 		}
 	}
+
+	// ─── Eggs panel: global egg ledger (accounting view) ────────────
+	// Loaded client-side on demand (not in the SvelteKit `load`); refetched
+	// whenever a filter changes. Totals come from the BE over the WHOLE filtered
+	// set, so they're correct even when the rows are paginated.
+	const LEDGER_LIMIT = 100;
+	let ledgerRows = $state<AdminEggLedgerRow[]>([]);
+	let ledgerTotals = $state<AdminEggLedgerTotals>({ eggs: 0, revenueCents: 0, orderCount: 0 });
+	let ledgerTotal = $state(0);
+	let ledgerLoading = $state(false);
+	let ledgerLoaded = $state(false);
+	let ledgerPage = $state(1);
+	let ledgerFrom = $state('');
+	let ledgerTo = $state('');
+	let ledgerSource = $state(''); // '' | 'MANUAL' | 'SUBSCRIPTION'
+	let ledgerQ = $state('');
+	let ledgerShowDeleted = $state(false);
+	let ledgerGroupBy = $state<'none' | 'week' | 'month'>('none');
+	let ledgerSearchTimer: ReturnType<typeof setTimeout>;
+
+	async function loadLedger() {
+		ledgerLoading = true;
+		const res = await admin.fetchEggLedger({
+			page: ledgerPage,
+			limit: LEDGER_LIMIT,
+			from: ledgerFrom || undefined,
+			to: ledgerTo || undefined,
+			source: ledgerSource || undefined,
+			q: ledgerQ || undefined,
+			includeDeleted: ledgerShowDeleted
+		});
+		ledgerRows = res.data.rows;
+		ledgerTotals = res.data.totals;
+		ledgerTotal = res.data.total;
+		ledgerLoading = false;
+		ledgerLoaded = true;
+	}
+	// Reset to page 1 and reload (used by every filter control).
+	function reloadLedger() {
+		ledgerPage = 1;
+		void loadLedger();
+	}
+	function ledgerSearchInput() {
+		clearTimeout(ledgerSearchTimer);
+		ledgerSearchTimer = setTimeout(reloadLedger, 250);
+	}
+	// First load when the Eggs view is opened.
+	$effect(() => {
+		if (view === 'eggs' && !ledgerLoaded && !ledgerLoading) void loadLedger();
+	});
+
+	async function softDeleteOrder(id: string) {
+		if (await admin.deleteOrder(id)) {
+			await loadLedger();
+			await invalidateAll();
+		}
+	}
+	async function restoreOrder(id: string) {
+		if (await admin.restoreOrder(id)) {
+			await loadLedger();
+			await invalidateAll();
+		}
+	}
+	let ledgerExporting = $state(false);
+	async function exportLedger() {
+		ledgerExporting = true;
+		await admin.exportEggLedgerCsv({
+			from: ledgerFrom || undefined,
+			to: ledgerTo || undefined,
+			source: ledgerSource || undefined,
+			q: ledgerQ || undefined,
+			includeDeleted: ledgerShowDeleted
+		});
+		ledgerExporting = false;
+	}
+
+	// Money + unit helpers for the ledger.
+	const moneyRM = (cents: number) =>
+		`RM${(cents / 100).toLocaleString('en-MY', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+	const lineTotal = (o: AdminEggLedgerRow) => o.eggs * o.unitPriceCents;
+	const avgOrderEggs = $derived(
+		ledgerTotals.orderCount ? Math.round(ledgerTotals.eggs / ledgerTotals.orderCount) : 0
+	);
+	const ledgerPages = $derived(Math.max(1, Math.ceil(ledgerTotal / LEDGER_LIMIT)));
+
+	// Period grouping (week / month) with per-group subtotals — computed over the
+	// loaded page. Subtotals exclude soft-deleted rows.
+	function periodKey(iso: string, mode: 'week' | 'month'): string {
+		const d = new Date(iso);
+		if (mode === 'month')
+			return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
+		// Mon-start ISO week, computed by timestamp math (no mutable Date).
+		const day = d.getUTCDay() || 7;
+		const weekStartMs =
+			Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) -
+			(day - 1) * 24 * 60 * 60 * 1000;
+		return `Week of ${new Date(weekStartMs).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`;
+	}
+	type LedgerGroup = { key: string; rows: AdminEggLedgerRow[]; eggs: number; revenueCents: number };
+	const ledgerGroups = $derived.by<LedgerGroup[] | null>(() => {
+		if (ledgerGroupBy === 'none') return null;
+		// Plain object index (not a Map) to satisfy svelte/prefer-svelte-reactivity;
+		// this is a transient computation, not reactive state.
+		const groups: LedgerGroup[] = [];
+		const index: Record<string, LedgerGroup> = {};
+		for (const r of ledgerRows) {
+			const k = periodKey(r.orderedAt, ledgerGroupBy);
+			let g = index[k];
+			if (!g) {
+				g = { key: k, rows: [], eggs: 0, revenueCents: 0 };
+				index[k] = g;
+				groups.push(g);
+			}
+			g.rows.push(r);
+			if (!r.deletedAt) {
+				g.eggs += r.eggs;
+				g.revenueCents += lineTotal(r);
+			}
+		}
+		return groups;
+	});
+
+	// ─── Add-egg-order modal (pick a customer, then log records) ────
+	let addOrderOpen = $state(false);
+	let addOrderUserId = $state('');
+	let addOrderDialog = $state<HTMLDialogElement>();
+	// Customers for the <select>, alphabetical. Sourced from the loaded user page.
+	const orderUsers = $derived([...data.users].sort((a, b) => a.username.localeCompare(b.username)));
+	$effect(() => {
+		if (!addOrderDialog) return;
+		if (addOrderOpen && !addOrderDialog.open) addOrderDialog.showModal();
+		else if (!addOrderOpen && addOrderDialog.open) addOrderDialog.close();
+	});
 </script>
 
 <svelte:head><title>Admin · Our Little Farm</title></svelte:head>
@@ -650,17 +693,21 @@
 
 		<!-- ─── Home view ─── -->
 		{#if view === 'home'}
-			<section class="mt-8 flex flex-col items-start gap-8">
-				<h2 class="font-homemade-apple text-2xl text-olf-darkbrown">Egg Panel</h2>
+			<section class="mt-8 flex flex-col items-start gap-4">
+				<h2 class="font-homemade-apple text-2xl text-olf-darkbrown">Home</h2>
 
 				<div class="flex w-full items-start gap-10 lg:gap-16">
 					<!-- Egg calculator -->
 					<div class="w-full max-w-xs rounded-2xl bg-olf-beige p-6 text-olf-darkgreen shadow">
-						<h3
-							class="mb-4 flex items-center gap-2 font-oswald text-lg font-light tracking-widest uppercase"
-						>
-							Calculator 🥚🧮
-						</h3>
+						<div class="flex justify-between">
+							<h3
+								class="mb-4 flex items-center gap-2 font-oswald text-lg font-light tracking-widest uppercase"
+							>
+								Calculator
+							</h3>
+							<span>🥚🧮</span>
+						</div>
+
 						<div class="flex flex-col gap-3 font-oswald text-sm">
 							<label class="flex items-center justify-between gap-3">
 								<span class="tracking-wide text-olf-darkgreen/70 uppercase">price</span>
@@ -1109,77 +1156,8 @@
 								</div>
 
 								{#if expandTab === 'eggs'}
-									<!-- Bulk add records -->
-									<div class="flex flex-col gap-3">
-										<span
-											class="font-oswald text-xs font-bold tracking-wide text-olf-darkgreen/70 uppercase"
-										>
-											Add egg records
-										</span>
-										<!-- Column labels (shown once). The Eggs/Boxes label is itself the
-										     unit toggle — scoped to its column, not floating right. -->
-										<div
-											class="flex gap-2 font-oswald text-xxs font-bold tracking-wide text-olf-darkgreen/60 uppercase"
-										>
-											<button
-												type="button"
-												onclick={() => (orderByBox = !orderByBox)}
-												title={orderByBox ? 'Switch to eggs' : 'Switch to boxes'}
-												class="inline-flex w-24 cursor-pointer items-center gap-1 text-olf-darkgreen hover:text-olf-moss"
-											>
-												{orderByBox ? '📦 Boxes' : '🥚 Eggs'}
-												<RefreshCw size={10} class="shrink-0" />
-											</button>
-											<span>Date</span>
-										</div>
-										{#each orderDrafts as d, i (i)}
-											<div class="flex flex-wrap items-center gap-2">
-												<input
-													type="number"
-													min="0"
-													value={orderByBox ? d.eggs / EGGS_PER_BOX : d.eggs}
-													oninput={(e) => setDraftCount(i, e.currentTarget.valueAsNumber)}
-													class="w-24 rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1.5 font-oswald text-sm text-olf-darkgreen tabular-nums"
-												/>
-												<div class="w-44">
-													<DatePicker bind:value={d.date} placeholder="Today" />
-												</div>
-												{#if orderByBox}
-													<span class="font-oswald text-xxs text-olf-darkgreen/55"
-														>= {d.eggs} eggs</span
-													>
-												{/if}
-												{#if orderDrafts.length > 1}
-													<button
-														type="button"
-														onclick={() =>
-															(orderDrafts = orderDrafts.filter((_, idx) => idx !== i))}
-														aria-label="Remove row"
-														class="flex size-8 items-center justify-center rounded-md text-olf-red hover:bg-olf-red/10"
-													>
-														<X size={16} />
-													</button>
-												{/if}
-											</div>
-										{/each}
-										<div class="flex flex-wrap items-center gap-2">
-											<button
-												type="button"
-												onclick={() => (orderDrafts = [...orderDrafts, { eggs: 30, date: '' }])}
-												class="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-olf-darkgreen/20 px-3 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen hover:bg-olf-darkgreen/10"
-											>
-												<Plus size={14} /> Add more
-											</button>
-											<Button
-												disabled={savingOrders || validDrafts === 0}
-												onclick={() => saveOrderDrafts(u.id)}
-												class="flex items-center gap-1.5 rounded-md bg-olf-darkbrown px-4 py-1.5 font-oswald text-xs font-bold text-olf-beige disabled:opacity-50"
-											>
-												{#if savingOrders}<Spinner size={13} />{/if}
-												Save {validDrafts} record{validDrafts === 1 ? '' : 's'}
-											</Button>
-										</div>
-									</div>
+									<!-- Bulk add records (shared component) -->
+									<EggOrderEntry userId={u.id} onsaved={() => onOrdersSaved(u.id)} />
 
 									<!-- Ledger -->
 									<div class="mt-4">
@@ -1365,7 +1343,7 @@
 						</Button>
 						<div class="flex flex-wrap items-center gap-2">
 							<Button
-								onclick={openAddUser}
+								onclick={() => (addUserOpen = true)}
 								class="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md bg-olf-darkgreen px-3 py-1.5 font-oswald text-xs font-bold text-white"
 							>
 								<Plus size={14} /> Add user
@@ -1422,6 +1400,250 @@
 								href={urlWith({ page: String(data.page + 1) })}
 								class="underline">Next →</a
 							>{/if}
+					</div>
+				{/if}
+			</section>
+		{/if}
+
+		<!-- ─── Eggs view: global egg ledger (accounting) ─── -->
+		{#if view === 'eggs'}
+			<section class="mt-8 flex flex-col gap-4">
+				<div class="flex flex-wrap items-center justify-between gap-3">
+					<h2 class="font-homemade-apple text-2xl text-olf-darkbrown">Eggs ledger</h2>
+					<div class="flex flex-wrap items-center gap-2">
+						<Button
+							onclick={() => (addUserOpen = true)}
+							class="flex cursor-pointer items-center gap-1.5 rounded-md bg-olf-darkgreen px-3 py-1.5 font-oswald text-xs font-bold text-white"
+						>
+							<Plus size={14} /> Add user
+						</Button>
+						<Button
+							onclick={exportLedger}
+							disabled={ledgerExporting || ledgerTotals.orderCount === 0}
+							class="flex cursor-pointer items-center gap-1.5 rounded-md border-2 border-olf-darkgreen px-3 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen disabled:opacity-40"
+						>
+							{#if ledgerExporting}<Spinner size={13} />{:else}<Download size={14} />{/if} Export CSV
+						</Button>
+					</div>
+				</div>
+
+				<!-- Summary cards — reflect the ACTIVE filter (set a date range for a period statement). -->
+				<div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+					{#each [{ label: 'Eggs', value: ledgerTotals.eggs.toLocaleString(), sub: `${(ledgerTotals.eggs / 30).toFixed(1)} boxes` }, { label: 'Revenue', value: moneyRM(ledgerTotals.revenueCents), sub: 'at recorded prices' }, { label: 'Orders', value: ledgerTotals.orderCount.toLocaleString(), sub: 'records' }, { label: 'Avg order', value: `${avgOrderEggs} 🥚`, sub: 'per record' }] as card (card.label)}
+						<div class="flex flex-col rounded-2xl bg-olf-beige px-5 py-4 text-olf-darkgreen shadow">
+							<span class="font-oswald text-xs tracking-wide uppercase opacity-70"
+								>{card.label}</span
+							>
+							<span class="font-caveat text-2xl leading-tight tabular-nums">{card.value}</span>
+							<span class="font-oswald text-xxs text-olf-darkgreen/55">{card.sub}</span>
+						</div>
+					{/each}
+				</div>
+
+				<!-- Filters -->
+				<div class="flex flex-wrap items-end gap-3 rounded-2xl bg-olf-beige/60 p-4">
+					<div class="flex flex-col gap-1">
+						<span
+							class="font-oswald text-xxs font-bold tracking-wide text-olf-darkgreen/60 uppercase"
+							>From</span
+						>
+						<div class="w-40">
+							<DatePicker
+								bind:value={ledgerFrom}
+								placeholder="Start"
+								onchange={() => reloadLedger()}
+							/>
+						</div>
+					</div>
+					<div class="flex flex-col gap-1">
+						<span
+							class="font-oswald text-xxs font-bold tracking-wide text-olf-darkgreen/60 uppercase"
+							>To</span
+						>
+						<div class="w-40">
+							<DatePicker bind:value={ledgerTo} placeholder="End" onchange={() => reloadLedger()} />
+						</div>
+					</div>
+					<div class="flex flex-col gap-1">
+						<span
+							class="font-oswald text-xxs font-bold tracking-wide text-olf-darkgreen/60 uppercase"
+							>Source</span
+						>
+						<select bind:value={ledgerSource} onchange={() => reloadLedger()} class={SORT_SELECT}>
+							<option value="">All</option>
+							<option value="MANUAL">Manual</option>
+							<option value="SUBSCRIPTION">Subscription</option>
+						</select>
+					</div>
+					<div class="flex flex-col gap-1">
+						<span
+							class="font-oswald text-xxs font-bold tracking-wide text-olf-darkgreen/60 uppercase"
+							>Group by</span
+						>
+						<select bind:value={ledgerGroupBy} class={SORT_SELECT}>
+							<option value="none">None</option>
+							<option value="week">Week</option>
+							<option value="month">Month</option>
+						</select>
+					</div>
+					<div class="relative flex-1">
+						<Search
+							size={16}
+							class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-olf-darkgreen/50"
+						/>
+						<input
+							bind:value={ledgerQ}
+							oninput={ledgerSearchInput}
+							placeholder="search customer"
+							aria-label="Search customer"
+							class="w-full rounded-lg border border-olf-darkgreen/20 bg-white py-1.5 pr-3 pl-8 font-oswald text-sm text-olf-darkgreen sm:w-56"
+						/>
+					</div>
+					<Button
+						onclick={() => {
+							addOrderUserId = '';
+							addOrderOpen = true;
+						}}
+						class="flex cursor-pointer items-center gap-1.5 rounded-md bg-olf-darkbrown px-3 py-1.5 font-oswald text-xs font-bold text-olf-beige"
+					>
+						<Plus size={14} /> Add egg order
+					</Button>
+				</div>
+
+				<!-- Row snippet (shared by flat + grouped renders) -->
+				{#snippet ledgerRowMarkup(o: AdminEggLedgerRow)}
+					{@const dead = !!o.deletedAt}
+					<div
+						class="grid grid-cols-[6.5rem_minmax(8rem,1fr)_3.5rem_3.5rem_4.5rem_5.5rem_2.5rem] items-center gap-2 px-4 py-2 text-olf-darkgreen transition-colors hover:bg-olf-darkgreen/5 {dead
+							? 'opacity-50'
+							: ''}"
+					>
+						<span class="font-oswald text-xs tabular-nums {dead ? 'line-through' : ''}"
+							>{orderDateLabel(o.orderedAt)}</span
+						>
+						<a
+							href="/users/{o.userId}"
+							target="_blank"
+							rel="noopener"
+							class="flex min-w-0 items-center gap-2 hover:underline"
+						>
+							<Avatar animal={o.animal} avatarSeed={o.avatarSeed} gender={o.gender} size="sm" />
+							<span class="truncate font-oswald text-sm font-bold {dead ? 'line-through' : ''}"
+								>{o.username}</span
+							>
+						</a>
+						<span class="text-right font-oswald text-sm font-bold tabular-nums">{o.eggs}</span>
+						<span class="text-right font-oswald text-xs text-olf-darkgreen/60 tabular-nums"
+							>{(o.eggs / 30).toFixed(1)}</span
+						>
+						<span class="text-right font-oswald text-xs text-olf-darkgreen/70 tabular-nums"
+							>{moneyRM(o.unitPriceCents)}</span
+						>
+						<span class="text-right font-oswald text-sm font-bold text-olf-darkgreen tabular-nums"
+							>{moneyRM(lineTotal(o))}</span
+						>
+						{#if dead}
+							<button
+								type="button"
+								onclick={() => restoreOrder(o.id)}
+								aria-label="Restore record"
+								title="Restore"
+								class="flex size-7 items-center justify-center rounded-md text-olf-moss hover:bg-olf-moss/10"
+							>
+								<RotateCcw size={14} />
+							</button>
+						{:else}
+							<button
+								type="button"
+								onclick={() => softDeleteOrder(o.id)}
+								aria-label="Delete record"
+								title="Delete (recoverable)"
+								class="flex size-7 items-center justify-center rounded-md text-olf-darkbrown/50 hover:bg-olf-darkbrown/10 hover:text-olf-darkbrown"
+							>
+								<Trash2 size={14} />
+							</button>
+						{/if}
+					</div>
+				{/snippet}
+
+				<!-- Ledger table -->
+				<div class="overflow-x-auto rounded-2xl bg-olf-beige shadow">
+					<div class="min-w-160">
+						<!-- Column headers -->
+						<div
+							class="grid grid-cols-[6.5rem_minmax(8rem,1fr)_3.5rem_3.5rem_4.5rem_5.5rem_2.5rem] items-center gap-2 border-b border-olf-darkgreen/10 bg-olf-darkgreen/5 px-4 py-2.5 font-oswald text-xxs font-bold tracking-widest text-olf-darkgreen/50 uppercase"
+						>
+							<span>Date</span>
+							<span>Customer</span>
+							<span class="text-right">Eggs</span>
+							<span class="text-right">Boxes</span>
+							<span class="text-right">Unit</span>
+							<span class="text-right">Total</span>
+							<span class="sr-only">Actions</span>
+						</div>
+
+						{#if ledgerLoading}
+							<div class="flex justify-center py-8 text-olf-darkgreen/60"><Spinner /></div>
+						{:else if ledgerRows.length === 0}
+							<p class="px-4 py-8 text-center font-oswald text-sm text-olf-darkgreen/50">
+								No egg records for this filter.
+							</p>
+						{:else if ledgerGroups}
+							{#each ledgerGroups as g (g.key)}
+								<div
+									class="flex items-center justify-between gap-3 bg-olf-darkgreen/8 px-4 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen"
+								>
+									<span>{g.key}</span>
+									<span class="tabular-nums">{g.eggs} 🥚 · {moneyRM(g.revenueCents)}</span>
+								</div>
+								<div class="divide-y divide-olf-darkgreen/10">
+									{#each g.rows as o (o.id)}{@render ledgerRowMarkup(o)}{/each}
+								</div>
+							{/each}
+						{:else}
+							<div class="divide-y divide-olf-darkgreen/10">
+								{#each ledgerRows as o (o.id)}{@render ledgerRowMarkup(o)}{/each}
+							</div>
+						{/if}
+					</div>
+				</div>
+
+				<!-- Show-deleted toggle (under the table — affects what the ledger lists) -->
+				<label
+					class="flex cursor-pointer items-center gap-1.5 self-start font-oswald text-xs text-olf-darkgreen/70"
+				>
+					<input
+						type="checkbox"
+						bind:checked={ledgerShowDeleted}
+						onchange={() => reloadLedger()}
+						class="size-4 rounded text-olf-darkbrown"
+					/>
+					Show deleted records
+				</label>
+
+				{#if ledgerTotal > LEDGER_LIMIT}
+					<div
+						class="flex items-center justify-center gap-4 font-oswald text-sm text-olf-darkgreen"
+					>
+						<button
+							type="button"
+							disabled={ledgerPage <= 1}
+							onclick={() => {
+								ledgerPage -= 1;
+								void loadLedger();
+							}}
+							class="underline disabled:opacity-40">← Prev</button
+						>
+						<span>Page {ledgerPage} of {ledgerPages}</span>
+						<button
+							type="button"
+							disabled={ledgerPage >= ledgerPages}
+							onclick={() => {
+								ledgerPage += 1;
+								void loadLedger();
+							}}
+							class="underline disabled:opacity-40">Next →</button
+						>
 					</div>
 				{/if}
 			</section>
@@ -1684,128 +1906,63 @@
 		{/if}
 	</main>
 
-	<!-- Add user modal (pre-register by email + magic link) -->
+	<!-- Add user modal (pre-register by email + magic link); reused across panels -->
+	<AddUserModal bind:open={addUserOpen} oncreated={() => invalidateAll()} />
+
+	<!-- Add egg order modal (pick a customer, then log records) -->
 	<dialog
-		bind:this={addDialog}
-		onclose={() => (addUserOpen = false)}
+		bind:this={addOrderDialog}
+		onclose={() => (addOrderOpen = false)}
 		onclick={(e) => {
-			if (e.target === addDialog) addUserOpen = false;
+			if (e.target === addOrderDialog) addOrderOpen = false;
 		}}
-		class="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-xl bg-olf-beige text-olf-darkgreen backdrop:bg-olf-darkgreen/60"
+		class="m-auto w-[min(30rem,calc(100vw-2rem))] rounded-xl bg-olf-beige text-olf-darkgreen backdrop:bg-olf-darkgreen/60"
 	>
 		<div class="flex flex-col gap-4 p-6">
 			<div class="flex items-start justify-between gap-4">
-				<h2 class="font-homemade-apple text-xl">Add user</h2>
+				<h2 class="font-homemade-apple text-xl">Add egg order</h2>
 				<button
 					type="button"
 					aria-label="Close"
-					onclick={() => (addUserOpen = false)}
+					onclick={() => (addOrderOpen = false)}
 					class="shrink-0 text-olf-darkgreen/60 hover:text-olf-darkgreen"
 				>
 					<X size={22} />
 				</button>
 			</div>
 
-			{#if addResult}
-				<!-- Success state -->
-				<div class="flex flex-col gap-3">
-					<p class="font-oswald text-sm">
-						{addResult.existed ? 'That email already had an account.' : 'Registered!'} A magic-link sign-in
-						was emailed to <b>{addEmail}</b>.
-					</p>
-					<div class="rounded-lg bg-olf-darkgreen/5 px-4 py-3 font-oswald text-sm">
-						They join as <b>{addResult.username}</b>, a <b>{addResult.animal.toLowerCase()}</b> 🐣
-					</div>
-					<div class="flex justify-end">
-						<Button
-							onclick={() => (addUserOpen = false)}
-							class="rounded-md bg-olf-darkgreen px-4 py-1.5 font-oswald text-xs font-bold text-white"
-						>
-							Done
-						</Button>
-					</div>
+			<label
+				class="flex flex-col gap-1 font-oswald text-xs font-bold tracking-wide text-olf-darkgreen/80 uppercase"
+			>
+				Customer
+				<select
+					bind:value={addOrderUserId}
+					class="rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1.5 text-sm normal-case"
+				>
+					<option value="" disabled>Select a customer…</option>
+					{#each orderUsers as u (u.id)}
+						<option value={u.id}>{u.username} · {u.email}</option>
+					{/each}
+				</select>
+			</label>
+
+			{#if addOrderUserId}
+				<div
+					in:fade={{ duration: 150, easing: sineIn }}
+					class="rounded-lg border border-olf-darkgreen/15 bg-olf-eggshell/60 p-3"
+				>
+					<EggOrderEntry
+						userId={addOrderUserId}
+						onsaved={async () => {
+							await loadLedger();
+							await invalidateAll();
+						}}
+					/>
 				</div>
 			{:else}
-				<p class="font-oswald text-sm text-olf-darkgreen/80">
-					Enter an email — we'll suggest a username from it. Reroll for a random one. We
-					pre-register them and email a one-click magic-link login.
+				<p class="font-oswald text-sm text-olf-darkgreen/60">
+					Pick a customer to start logging eggs.
 				</p>
-				<label
-					class="flex flex-col gap-1 font-oswald text-xs font-bold tracking-wide text-olf-darkgreen/80 uppercase"
-				>
-					Email
-					<input
-						type="email"
-						bind:value={addEmail}
-						oninput={onAddEmailInput}
-						placeholder="name@email.com"
-						class="rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1.5 text-sm normal-case"
-					/>
-				</label>
-
-				<!-- Generated identity (reroll to confirm before sending) -->
-				<div class="flex flex-col gap-1.5">
-					<span class="font-oswald text-xs font-bold tracking-wide text-olf-darkgreen/80 uppercase"
-						>Generated identity</span
-					>
-					<div class="flex items-center gap-2">
-						<input
-							bind:value={addUsername}
-							oninput={() => (usernameLocked = true)}
-							placeholder="username"
-							class="min-w-0 flex-1 rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1.5 font-oswald text-sm"
-						/>
-						<button
-							type="button"
-							onclick={rerollIdentity}
-							disabled={generating}
-							aria-label="Reroll username + animal"
-							title="Reroll random"
-							class="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md bg-olf-darkgreen/10 text-olf-darkgreen transition-colors hover:bg-olf-darkgreen/20 disabled:opacity-50"
-						>
-							<RefreshCw size={16} class={generating ? 'animate-spin' : ''} />
-						</button>
-						{#if addAnimal}
-							<span
-								class="shrink-0 rounded-full bg-olf-lightgreen px-3 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen"
-							>
-								{addAnimal.toLowerCase()}
-							</span>
-						{/if}
-					</div>
-				</div>
-
-				<label
-					class="flex flex-col gap-1 font-oswald text-xs font-bold tracking-wide text-olf-darkgreen/80 uppercase"
-				>
-					Gender
-					<select
-						bind:value={addGender}
-						class="rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1.5 text-sm normal-case"
-					>
-						<option value="UNDISCLOSED">Undisclosed</option>
-						<option value="FEMALE">Female</option>
-						<option value="MALE">Male</option>
-						<option value="NONBINARY">Nonbinary</option>
-					</select>
-				</label>
-
-				{#if addError}<p class="font-oswald text-xs text-olf-darkbrown">{addError}</p>{/if}
-				<div class="flex justify-end gap-2">
-					<Button
-						onclick={() => (addUserOpen = false)}
-						class="rounded-md px-3 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen/70 hover:text-olf-darkgreen"
-					>
-						Cancel
-					</Button>
-					<Button
-						disabled={addBusy || !addEmail.trim()}
-						onclick={submitAddUser}
-						class="flex items-center gap-1.5 rounded-md bg-olf-darkgreen px-4 py-1.5 font-oswald text-xs font-bold text-white disabled:opacity-50"
-					>
-						<Plus size={14} /> Send magic link
-					</Button>
-				</div>
 			{/if}
 		</div>
 	</dialog>

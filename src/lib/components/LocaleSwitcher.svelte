@@ -178,7 +178,7 @@
 			role="listbox"
 			aria-label={m.locale_switcher_label()}
 			transition:slide={{ duration: 150 }}
-			class="absolute right-0 z-50 mt-1 min-w-[10rem] overflow-hidden rounded-xl border border-olf-darkgreen/20 bg-olf-beige shadow-lg"
+			class="absolute right-0 z-50 mt-1 min-w-40 overflow-hidden rounded-xl border border-olf-darkgreen/20 bg-olf-beige shadow-lg"
 		>
 			{#each locales as code (code)}
 				<li>

@@ -147,7 +147,7 @@
 />
 
 <div class="flex-1 bg-olf-lightgreen px-4 py-8 sm:px-6">
-	<div class="mx-auto max-w-5xl">
+	<div class="w-full">
 		<div class="mb-6 flex items-center justify-between gap-3">
 			<h1 class="font-homemade-apple text-3xl font-bold text-olf-darkgreen">
 				{m.posts_page_title()}
@@ -342,7 +342,7 @@
 			<!-- Pinterest-style masonry: CSS columns so each card keeps its own
 			     natural height instead of stretching to a shared grid-row height
 			     (which left tall whitespace under short, image-less posts). -->
-			<div class="columns-1 gap-4 sm:columns-2 lg:columns-3">
+			<div class="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5">
 				{#each posts as post (post.id)}
 					<div class="mb-4 break-inside-avoid">
 						<PostCard {post} viewerLocation={nearMe ? viewerCoords : null} />

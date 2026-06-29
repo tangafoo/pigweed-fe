@@ -110,11 +110,12 @@
 							plans={data.plans}
 							subscription={data.subscription}
 							stats={data.stats}
+							user={data.session!.user}
 						/>
 					{:else if tab === 'achievements'}
 						<AchievementsPanel userId={profile.id} />
 					{:else if tab === 'settings'}
-						<SettingsPanel user={data.session!.user} />
+						<SettingsPanel user={data.session!.user} subscription={data.subscription} />
 					{:else}
 						{#key profile.id}
 							<ProfileTabs

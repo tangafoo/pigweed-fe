@@ -5,7 +5,10 @@ import type { Animal, Gender } from '@meteorclass/pigweed-contract';
 export const ANIMAL_LABEL: Record<Animal, () => string> = {
 	CHICKEN: m.animal_chicken,
 	DOG: m.animal_dog,
-	GOOSE: m.animal_goose
+	GOOSE: m.animal_goose,
+	DUCK: m.animal_duck,
+	CAT: m.animal_cat,
+	LIZARD: m.animal_lizard
 };
 
 /** Gender enum → its localized display label. Add a new gender here once. */
