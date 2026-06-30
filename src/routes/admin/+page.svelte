@@ -21,6 +21,8 @@
 		X,
 		ChevronDown,
 		ChevronRight,
+		ChevronUp,
+		ChevronsUpDown,
 		Users as UsersIcon,
 		Layers,
 		Gift,
@@ -40,6 +42,8 @@
 	import RollingNumber from '$lib/components/ui/RollingNumber.svelte';
 	import AddUserModal from '$lib/components/admin/AddUserModal.svelte';
 	import EggOrderEntry from '$lib/components/admin/EggOrderEntry.svelte';
+	import UserPicker from '$lib/components/admin/UserPicker.svelte';
+	import { toasts } from '$lib/realtime/toasts.svelte';
 	import { eggStats } from '$lib/data/eggFacts';
 	import * as admin from '$lib/api/admin';
 	import type {
@@ -264,6 +268,24 @@
 				: 'bg-olf-darkbrown/60 text-olf-beige';
 
 	// ─── Benefits CRM (editable copies) ─────────────────────────────
+	// Auto-grow a textarea to its content height so long benefit copy wraps and
+	// reveals downward (no truncation) — used on the mobile-cramped label field.
+	function autosize(node: HTMLTextAreaElement) {
+		const resize = () => {
+			node.style.height = 'auto';
+			node.style.height = `${node.scrollHeight}px`;
+		};
+		resize();
+		node.addEventListener('input', resize);
+		const ro = new ResizeObserver(resize);
+		ro.observe(node);
+		return {
+			destroy() {
+				node.removeEventListener('input', resize);
+				ro.disconnect();
+			}
+		};
+	}
 	let benefitEdits = $state<Record<string, { label: string; sortOrder: number; active: boolean }>>(
 		{}
 	);
@@ -393,12 +415,15 @@
 	const ringOffset = $derived(RING_C * (1 - eggProgress));
 
 	// Egg calculator (Home view): price × eggs × weeks.
-	let calcPrice = $state(2);
+	// Price is a free-typed string (no stepper) — typical eggs run RM1.50 / 1.80 /
+	// 2.00, so let the admin just type it; `calcPrice` is the parsed number.
+	let calcPriceStr = $state('2.00');
+	const calcPrice = $derived(parseFloat(calcPriceStr) || 0);
 	let calcEggs = $state(30);
 	let calcWeeks = $state(4);
-	const calcTotal = $derived(Math.max(0, (calcPrice || 0) * (calcEggs || 0) * (calcWeeks || 0)));
+	const calcTotal = $derived(Math.max(0, calcPrice * (calcEggs || 0) * (calcWeeks || 0)));
 	const calcMoney = $derived(
-		`RM${calcTotal.toLocaleString('en-MY', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+		`RM${calcTotal.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 	);
 
 	// Box mode: count in boxes (trays) instead of loose eggs. Eggs stays the
@@ -427,46 +452,24 @@
 		gender: Gender;
 	};
 	let custOpen = $state(false);
-	let custQ = $state('');
-	let custResults = $state<AdminUserRow[]>([]);
-	let custSearching = $state(false);
 	let custSelected = $state<PickedCustomer | null>(null);
 	let custSaving = $state(false);
 	let custDone = $state(false);
-	let custTimer: ReturnType<typeof setTimeout>;
-	function custSearch() {
-		clearTimeout(custTimer);
-		custTimer = setTimeout(async () => {
-			const q = custQ.trim();
-			if (!q) {
-				custResults = [];
-				return;
-			}
-			custSearching = true;
-			try {
-				const res = await admin.fetchAdminUsers(q, 1, '');
-				custResults = res.data.users.slice(0, 6);
-			} finally {
-				custSearching = false;
-			}
-		}, 200);
-	}
 	function resetCustomer() {
 		custSelected = null;
 		custDone = false;
-		custQ = '';
-		custResults = [];
 	}
 	async function addCalcOrder() {
 		if (!custSelected || custSaving || calcEggs <= 0) return;
 		custSaving = true;
 		const ok = await admin.recordOrder(custSelected.id, {
 			eggs: calcEggs,
-			unitPriceCents: Math.max(1, Math.round((calcPrice || 0) * 100))
+			unitPriceCents: Math.max(1, Math.round(calcPrice * 100))
 		});
 		custSaving = false;
 		if (ok) {
 			rememberCustomer(custSelected);
+			rememberPrice(calcPrice);
 			custDone = true;
 			await invalidateAll();
 		}
@@ -498,6 +501,29 @@
 			/* ignore quota / unavailable */
 		}
 	}
+
+	// Last few prices logged, persisted to localStorage → quick-pick pills under
+	// the price field. Remembered only on a successful order (real, used prices).
+	const PRICES_KEY = 'olf:admin:recentPrices';
+	let recentPrices = $state<number[]>([]);
+	onMount(() => {
+		try {
+			const raw = localStorage.getItem(PRICES_KEY);
+			if (raw) recentPrices = JSON.parse(raw);
+		} catch {
+			recentPrices = [];
+		}
+	});
+	function rememberPrice(p: number) {
+		if (!(p > 0)) return;
+		recentPrices = [p, ...recentPrices.filter((x) => x !== p)].slice(0, 4);
+		try {
+			localStorage.setItem(PRICES_KEY, JSON.stringify(recentPrices));
+		} catch {
+			/* ignore quota / unavailable */
+		}
+	}
+	const priceLabel = (p: number) => `RM${p.toFixed(2)}`;
 
 	// ─── Eggs panel: global egg ledger (accounting view) ────────────
 	// Loaded client-side on demand (not in the SvelteKit `load`); refetched
@@ -576,12 +602,63 @@
 
 	// Money + unit helpers for the ledger.
 	const moneyRM = (cents: number) =>
-		`RM${(cents / 100).toLocaleString('en-MY', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+		`RM${(cents / 100).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 	const lineTotal = (o: AdminEggLedgerRow) => o.eggs * o.unitPriceCents;
 	const avgOrderEggs = $derived(
 		ledgerTotals.orderCount ? Math.round(ledgerTotals.eggs / ledgerTotals.orderCount) : 0
 	);
 	const ledgerPages = $derived(Math.max(1, Math.ceil(ledgerTotal / LEDGER_LIMIT)));
+
+	// Click-to-sort the loaded ledger page by any column. Client-side over the
+	// loaded rows (the page is small); clicking the active field flips direction.
+	type LedgerSortField = 'date' | 'customer' | 'eggs' | 'boxes' | 'unit' | 'total';
+	let ledgerSortField = $state<LedgerSortField>('date');
+	let ledgerSortDir = $state<'asc' | 'desc'>('desc');
+	function toggleLedgerSort(f: LedgerSortField) {
+		if (ledgerSortField === f) ledgerSortDir = ledgerSortDir === 'asc' ? 'desc' : 'asc';
+		else {
+			ledgerSortField = f;
+			ledgerSortDir = f === 'customer' ? 'asc' : 'desc';
+		}
+	}
+	const sortValue = (o: AdminEggLedgerRow, f: LedgerSortField): number | string => {
+		switch (f) {
+			case 'customer':
+				return o.username.toLowerCase();
+			case 'eggs':
+			case 'boxes':
+				return o.eggs;
+			case 'unit':
+				return o.unitPriceCents;
+			case 'total':
+				return lineTotal(o);
+			default:
+				return +new Date(o.orderedAt);
+		}
+	};
+	const sortedLedgerRows = $derived.by(() => {
+		const dir = ledgerSortDir === 'asc' ? 1 : -1;
+		return [...ledgerRows].sort((a, b) => {
+			const av = sortValue(a, ledgerSortField);
+			const bv = sortValue(b, ledgerSortField);
+			return av < bv ? -dir : av > bv ? dir : 0;
+		});
+	});
+
+	// Delete-record confirmation (soft delete is recoverable, but confirm anyway).
+	let orderToDelete = $state<AdminEggLedgerRow | null>(null);
+	let confirmDeleteOrderDialog = $state<HTMLDialogElement>();
+	$effect(() => {
+		if (!confirmDeleteOrderDialog) return;
+		if (orderToDelete && !confirmDeleteOrderDialog.open) confirmDeleteOrderDialog.showModal();
+		else if (!orderToDelete && confirmDeleteOrderDialog.open) confirmDeleteOrderDialog.close();
+	});
+	async function confirmDeleteOrder() {
+		if (!orderToDelete) return;
+		const id = orderToDelete.id;
+		orderToDelete = null;
+		await softDeleteOrder(id);
+	}
 
 	// Period grouping (week / month) with per-group subtotals — computed over the
 	// loaded page. Subtotals exclude soft-deleted rows.
@@ -603,7 +680,7 @@
 		// this is a transient computation, not reactive state.
 		const groups: LedgerGroup[] = [];
 		const index: Record<string, LedgerGroup> = {};
-		for (const r of ledgerRows) {
+		for (const r of sortedLedgerRows) {
 			const k = periodKey(r.orderedAt, ledgerGroupBy);
 			let g = index[k];
 			if (!g) {
@@ -622,10 +699,8 @@
 
 	// ─── Add-egg-order modal (pick a customer, then log records) ────
 	let addOrderOpen = $state(false);
-	let addOrderUserId = $state('');
+	let addOrderUser = $state<AdminUserRow | null>(null);
 	let addOrderDialog = $state<HTMLDialogElement>();
-	// Customers for the <select>, alphabetical. Sourced from the loaded user page.
-	const orderUsers = $derived([...data.users].sort((a, b) => a.username.localeCompare(b.username)));
 	$effect(() => {
 		if (!addOrderDialog) return;
 		if (addOrderOpen && !addOrderDialog.open) addOrderDialog.showModal();
@@ -636,18 +711,17 @@
 <svelte:head><title>Admin · Our Little Farm</title></svelte:head>
 
 <div class="flex flex-1 bg-olf-lightgreen">
-	<!-- Sidebar -->
+	<!-- Sidebar — left rail on desktop, fixed bottom nav on mobile. -->
 	<aside
-		class="flex w-16 shrink-0 flex-col gap-2 bg-olf-moss px-2 py-6 text-olf-beige sm:w-52 sm:px-4"
+		class="fixed inset-x-0 bottom-0 z-40 flex flex-row justify-around gap-1 bg-olf-moss px-2 py-2 text-olf-beige shadow-[0_-2px_10px_rgba(0,0,0,0.12)] sm:static sm:w-52 sm:shrink-0 sm:flex-col sm:justify-start sm:gap-2 sm:px-4 sm:py-6 sm:shadow-none"
 	>
 		<p class="hidden px-2 pb-4 font-homemade-apple text-3xl text-olf-eggshell sm:block">Admin</p>
-		<span class="pb-4 text-center text-2xl sm:hidden">🥚</span>
 		{#each NAV as item (item.id)}
 			{@const Icon = item.icon}
 			{#if item.id === 'tiers'}
 				<!-- Umbrella: Tiers + Benefits both live under the subscription. -->
 				<div
-					class="mt-3 flex items-center justify-center gap-1.5 px-3 pt-2 pb-1 text-olf-beige/40 sm:justify-start"
+					class="mt-3 hidden items-center justify-center gap-1.5 px-3 pt-2 pb-1 text-olf-beige/40 sm:flex sm:justify-start"
 				>
 					<Umbrella size={12} class="shrink-0" />
 					<span class="hidden font-oswald text-xxs font-bold tracking-widest uppercase sm:inline"
@@ -670,22 +744,22 @@
 	</aside>
 
 	<!-- Main -->
-	<main class="min-w-0 flex-1 px-4 py-8 sm:px-8">
-		<!-- Stat strip -->
-		<div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+	<main class="min-w-0 flex-1 px-4 pt-4 pb-12 sm:px-8 sm:pt-6 sm:pb-8">
+		<!-- Stat strip — tight cockpit console at every breakpoint -->
+		<div class="grid grid-cols-2 gap-2 lg:grid-cols-4">
 			{#each [{ label: 'Users', value: data.stats.totalUsers, icon: UsersIcon }, { label: 'Subscribers', value: data.stats.activeSubscribers, icon: Egg }, { label: 'Posts', value: data.stats.totalPosts, icon: FileText }, { label: 'Reviews', value: data.stats.totalReviews, icon: Star }] as s (s.label)}
 				{@const Icon = s.icon}
 				<div
-					class="flex items-center gap-3 rounded-2xl bg-olf-beige px-5 py-4 text-olf-darkgreen shadow"
+					class="flex items-center gap-2 rounded-xl bg-olf-darkgreen px-3 py-2 text-olf-eggshell shadow"
 				>
 					<span
-						class="flex size-10 shrink-0 items-center justify-center rounded-full bg-olf-lightgreen text-olf-darkgreen"
+						class="flex size-8 shrink-0 items-center justify-center rounded-full bg-olf-lightgreen text-olf-darkgreen"
 					>
-						<Icon size={20} />
+						<Icon size={18} />
 					</span>
 					<div class="flex flex-col">
-						<span class="font-oswald text-xs tracking-wide uppercase opacity-80">{s.label}</span>
-						<span class="font-supermercado-one text-2xl leading-none tabular-nums">{s.value}</span>
+						<span class="font-oswald text-xxs tracking-wide uppercase opacity-80">{s.label}</span>
+						<span class="font-supermercado-one text-xl leading-none tabular-nums">{s.value}</span>
 					</div>
 				</div>
 			{/each}
@@ -696,7 +770,7 @@
 			<section class="mt-8 flex flex-col items-start gap-4">
 				<h2 class="font-homemade-apple text-2xl text-olf-darkbrown">Home</h2>
 
-				<div class="flex w-full items-start gap-10 lg:gap-16">
+				<div class="flex w-full flex-col items-start gap-8 lg:flex-row lg:gap-16">
 					<!-- Egg calculator -->
 					<div class="w-full max-w-xs rounded-2xl bg-olf-beige p-6 text-olf-darkgreen shadow">
 						<div class="flex justify-between">
@@ -709,19 +783,38 @@
 						</div>
 
 						<div class="flex flex-col gap-3 font-oswald text-sm">
-							<label class="flex items-center justify-between gap-3">
-								<span class="tracking-wide text-olf-darkgreen/70 uppercase">price</span>
-								<span class="flex items-center gap-1 font-bold">
-									RM
-									<input
-										type="number"
-										min="0"
-										step="0.5"
-										bind:value={calcPrice}
-										class="w-20 rounded-lg border border-olf-darkgreen/20 bg-white px-2 py-1.5 text-right tabular-nums"
-									/>
-								</span>
-							</label>
+							<div class="flex flex-col gap-1.5">
+								<label class="flex items-center justify-between gap-3">
+									<span class="tracking-wide text-olf-darkgreen/70 uppercase">price</span>
+									<span class="flex items-center gap-1 font-bold">
+										RM
+										<input
+											type="text"
+											inputmode="decimal"
+											bind:value={calcPriceStr}
+											placeholder="2.00"
+											class="w-20 rounded-lg border border-olf-darkgreen/20 bg-white px-2 py-1.5 text-right tabular-nums"
+										/>
+									</span>
+								</label>
+								<!-- Recent prices (from successful orders) → quick-pick pills -->
+								{#if recentPrices.length}
+									<div class="flex flex-wrap justify-end gap-1.5">
+										{#each recentPrices as p (p)}
+											<button
+												type="button"
+												onclick={() => (calcPriceStr = p.toFixed(2))}
+												class="cursor-pointer rounded-full px-2.5 py-1 font-oswald text-xxs font-bold tracking-wide transition-colors {calcPrice ===
+												p
+													? 'bg-olf-darkgreen text-olf-beige'
+													: 'bg-olf-darkgreen/10 text-olf-darkgreen hover:bg-olf-darkgreen/20'}"
+											>
+												{priceLabel(p)}
+											</button>
+										{/each}
+									</div>
+								{/if}
+							</div>
 							<div class="flex flex-col gap-2">
 								<div class="flex items-center justify-between gap-3">
 									<button
@@ -734,17 +827,18 @@
 										<RefreshCw size={11} class="shrink-0" />
 									</button>
 									<input
-										type="number"
-										min="0"
-										step={byBox ? '1' : '1'}
+										type="text"
+										inputmode="decimal"
 										value={byBox ? boxCount : calcEggs}
-										oninput={(e) => setPrimary(e.currentTarget.valueAsNumber)}
+										oninput={(e) => setPrimary(parseFloat(e.currentTarget.value))}
 										class="w-24 rounded-lg border border-olf-darkgreen/20 bg-white px-2 py-1.5 text-right font-bold tabular-nums"
 									/>
 								</div>
 								<!-- eggs-underneath hint when counting boxes -->
 								{#if byBox}
-									<span class="text-right text-xxs tracking-wide text-olf-darkgreen/55">
+									<span
+										class="text-right font-oswald text-sm font-bold tracking-wide text-olf-darkgreen/80"
+									>
 										= {calcEggs} eggs
 									</span>
 								{/if}
@@ -833,7 +927,6 @@
 											disabled={custSaving || calcEggs <= 0}
 											class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-olf-darkgreen px-3 py-2 font-oswald text-xs font-bold text-olf-beige disabled:opacity-50"
 										>
-											{#if custSaving}<Spinner size={13} />{/if}
 											Log {calcEggs} 🥚 order
 										</Button>
 									{:else}
@@ -860,50 +953,11 @@
 												{/each}
 											</div>
 										{/if}
-										<div class="relative">
-											<Search
-												size={14}
-												class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-olf-darkgreen/50"
-											/>
-											<input
-												bind:value={custQ}
-												oninput={custSearch}
-												placeholder="search name / email"
-												class="w-full rounded-lg border border-olf-darkgreen/20 bg-white py-1.5 pr-3 pl-8 font-oswald text-xs text-olf-darkgreen"
-											/>
-										</div>
-										{#if custResults.length}
-											<ul class="flex flex-col gap-0.5">
-												{#each custResults as u (u.id)}
-													<li>
-														<button
-															type="button"
-															onclick={() => (custSelected = u)}
-															class="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-olf-darkgreen/10"
-														>
-															<Avatar
-																animal={u.animal}
-																avatarSeed={u.avatarSeed}
-																gender={u.gender}
-																size="sm"
-															/>
-															<span class="min-w-0 flex-1">
-																<span
-																	class="block truncate font-oswald text-xs font-bold text-olf-darkgreen"
-																	>{u.username}</span
-																>
-																<span
-																	class="block truncate font-oswald text-xxs text-olf-darkgreen/60"
-																	>{u.email}</span
-																>
-															</span>
-														</button>
-													</li>
-												{/each}
-											</ul>
-										{:else if custQ.trim() && !custSearching}
-											<p class="px-1 font-oswald text-xxs text-olf-darkgreen/50">No matches.</p>
-										{/if}
+										<UserPicker
+											users={data.users}
+											clearOnSelect
+											onselect={(u) => (custSelected = u)}
+										/>
 									{/if}
 								</div>
 							{/if}
@@ -1077,24 +1131,12 @@
 									/>
 									subscribed
 								</label>
-								<!-- Farm owner toggles directly (unlike subscribed, which opens the modal). -->
-								<label class="flex cursor-pointer items-center gap-1.5 font-oswald text-xs">
-									<input
-										type="checkbox"
-										checked={u.isFarmOwner}
-										disabled={busy}
-										onchange={() =>
-											run(() => admin.setUserFlags(u.id, { isFarmOwner: !u.isFarmOwner }))}
-										class="size-4 rounded text-olf-darkgreen focus:ring-olf-darkgreen"
-									/>
-									farm owner
-								</label>
 								<button
 									type="button"
 									onclick={() => openDelete(u)}
 									aria-label="Delete user"
 									title="Delete user"
-									class="flex size-8 items-center justify-center rounded-lg text-olf-red hover:bg-olf-red/10"
+									class="hidden size-8 items-center justify-center rounded-lg text-olf-red hover:bg-olf-red/10 sm:flex"
 								>
 									<Trash2 size={16} />
 								</button>
@@ -1137,7 +1179,7 @@
 											Subscription
 										</button>
 									</div>
-									<div class="flex items-center gap-2">
+									<div class="flex flex-wrap items-center gap-2">
 										<a
 											href="/users/{u.id}"
 											target="_blank"
@@ -1145,6 +1187,17 @@
 											class="flex items-center gap-1.5 rounded-md border border-olf-darkgreen/20 px-3 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen hover:bg-olf-darkgreen/10"
 											><ExternalLink size={14} /> View user profile</a
 										>
+										<Button
+											disabled={busy}
+											onclick={() =>
+												run(() => admin.setUserFlags(u.id, { isFarmOwner: !u.isFarmOwner }))}
+											class="flex items-center gap-1.5 rounded-md border px-3 py-1.5 font-oswald text-xs font-bold disabled:opacity-50 {u.isFarmOwner
+												? 'border-olf-darkgreen bg-olf-darkgreen text-olf-beige'
+												: 'border-olf-darkgreen/20 text-olf-darkgreen hover:bg-olf-darkgreen/10'}"
+										>
+											<Crown size={14} />
+											{u.isFarmOwner ? 'Remove as farm owner' : 'Make farm owner?'}
+										</Button>
 										<button
 											type="button"
 											onclick={() => openDelete(u)}
@@ -1422,7 +1475,7 @@
 							disabled={ledgerExporting || ledgerTotals.orderCount === 0}
 							class="flex cursor-pointer items-center gap-1.5 rounded-md border-2 border-olf-darkgreen px-3 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen disabled:opacity-40"
 						>
-							{#if ledgerExporting}<Spinner size={13} />{:else}<Download size={14} />{/if} Export CSV
+							<Download size={14} /> Export CSV
 						</Button>
 					</div>
 				</div>
@@ -1434,7 +1487,13 @@
 							<span class="font-oswald text-xs tracking-wide uppercase opacity-70"
 								>{card.label}</span
 							>
-							<span class="font-caveat text-2xl leading-tight tabular-nums">{card.value}</span>
+							{#if ledgerLoading}
+								<span class="flex h-8 items-center text-olf-darkgreen/50"
+									><Spinner size={18} /></span
+								>
+							{:else}
+								<span class="font-caveat text-2xl leading-tight tabular-nums">{card.value}</span>
+							{/if}
 							<span class="font-oswald text-xxs text-olf-darkgreen/55">{card.sub}</span>
 						</div>
 					{/each}
@@ -1501,10 +1560,10 @@
 					</div>
 					<Button
 						onclick={() => {
-							addOrderUserId = '';
+							addOrderUser = null;
 							addOrderOpen = true;
 						}}
-						class="flex cursor-pointer items-center gap-1.5 rounded-md bg-olf-darkbrown px-3 py-1.5 font-oswald text-xs font-bold text-olf-beige"
+						class="flex cursor-pointer items-center gap-1.5 rounded-md bg-olf-darkbrown px-3 py-1.5 font-oswald text-xs font-bold text-olf-eggshell"
 					>
 						<Plus size={14} /> Add egg order
 					</Button>
@@ -1514,13 +1573,14 @@
 				{#snippet ledgerRowMarkup(o: AdminEggLedgerRow)}
 					{@const dead = !!o.deletedAt}
 					<div
-						class="grid grid-cols-[6.5rem_minmax(8rem,1fr)_3.5rem_3.5rem_4.5rem_5.5rem_2.5rem] items-center gap-2 px-4 py-2 text-olf-darkgreen transition-colors hover:bg-olf-darkgreen/5 {dead
+						class="grid grid-cols-[6.5rem_3.5rem_minmax(8rem,1fr)_4.5rem_3.5rem_5.5rem_2.5rem] items-center gap-2 px-4 py-2 text-olf-darkgreen transition-colors hover:bg-olf-darkgreen/5 {dead
 							? 'opacity-50'
 							: ''}"
 					>
 						<span class="font-oswald text-xs tabular-nums {dead ? 'line-through' : ''}"
 							>{orderDateLabel(o.orderedAt)}</span
 						>
+						<span class="font-oswald text-sm font-bold tabular-nums">{o.eggs}</span>
 						<a
 							href="/users/{o.userId}"
 							target="_blank"
@@ -1532,12 +1592,11 @@
 								>{o.username}</span
 							>
 						</a>
-						<span class="text-right font-oswald text-sm font-bold tabular-nums">{o.eggs}</span>
-						<span class="text-right font-oswald text-xs text-olf-darkgreen/60 tabular-nums"
-							>{(o.eggs / 30).toFixed(1)}</span
-						>
 						<span class="text-right font-oswald text-xs text-olf-darkgreen/70 tabular-nums"
 							>{moneyRM(o.unitPriceCents)}</span
+						>
+						<span class="text-right font-oswald text-xs text-olf-darkgreen/60 tabular-nums"
+							>{(o.eggs / 30).toFixed(1)}</span
 						>
 						<span class="text-right font-oswald text-sm font-bold text-olf-darkgreen tabular-nums"
 							>{moneyRM(lineTotal(o))}</span
@@ -1548,14 +1607,14 @@
 								onclick={() => restoreOrder(o.id)}
 								aria-label="Restore record"
 								title="Restore"
-								class="flex size-7 items-center justify-center rounded-md text-olf-moss hover:bg-olf-moss/10"
+								class="flex size-7 items-center justify-center rounded-md text-olf-blue hover:bg-olf-blue/10"
 							>
 								<RotateCcw size={14} />
 							</button>
 						{:else}
 							<button
 								type="button"
-								onclick={() => softDeleteOrder(o.id)}
+								onclick={() => (orderToDelete = o)}
 								aria-label="Delete record"
 								title="Delete (recoverable)"
 								class="flex size-7 items-center justify-center rounded-md text-olf-darkbrown/50 hover:bg-olf-darkbrown/10 hover:text-olf-darkbrown"
@@ -1569,16 +1628,35 @@
 				<!-- Ledger table -->
 				<div class="overflow-x-auto rounded-2xl bg-olf-beige shadow">
 					<div class="min-w-160">
-						<!-- Column headers -->
+						<!-- Column headers — click to sort the loaded page by that field. -->
+						{#snippet sortTh(label: string, field: LedgerSortField, right = false)}
+							<button
+								type="button"
+								onclick={() => toggleLedgerSort(field)}
+								class="flex cursor-pointer items-center gap-0.5 tracking-widest uppercase transition-colors hover:text-olf-darkgreen {right
+									? 'justify-end'
+									: ''} {ledgerSortField === field ? 'text-olf-darkgreen' : ''}"
+							>
+								<span>{label}</span>
+								{#if ledgerSortField === field}
+									{#if ledgerSortDir === 'asc'}<ChevronUp
+											size={12}
+											class="shrink-0"
+										/>{:else}<ChevronDown size={12} class="shrink-0" />{/if}
+								{:else}
+									<ChevronsUpDown size={12} class="shrink-0 opacity-40" />
+								{/if}
+							</button>
+						{/snippet}
 						<div
-							class="grid grid-cols-[6.5rem_minmax(8rem,1fr)_3.5rem_3.5rem_4.5rem_5.5rem_2.5rem] items-center gap-2 border-b border-olf-darkgreen/10 bg-olf-darkgreen/5 px-4 py-2.5 font-oswald text-xxs font-bold tracking-widest text-olf-darkgreen/50 uppercase"
+							class="grid grid-cols-[6.5rem_3.5rem_minmax(8rem,1fr)_4.5rem_3.5rem_5.5rem_2.5rem] items-center gap-2 border-b border-olf-darkgreen/10 bg-olf-darkgreen/5 px-4 py-2.5 font-oswald text-xxs font-bold tracking-widest text-olf-darkgreen/50 uppercase"
 						>
-							<span>Date</span>
-							<span>Customer</span>
-							<span class="text-right">Eggs</span>
-							<span class="text-right">Boxes</span>
-							<span class="text-right">Unit</span>
-							<span class="text-right">Total</span>
+							{@render sortTh('Date', 'date')}
+							{@render sortTh('Eggs', 'eggs')}
+							{@render sortTh('Customer', 'customer')}
+							{@render sortTh('Price', 'unit', true)}
+							{@render sortTh('Boxes', 'boxes', true)}
+							{@render sortTh('Total', 'total', true)}
 							<span class="sr-only">Actions</span>
 						</div>
 
@@ -1602,7 +1680,7 @@
 							{/each}
 						{:else}
 							<div class="divide-y divide-olf-darkgreen/10">
-								{#each ledgerRows as o (o.id)}{@render ledgerRowMarkup(o)}{/each}
+								{#each sortedLedgerRows as o (o.id)}{@render ledgerRowMarkup(o)}{/each}
 							</div>
 						{/if}
 					</div>
@@ -1653,7 +1731,7 @@
 		{#if view === 'tiers'}
 			<section class="mt-8 flex flex-col gap-4">
 				<div class="flex items-center justify-between gap-3">
-					<h2 class="font-supermercado-one text-2xl text-olf-darkbrown">Tier benefits</h2>
+					<h2 class="font-homemade-apple text-2xl text-olf-darkbrown">Tier benefits</h2>
 					<Button
 						onclick={openCreatePlan}
 						class="flex items-center gap-1.5 rounded-md border-2 border-olf-darkgreen px-3 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen disabled:opacity-40"
@@ -1734,7 +1812,7 @@
 								</div>
 							{:else}
 								<div class="flex items-start justify-between gap-2">
-									<h3 class="font-supermercado-one text-lg">{p.name}</h3>
+									<h3 class="font-oswald text-xl font-light tracking-wide">{p.name}</h3>
 									<Button
 										onclick={() => openPlanEdit(p)}
 										class="flex size-8 shrink-0 items-center justify-center rounded-md text-olf-darkgreen/50 transition-colors hover:bg-olf-darkgreen/10 hover:text-olf-darkgreen"
@@ -1745,12 +1823,12 @@
 								</div>
 
 								<!-- Perk pills: selected (filled) first, the rest faded. Tap to toggle. -->
-								<div class="flex flex-wrap gap-2">
+								<div class="flex flex-wrap gap-x-1 gap-y-2">
 									{#each selected as b (b.id)}
 										<button
 											type="button"
 											onclick={() => pillClick(p.id, b)}
-											class="rounded-full bg-olf-darkgreen px-3 py-1 font-oswald text-xs font-bold text-white transition-transform hover:scale-[1.03] {b.active
+											class="rounded-full bg-olf-blue px-3 py-1.5 font-oswald text-xs font-medium text-white transition-transform hover:scale-[1.03] {b.active
 												? ''
 												: 'line-through opacity-60'}"
 										>
@@ -1787,7 +1865,7 @@
 		{#if view === 'benefits'}
 			<section class="mt-8 flex max-w-4xl flex-col gap-4">
 				<div class="flex items-end justify-between gap-3">
-					<h2 class="font-supermercado-one text-2xl text-olf-darkbrown">Benefit catalog</h2>
+					<h2 class="font-homemade-apple text-2xl text-olf-darkbrown">Benefits</h2>
 					{#if benefitsAutosave.active}
 						<span class="flex items-center gap-2 font-oswald text-xs text-olf-darkgreen">
 							<span class="tabular-nums">Saving in {benefitsAutosave.secondsLeft}…</span>
@@ -1832,11 +1910,13 @@
 										title="Order"
 										class="w-12 rounded-md border border-transparent bg-transparent py-1 text-center font-oswald text-sm tabular-nums hover:border-olf-darkgreen/15 focus:border-olf-darkgreen/30 focus:bg-white focus:outline-none"
 									/>
-									<input
+									<textarea
 										bind:value={benefitEdits[b.id].label}
 										oninput={() => benefitsAutosave.touch()}
-										class="min-w-0 rounded-md border border-transparent bg-transparent px-2 py-1.5 font-oswald text-sm hover:border-olf-darkgreen/15 focus:border-olf-darkgreen/30 focus:bg-white focus:outline-none"
-									/>
+										use:autosize
+										rows="1"
+										class="min-w-0 resize-none overflow-hidden rounded-md border border-transparent bg-transparent px-2 py-1.5 font-oswald text-sm leading-snug hover:border-olf-darkgreen/15 focus:border-olf-darkgreen/30 focus:bg-white focus:outline-none"
+									></textarea>
 									<!-- Active toggle switch (peer-driven, no JS). -->
 									<label class="relative mx-auto inline-flex cursor-pointer items-center">
 										<input
@@ -1861,44 +1941,53 @@
 							{/if}
 						{/each}
 
-						<!-- Add row -->
-						<div class="flex items-center gap-2 bg-olf-darkgreen/3 px-4 py-3">
-							<Plus size={16} class="shrink-0 text-olf-darkgreen/40" />
-							<input
-								bind:value={newBenefit}
-								placeholder="Add a benefit…"
-								onkeydown={(e) => {
-									if (e.key === 'Enter' && newBenefit.trim() && !busy)
+						<!-- Add row — stacks on mobile so the input gets full width -->
+						<div
+							class="flex flex-col gap-2 bg-olf-darkgreen/3 px-4 py-3 sm:flex-row sm:items-center"
+						>
+							<div class="flex flex-1 items-center gap-2">
+								<Plus size={16} class="shrink-0 text-olf-darkgreen/40" />
+								<input
+									bind:value={newBenefit}
+									placeholder="Add a benefit…"
+									onkeydown={(e) => {
+										if (e.key === 'Enter' && newBenefit.trim() && !busy)
+											run(async () => {
+												const ok = await admin.createBenefit(
+													newBenefit.trim(),
+													data.benefits.length
+												);
+												if (ok) newBenefit = '';
+												return ok;
+											});
+									}}
+									class="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1.5 font-oswald text-sm text-olf-darkgreen hover:border-olf-darkgreen/15 focus:border-olf-darkgreen/30 focus:bg-white focus:outline-none"
+								/>
+							</div>
+							<div class="flex shrink-0 gap-2">
+								<Button
+									disabled={busy || !newBenefit.trim()}
+									onclick={() =>
 										run(async () => {
 											const ok = await admin.createBenefit(newBenefit.trim(), data.benefits.length);
 											if (ok) newBenefit = '';
 											return ok;
-										});
-								}}
-								class="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1.5 font-oswald text-sm text-olf-darkgreen hover:border-olf-darkgreen/15 focus:border-olf-darkgreen/30 focus:bg-white focus:outline-none"
-							/>
-							<Button
-								disabled={busy || !newBenefit.trim()}
-								onclick={() =>
-									run(async () => {
-										const ok = await admin.createBenefit(newBenefit.trim(), data.benefits.length);
-										if (ok) newBenefit = '';
-										return ok;
-									})}
-								class="flex items-center gap-1.5 rounded-md border-2 border-olf-darkgreen px-3 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen disabled:opacity-40"
-							>
-								<Plus size={14} /> Add
-							</Button>
-							<Button
-								disabled={busy || !benefitsDirty}
-								onclick={() => {
-									benefitsAutosave.cancel();
-									return run(saveAllBenefits);
-								}}
-								class="flex items-center gap-1.5 rounded-md bg-olf-darkgreen px-4 py-1.5 font-oswald text-xs font-bold text-white disabled:opacity-40"
-							>
-								<Save size={14} /> Save changes
-							</Button>
+										})}
+									class="flex items-center gap-1.5 rounded-md border-2 border-olf-darkgreen px-3 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen disabled:opacity-40"
+								>
+									<Plus size={14} /> Add
+								</Button>
+								<Button
+									disabled={busy || !benefitsDirty}
+									onclick={() => {
+										benefitsAutosave.cancel();
+										return run(saveAllBenefits);
+									}}
+									class="flex items-center gap-1.5 rounded-md bg-olf-darkgreen px-4 py-1.5 font-oswald text-xs font-bold text-white disabled:opacity-40"
+								>
+									<Save size={14} /> Save changes
+								</Button>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -1931,29 +2020,25 @@
 				</button>
 			</div>
 
-			<label
+			<div
 				class="flex flex-col gap-1 font-oswald text-xs font-bold tracking-wide text-olf-darkgreen/80 uppercase"
 			>
-				Customer
-				<select
-					bind:value={addOrderUserId}
-					class="rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1.5 text-sm normal-case"
-				>
-					<option value="" disabled>Select a customer…</option>
-					{#each orderUsers as u (u.id)}
-						<option value={u.id}>{u.username} · {u.email}</option>
-					{/each}
-				</select>
-			</label>
+				<span>Customer</span>
+				<UserPicker bind:value={addOrderUser} users={data.users} />
+			</div>
 
-			{#if addOrderUserId}
+			{#if addOrderUser}
 				<div
 					in:fade={{ duration: 150, easing: sineIn }}
 					class="rounded-lg border border-olf-darkgreen/15 bg-olf-eggshell/60 p-3"
 				>
 					<EggOrderEntry
-						userId={addOrderUserId}
-						onsaved={async () => {
+						userId={addOrderUser.id}
+						onsaved={async (count) => {
+							addOrderOpen = false;
+							toasts.push({
+								title: count === 1 ? 'Egg order added!' : `${count} egg orders added!`
+							});
 							await loadLedger();
 							await invalidateAll();
 						}}
@@ -1965,6 +2050,43 @@
 				</p>
 			{/if}
 		</div>
+	</dialog>
+
+	<!-- Delete egg record confirmation (soft delete — recoverable) -->
+	<dialog
+		bind:this={confirmDeleteOrderDialog}
+		onclose={() => (orderToDelete = null)}
+		onclick={(e) => {
+			if (e.target === confirmDeleteOrderDialog) orderToDelete = null;
+		}}
+		class="m-auto w-[min(24rem,calc(100vw-2rem))] rounded-xl bg-olf-beige text-olf-darkgreen backdrop:bg-olf-darkgreen/60"
+	>
+		{#if orderToDelete}
+			<div class="flex flex-col gap-4 p-6">
+				<h2 class="font-homemade-apple text-xl text-olf-darkbrown">
+					Are you sure you want to delete?
+				</h2>
+				<p class="font-oswald text-sm text-olf-darkgreen/80">
+					Delete the <b>🥚 {orderToDelete.eggs}</b> record for
+					<b>{orderToDelete.username}</b> on {orderDateLabel(orderToDelete.orderedAt)}? You can
+					restore it later from the deleted records.
+				</p>
+				<div class="flex justify-end gap-2">
+					<Button
+						onclick={() => (orderToDelete = null)}
+						class="rounded-md px-3 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen/70 hover:text-olf-darkgreen"
+					>
+						Cancel
+					</Button>
+					<Button
+						onclick={confirmDeleteOrder}
+						class="flex items-center gap-1.5 rounded-md bg-olf-red px-4 py-1.5 font-oswald text-xs font-bold text-olf-eggshell"
+					>
+						<Trash2 size={14} /> Delete
+					</Button>
+				</div>
+			</div>
+		{/if}
 	</dialog>
 
 	<!-- Delete-user danger modal: type "delete" to arm the button -->
@@ -2026,7 +2148,6 @@
 						onclick={confirmDelete}
 						class="flex items-center gap-1.5 rounded-md bg-olf-red px-4 py-1.5 font-oswald text-xs font-bold text-olf-eggshell disabled:opacity-50"
 					>
-						{#if deleting}<Spinner size={13} />{/if}
 						<Trash2 size={14} /> Delete &amp; continue
 					</Button>
 				</div>

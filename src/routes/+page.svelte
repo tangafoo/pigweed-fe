@@ -6,7 +6,6 @@
 	import FAQ from '$lib/components/home/FAQ.svelte';
 	import JsonLd from '$lib/components/seo/JsonLd.svelte';
 	import LatestPostsStrip from '$lib/components/home/LatestPostsStrip.svelte';
-	import NoIcon from '$lib/components/ui/NoIcon.svelte';
 	import Parallax from '$lib/components/decor/Parallax.svelte';
 	import ProduceOrderButtons from '$lib/components/home/ProduceOrderButtons.svelte';
 	import Seo from '$lib/components/seo/Seo.svelte';
@@ -23,7 +22,7 @@
 		SITE_URL
 	} from '$lib/config/seo';
 	import { m } from '$lib/paraglide/messages.js';
-	import { Sun, CloudRain, HeartCrack, FlaskConical } from '@lucide/svelte';
+	import { Sun, CloudRain, Wheat, Sprout } from '@lucide/svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -176,15 +175,19 @@
 
 		<div class="relative flex gap-4">
 			<p class="flex flex-col gap-1 text-white/90">
-				<NoIcon icon={HeartCrack} size={55} />
+				<span class="relative inline-flex h-14 items-center justify-center">
+					<Wheat size={48} strokeWidth={1.5} class="shrink-0 p-1" />
+				</span>
 				{m.home_no_cruelty()}
 			</p>
 			<p class="flex flex-col gap-1 text-white/90">
-				<NoIcon icon={FlaskConical} size={55} />
+				<span class="relative inline-flex h-14 items-center justify-center">
+					<Sprout size={48} strokeWidth={1.5} class="shrink-0 p-1" />
+				</span>
 				{m.home_no_chemicals()}
 			</p>
 			<p class="flex flex-col gap-1 text-white/90">
-				<span class="relative inline-flex items-center justify-center">
+				<span class="relative inline-flex h-14 items-center justify-center">
 					<img
 						use:cluck
 						src={asset('henkerchief.webp')}

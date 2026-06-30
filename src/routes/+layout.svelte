@@ -56,7 +56,7 @@
 <div class="flex min-h-dvh flex-col">
 	<div class="sticky top-0 z-50 flex w-full items-center gap-3 bg-olf-beige px-2 py-3 shadow-sm">
 		<a href="/" aria-label="Our Little Farm" class="flex items-center">
-			<img src={LOGO} alt="Our Little Farm" class="h-7 w-auto rounded-md" />
+			<img src={LOGO} alt="Our Little Farm" class="h-6 w-auto rounded-md" />
 		</a>
 		<div class="ml-auto flex items-center gap-2">
 			<LocaleSwitcher />

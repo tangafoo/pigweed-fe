@@ -19,6 +19,9 @@
 
 	let open = $state(false);
 	let root = $state<HTMLElement>();
+	// Flip the popover above the trigger when there isn't room below (e.g. near
+	// the bottom of a scrollable dialog). Decided each time we open.
+	let dropUp = $state(false);
 
 	// The month being viewed — seeded from the value (or today) each time we open.
 	function seed() {
@@ -27,7 +30,15 @@
 	}
 	let view = $state(seed());
 	function toggle() {
-		if (!open) view = seed();
+		if (!open) {
+			view = seed();
+			if (root) {
+				const r = root.getBoundingClientRect();
+				const spaceBelow = window.innerHeight - r.bottom;
+				// ~340px tall popover; flip up only if below is too tight and above has more room.
+				dropUp = spaceBelow < 340 && r.top > spaceBelow;
+			}
+		}
 		open = !open;
 	}
 
@@ -103,10 +114,9 @@
 	{#if open}
 		<div
 			transition:slide={{ duration: 120 }}
-			class="absolute z-50 mt-1 w-64 rounded-xl border border-olf-darkgreen/15 bg-olf-beige p-3 text-olf-darkgreen shadow-xl {align ===
-			'right'
-				? 'right-0'
-				: 'left-0'}"
+			class="absolute z-50 w-64 rounded-xl border border-olf-darkgreen/15 bg-olf-beige p-3 text-olf-darkgreen shadow-xl {dropUp
+				? 'bottom-full mb-1'
+				: 'top-full mt-1'} {align === 'right' ? 'right-0' : 'left-0'}"
 		>
 			<div class="mb-2 flex items-center justify-between">
 				<button

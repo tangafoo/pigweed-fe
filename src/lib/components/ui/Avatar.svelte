@@ -16,7 +16,7 @@
 	let { animal, avatarSeed, gender, size = 'md' }: AvatarProps = $props();
 
 	const SIZE_CLASS: Record<NonNullable<AvatarProps['size']>, string> = {
-		sm: 'h-10 w-10',
+		sm: 'h-8 w-8 sm:h-10 sm:w-10',
 		md: 'h-20 w-20',
 		lg: 'h-32 w-32'
 	};

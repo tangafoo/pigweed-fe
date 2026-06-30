@@ -42,7 +42,7 @@
 	});
 </script>
 
-<div class="grid items-stretch gap-5 lg:grid-cols-5">
+<div class="grid items-start gap-5 lg:grid-cols-5">
 	<!-- Egg journey: a bright, airy panel that blends with the page -->
 	<div
 		class="relative flex flex-col gap-5 overflow-hidden rounded-[2rem] border-2 border-olf-yolk/30 bg-olf-eggshell p-6 text-olf-darkgreen shadow-sm lg:col-span-3"
