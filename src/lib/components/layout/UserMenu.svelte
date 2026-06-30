@@ -5,12 +5,14 @@
 	import { page } from '$app/state';
 	import { authClient } from '$lib/api/auth';
 	import { orderModal } from '$lib/stores/orderModal.svelte';
+	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import type { Session } from '@meteorclass/pigweed-contract';
 
 	let { userId }: { userId: string | null } = $props();
 
+	const user = $derived((page.data as { session?: Session | null }).session?.user ?? null);
 	// Admin-panel link is gated on the session's isAdmin flag.
-	const isAdmin = $derived(!!(page.data as { session?: Session | null }).session?.user.isAdmin);
+	const isAdmin = $derived(!!user?.isAdmin);
 
 	let open = $state(false);
 	let signingOut = $state(false);
@@ -50,9 +52,13 @@
 			aria-label={m.home_profile_link()}
 			aria-haspopup="menu"
 			aria-expanded={open}
-			class={ICON}
+			class="rounded-full transition-opacity hover:opacity-90"
 		>
-			<UserRound size={18} />
+			{#if user}
+				<Avatar animal={user.animal} avatarSeed={user.avatarSeed} gender={user.gender} size="sm" />
+			{:else}
+				<span class={ICON}><UserRound size={18} /></span>
+			{/if}
 		</button>
 
 		{#if open}
