@@ -8,6 +8,7 @@
 	import { ANIMAL_LABEL } from '$lib/utils/labels';
 	import type { Animal } from '@meteorclass/pigweed-contract';
 	import type { PageData } from './$types';
+	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import { Dices, Check } from '@lucide/svelte';
 
 	let { data }: { data: PageData } = $props();
@@ -249,15 +250,14 @@
 				{m.signup_meet_subtitle()}
 			</p>
 
-			<!-- TODO: replace this placeholder with the procedural
-			     (animal, avatarSeed) → layered-SVG avatar component once the
-			     silhouette layers are drawn. For now it's a flat colored disc. -->
-			<div
-				class="mx-auto mb-4 flex h-32 w-32 items-center justify-center rounded-full bg-olf-lightbrown"
-			>
-				<span class="font-supermercado-one text-2xl text-white">
-					{me ? animalLabel(me.animal) : '…'}
-				</span>
+			<!-- The animal icon (static per-animal art) shown as-is; each reroll
+			     swaps `me.animal`/`avatarSeed`, so the tile updates in place. -->
+			<div class="mx-auto mb-4 w-fit">
+				{#if me}
+					<Avatar animal={me.animal} avatarSeed={me.avatarSeed} gender={me.gender} size="lg" />
+				{:else}
+					<div class="h-32 w-32 rounded-full bg-olf-lightbrown"></div>
+				{/if}
 			</div>
 
 			<p class="mb-6 text-olf-darkbrown">
