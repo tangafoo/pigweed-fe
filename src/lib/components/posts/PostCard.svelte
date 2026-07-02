@@ -13,8 +13,11 @@
 		MessageSquare,
 		Maximize2,
 		Minimize2,
-		MapPin
+		MapPin,
+		Pencil,
+		Trash2
 	} from '@lucide/svelte';
+	import { slide } from 'svelte/transition';
 	import { CATEGORY_COLOR, CATEGORY_EMOJI } from '$lib/config/categories';
 	import { formatRelative } from '$lib/utils/date';
 	import { distanceKm, type LatLng } from '$lib/utils/geo';
@@ -36,14 +39,44 @@
 		 * "~N km away" suffix on the origin line. Omitted → no distance shown.
 		 */
 		viewerLocation?: LatLng | null;
+		/**
+		 * Show the author-only manage menu (pencil → edit/delete) next to the
+		 * timestamp. The card owns none of the logic — it just calls back.
+		 */
+		canManage?: boolean;
+		onEdit?: () => void;
+		onDelete?: () => void;
 	}
 	let {
 		post,
 		compact = false,
 		liveCommentCount,
 		expandImage = false,
-		viewerLocation = null
+		viewerLocation = null,
+		canManage = false,
+		onEdit,
+		onDelete
 	}: PostCardProps = $props();
+
+	// Author manage dropdown (edit/delete). Same open/outside-click/Esc pattern
+	// as FilterDropdown/LocaleSwitcher.
+	let menuOpen = $state(false);
+	let menuRoot = $state<HTMLElement>();
+	$effect(() => {
+		if (!menuOpen) return;
+		const onClick = (e: MouseEvent) => {
+			if (menuRoot && !menuRoot.contains(e.target as Node)) menuOpen = false;
+		};
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') menuOpen = false;
+		};
+		document.addEventListener('click', onClick);
+		document.addEventListener('keydown', onKey);
+		return () => {
+			document.removeEventListener('click', onClick);
+			document.removeEventListener('keydown', onKey);
+		};
+	});
 
 	const commentCount = $derived(liveCommentCount ?? post.commentCount);
 
@@ -183,15 +216,15 @@
 							class="shrink-0 rounded bg-olf-darkgreen px-1.5 font-oswald text-xxs font-bold tracking-wider text-white"
 							title={m.posts_op_tooltip()}
 						>
-							{m.posts_op_badge()}
+							{compact ? m.posts_op_badge_short() : m.posts_op_badge()}
 						</span>
 					{/if}
 					{#if post.author.isFoundingFlock}
 						<span
-							class="shrink-0 rounded bg-olf-yolk px-1.5 font-oswald text-xxs font-bold tracking-wider text-olf-darkgreen"
+							class="shrink-0 rounded bg-olf-yolk px-1.5 font-oswald text-xxs font-bold tracking-wider text-olf-eggshell"
 							title={m.subscribe_founder_tooltip()}
 						>
-							{m.subscribe_founder_badge()}
+							{compact ? m.subscribe_founder_badge_short() : m.subscribe_founder_badge()}
 						</span>
 					{/if}
 				</span>
@@ -209,12 +242,61 @@
 					</span>
 				{/if}
 			</div>
-			<time
-				datetime={String(post.createdAt)}
-				class="ml-auto shrink-0 self-start font-oswald text-xxs text-olf-darkbrown/45"
-			>
-				{formatRelative(post.createdAt)}
-			</time>
+			<div class="ml-auto flex shrink-0 items-center gap-1.5 self-start">
+				<time
+					datetime={String(post.createdAt)}
+					class="shrink-0 font-oswald text-xxs text-olf-darkbrown/45"
+				>
+					{formatRelative(post.createdAt)}
+				</time>
+				{#if canManage}
+					<!-- Above the stretched card link (z-20) so it's clickable. -->
+					<div class="relative z-20" bind:this={menuRoot}>
+						<button
+							type="button"
+							onclick={() => (menuOpen = !menuOpen)}
+							aria-haspopup="menu"
+							aria-expanded={menuOpen}
+							aria-label={m.posts_manage()}
+							class="flex size-6 items-center justify-center rounded-full text-olf-darkbrown/50 transition-colors hover:bg-olf-darkbrown/10 hover:text-olf-darkbrown"
+						>
+							<Pencil size={14} />
+						</button>
+						{#if menuOpen}
+							<div
+								role="menu"
+								transition:slide={{ duration: 150 }}
+								class="absolute right-0 z-30 mt-1 min-w-[8rem] overflow-hidden rounded-xl border border-olf-darkgreen/20 bg-olf-beige p-1 shadow-lg"
+							>
+								<button
+									type="button"
+									role="menuitem"
+									onclick={() => {
+										menuOpen = false;
+										onEdit?.();
+									}}
+									class="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 font-oswald text-sm font-bold text-olf-darkbrown hover:bg-olf-darkgreen/10"
+								>
+									<Pencil size={14} class="shrink-0" />
+									{m.posts_edit()}
+								</button>
+								<button
+									type="button"
+									role="menuitem"
+									onclick={() => {
+										menuOpen = false;
+										onDelete?.();
+									}}
+									class="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 font-oswald text-sm font-bold text-olf-red hover:bg-olf-red/10"
+								>
+									<Trash2 size={14} class="shrink-0" />
+									{m.posts_delete()}
+								</button>
+							</div>
+						{/if}
+					</div>
+				{/if}
+			</div>
 		</div>
 
 		<div class="flex items-center gap-1.5">

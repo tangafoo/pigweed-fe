@@ -41,6 +41,7 @@
 	import DatePicker from '$lib/components/ui/DatePicker.svelte';
 	import RollingNumber from '$lib/components/ui/RollingNumber.svelte';
 	import AddUserModal from '$lib/components/admin/AddUserModal.svelte';
+	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import EggOrderEntry from '$lib/components/admin/EggOrderEntry.svelte';
 	import UserPicker from '$lib/components/admin/UserPicker.svelte';
 	import { toasts } from '$lib/realtime/toasts.svelte';
@@ -646,13 +647,9 @@
 	});
 
 	// Delete-record confirmation (soft delete is recoverable, but confirm anyway).
+	// The modal shell is the shared ConfirmDialog; this page keeps its own
+	// (admin-authority) delete action.
 	let orderToDelete = $state<AdminEggLedgerRow | null>(null);
-	let confirmDeleteOrderDialog = $state<HTMLDialogElement>();
-	$effect(() => {
-		if (!confirmDeleteOrderDialog) return;
-		if (orderToDelete && !confirmDeleteOrderDialog.open) confirmDeleteOrderDialog.showModal();
-		else if (!orderToDelete && confirmDeleteOrderDialog.open) confirmDeleteOrderDialog.close();
-	});
 	async function confirmDeleteOrder() {
 		if (!orderToDelete) return;
 		const id = orderToDelete.id;
@@ -2052,42 +2049,23 @@
 		</div>
 	</dialog>
 
-	<!-- Delete egg record confirmation (soft delete — recoverable) -->
-	<dialog
-		bind:this={confirmDeleteOrderDialog}
-		onclose={() => (orderToDelete = null)}
-		onclick={(e) => {
-			if (e.target === confirmDeleteOrderDialog) orderToDelete = null;
-		}}
-		class="m-auto w-[min(24rem,calc(100vw-2rem))] rounded-xl bg-olf-beige text-olf-darkgreen backdrop:bg-olf-darkgreen/60"
+	<!-- Delete egg record confirmation (soft delete — recoverable). Shares the
+	     ConfirmDialog shell; the delete action itself stays admin-side. -->
+	<ConfirmDialog
+		open={orderToDelete !== null}
+		title="Are you sure you want to delete?"
+		confirmLabel="Delete"
+		cancelLabel="Cancel"
+		danger
+		onConfirm={confirmDeleteOrder}
+		onCancel={() => (orderToDelete = null)}
 	>
 		{#if orderToDelete}
-			<div class="flex flex-col gap-4 p-6">
-				<h2 class="font-homemade-apple text-xl text-olf-darkbrown">
-					Are you sure you want to delete?
-				</h2>
-				<p class="font-oswald text-sm text-olf-darkgreen/80">
-					Delete the <b>🥚 {orderToDelete.eggs}</b> record for
-					<b>{orderToDelete.username}</b> on {orderDateLabel(orderToDelete.orderedAt)}? You can
-					restore it later from the deleted records.
-				</p>
-				<div class="flex justify-end gap-2">
-					<Button
-						onclick={() => (orderToDelete = null)}
-						class="rounded-md px-3 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen/70 hover:text-olf-darkgreen"
-					>
-						Cancel
-					</Button>
-					<Button
-						onclick={confirmDeleteOrder}
-						class="flex items-center gap-1.5 rounded-md bg-olf-red px-4 py-1.5 font-oswald text-xs font-bold text-olf-eggshell"
-					>
-						<Trash2 size={14} /> Delete
-					</Button>
-				</div>
-			</div>
+			Delete the <b>🥚 {orderToDelete.eggs}</b> record for
+			<b>{orderToDelete.username}</b> on {orderDateLabel(orderToDelete.orderedAt)}? You can restore
+			it later from the deleted records.
 		{/if}
-	</dialog>
+	</ConfirmDialog>
 
 	<!-- Delete-user danger modal: type "delete" to arm the button -->
 	<dialog
