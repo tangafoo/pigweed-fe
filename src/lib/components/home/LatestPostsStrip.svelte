@@ -1,8 +1,10 @@
 <script lang="ts">
 	import type { Post, Session } from '@meteorclass/pigweed-contract';
 	import { m } from '$lib/paraglide/messages.js';
+	import { navigating } from '$app/state';
 	import PostCard from '$lib/components/posts/PostCard.svelte';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
+	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import { asset } from '$lib/config/assets';
 	import { ArrowRight, Plus } from '@lucide/svelte';
 
@@ -13,6 +15,10 @@
 		session: Session | null;
 	}
 	let { posts, totalCount, session }: LatestPostsStripProps = $props();
+
+	// "See all" navigates to /posts, whose load resolves geolocation + fetches
+	// the feed — slow enough that the click needs a "we heard you" signal.
+	const loadingFeed = $derived(navigating.to?.url.pathname === '/posts');
 
 	// Padded to a comfortable card count so a near-empty feed still fills the strip.
 	const cards = $derived(
@@ -149,10 +155,17 @@
 	<div class="mt-6 flex justify-center">
 		<a
 			href="/posts"
-			class="flex items-center gap-2 rounded-full bg-olf-darkgreen px-5 py-1.5 font-oswald text-sm font-bold tracking-widest text-olf-eggshell uppercase shadow-lg"
+			aria-busy={loadingFeed}
+			class="flex items-center gap-2 rounded-full bg-olf-darkgreen px-5 py-1.5 font-oswald text-sm font-bold tracking-widest text-olf-eggshell uppercase shadow-lg transition-opacity {loadingFeed
+				? 'pointer-events-none opacity-80'
+				: ''}"
 		>
 			{m.home_enter_farm({ count: totalCount })}
-			<ArrowRight size={16} class="shrink-0" />
+			{#if loadingFeed}
+				<Spinner size={16} />
+			{:else}
+				<ArrowRight size={16} class="shrink-0" />
+			{/if}
 		</a>
 	</div>
 </section>

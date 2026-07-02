@@ -102,7 +102,7 @@
 				{/if}
 				{#if node.author.isFoundingFlock}
 					<span
-						class="shrink-0 rounded bg-olf-yolk px-1.5 font-oswald text-xxs font-bold tracking-wider text-olf-darkgreen"
+						class="shrink-0 rounded bg-olf-yolk px-1.5 font-oswald text-xxs font-bold tracking-wider text-olf-eggshell"
 						title={m.subscribe_founder_tooltip()}
 					>
 						{m.subscribe_founder_badge()}
