@@ -2,6 +2,8 @@
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"hello_world": "你好，世界！",
 
+	"loading_generic": "稍等一下，咕咕…",
+
 	"passkey_signin_button": "使用通行密鑰登入",
 	"passkey_signin_cancelled": "登入已取消。",
 	"passkey_signin_no_passkey": "此裝置上沒有通行密鑰。請用密碼登入後，在設定中新增。",
@@ -377,7 +379,7 @@
 	"subscribe_card_member_since": "加入於",
 	"subscribe_card_delivery_label": "配送",
 	"subscribe_card_no_plan": "尚無方案",
-	"subscribe_card_see_page": "查看訂閱頁面",
+	"subscribe_card_see_page": "訂閱頁面",
 	"subscribe_modal_no_sub": "尚無有效訂閱",
 	"subscribe_modal_browse": "瀏覽雞蛋方案"
 }

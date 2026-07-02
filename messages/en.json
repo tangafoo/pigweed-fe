@@ -2,6 +2,8 @@
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"hello_world": "Hello, world!",
 
+	"loading_generic": "Just a cluck…",
+
 	"passkey_signin_button": "Sign in with passkey",
 	"passkey_signin_cancelled": "Sign-in cancelled.",
 	"passkey_signin_no_passkey": "No passkey on this device. Sign in with a password and add one in settings.",
@@ -378,7 +380,7 @@
 	"subscribe_card_member_since": "Member since",
 	"subscribe_card_delivery_label": "Delivery",
 	"subscribe_card_no_plan": "No active plan",
-	"subscribe_card_see_page": "See subscription page",
+	"subscribe_card_see_page": "Subscription page",
 	"subscribe_modal_no_sub": "No active subscription",
 	"subscribe_modal_browse": "Browse egg plans"
 }

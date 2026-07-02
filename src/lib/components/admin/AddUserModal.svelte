@@ -232,7 +232,8 @@
 					Cancel
 				</Button>
 				<Button
-					disabled={busy || !email.trim()}
+					disabled={!email.trim()}
+					loading={busy}
 					onclick={submit}
 					class="flex items-center gap-1.5 rounded-md bg-olf-darkgreen px-4 py-1.5 font-oswald text-xs font-bold text-white disabled:opacity-50"
 				>

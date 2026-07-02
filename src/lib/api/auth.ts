@@ -61,7 +61,8 @@ export async function signIn(identifier: string, password: string): Promise<Sign
 			: await authClient.signIn.username({ username: identifier, password });
 		if (!error) return { ok: true };
 		return { ok: false, message: error.message ?? 'Wrong credentials. Try again.' };
-	} catch {
+	} catch (e) {
+		console.error('[auth] signIn network failure:', e);
 		return { ok: false, message: 'Can’t reach the farm right now. Try again.' };
 	}
 }
@@ -111,7 +112,11 @@ export async function signUp(input: SignUpInput): Promise<SignUpResult> {
 			return { ok: false, message, field: 'username' };
 		}
 		return { ok: false, message: error.message ?? 'Could not hatch your animal. Try again.' };
-	} catch {
+	} catch (e) {
+		// True network-level failure (CORS block, extension/ad-blocker, wrong
+		// API base URL) — the request never got an HTTP answer. Log the real
+		// error so "can't reach the farm" reports are debuggable in prod.
+		console.error('[auth] signUp network failure:', e);
 		return { ok: false, message: 'Can’t reach the farm right now. Try again.' };
 	}
 }

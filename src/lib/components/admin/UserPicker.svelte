@@ -149,7 +149,8 @@
 								<span class="block truncate font-oswald text-xs font-bold text-olf-darkgreen"
 									>{u.username}</span
 								>
-								<span class="block truncate font-oswald text-xxs text-olf-darkgreen/60">{u.email}</span
+								<span class="block truncate font-oswald text-xxs text-olf-darkgreen/60"
+									>{u.email}</span
 								>
 							</span>
 						</button>

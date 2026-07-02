@@ -44,6 +44,38 @@ Yak never had.
 > video upload. Next infra step: deploy BE to Railway (see pigweed-be memory
 > `be-deploy-fe-wiring-checklist` — `PUBLIC_API_BASE_URL`, CORS, api subdomain).
 
+> **Update (2026-07): perf + loading-state pass.**
+>
+> - **Streamed loads.** Slow data no longer blocks navigation. Universal
+>   loads (`/` and `/posts` `+page.ts`) return the fetch promise
+>   **un-awaited in the browser** (`browser ? promise : await promise`) so
+>   client-side navigation is instant and the page renders it via
+>   `{#await}`; on the server they still await, so direct visits/crawlers
+>   get fully SSR'd HTML (no SEO change). Server loads stream the same way
+>   by returning an un-awaited top-level promise (`posts/[id]` streams its
+>   comments; the post alone gates the 404). Follow this pattern for any
+>   new slow load.
+> - **Three loading tiers** (use the right one): `ui/Spinner.svelte` for
+>   small inline actions; `ui/Button.svelte` auto-spins when its `onclick`
+>   returns a promise (or pass `loading`); and the **global chicken
+>   loading screen** — `stores/loadingScreen.svelte.ts` +
+>   `ui/LoadingOverlay.svelte` (mounted once in the root layout) — for big
+>   blocking flows (login, signup, publish). Call
+>   `loadingScreen.during(promise, message)` or `show/update/hide`. It
+>   randomizes one of the 4 existing R2 chicken drawings (henkerchief,
+>   hen-with-chicks, chicken-drawing-white/-brown) with a CSS "peck" — no
+>   spinner, never invent new art.
+> - **Admin dashboard is componentized.** `routes/admin/+page.svelte` is a
+>   ~130-line shell (nav + stat strip + `?view=` routing + the shared
+>   `AddUserModal`); each view lives in `lib/components/admin/`
+>   (`HomePanel`/`UsersPanel`/`EggsPanel`/`TiersPanel`/`BenefitsPanel`)
+>   with shared helpers in `lib/components/admin/shared.svelte.ts`
+>   (`adminUrlWith`, `createBusyRunner`, formatters). Panels own their
+>   state and mount per view, so per-view UI state resets on view switch
+>   (accepted).
+> - **UserMenu**: the username row in the avatar dropdown IS the profile
+>   link — there is deliberately no separate "Your profile" item.
+
 ## Visual identity — non-negotiable
 
 - **Heavy SVG, GSAP-animated, math-driven.** Visual state _derives_ from

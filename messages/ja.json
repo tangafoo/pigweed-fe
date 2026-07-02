@@ -2,6 +2,8 @@
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"hello_world": "こんにちは、世界！",
 
+	"loading_generic": "ちょっと待ってね、コッコ…",
+
 	"passkey_signin_button": "パスキーでサインイン",
 	"passkey_signin_cancelled": "サインインをキャンセルしました。",
 	"passkey_signin_no_passkey": "この端末にパスキーがありません。パスワードでサインインし、設定から追加してください。",
@@ -377,7 +379,7 @@
 	"subscribe_card_member_since": "登録日",
 	"subscribe_card_delivery_label": "配達",
 	"subscribe_card_no_plan": "プランなし",
-	"subscribe_card_see_page": "定期購入ページを見る",
+	"subscribe_card_see_page": "定期購入ページ",
 	"subscribe_modal_no_sub": "有効な定期購入はありません",
 	"subscribe_modal_browse": "たまごプランを見る"
 }

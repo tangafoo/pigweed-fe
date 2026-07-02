@@ -2,6 +2,8 @@
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"hello_world": "안녕하세요!",
 
+	"loading_generic": "잠시만요, 꼬꼬…",
+
 	"passkey_signin_button": "패스키로 로그인",
 	"passkey_signin_cancelled": "로그인이 취소되었습니다.",
 	"passkey_signin_no_passkey": "이 기기에 등록된 패스키가 없습니다. 비밀번호로 로그인한 뒤 설정에서 추가하세요.",
@@ -377,7 +379,7 @@
 	"subscribe_card_member_since": "가입일",
 	"subscribe_card_delivery_label": "배송",
 	"subscribe_card_no_plan": "활성 플랜 없음",
-	"subscribe_card_see_page": "구독 페이지 보기",
+	"subscribe_card_see_page": "구독 페이지",
 	"subscribe_modal_no_sub": "활성 구독이 없습니다",
 	"subscribe_modal_browse": "달걀 플랜 보기"
 }
