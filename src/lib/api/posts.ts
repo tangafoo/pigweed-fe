@@ -4,6 +4,7 @@ import type {
 	Post,
 	PostCategory,
 	PostInput,
+	PostPatchInput,
 	Sort
 } from '@meteorclass/pigweed-contract';
 
@@ -145,6 +146,48 @@ export async function createPost(input: PostInput): Promise<Post> {
 
 	const data = (await res.json()) as { post: Post };
 	return data.post;
+}
+
+/**
+ * Edit a post the viewer authored (`PATCH /posts/:id`, author-only on the
+ * BE). Re-runs moderation on the new text, so it throws `ContentFlaggedError`
+ * on a 422 block just like `createPost`, and a plain Error otherwise.
+ */
+export async function updatePost(id: string, patch: PostPatchInput): Promise<Post> {
+	const res = await api(`/posts/${encodeURIComponent(id)}`, {
+		method: 'PATCH',
+		body: JSON.stringify(patch)
+	});
+
+	if (res.status === 422) {
+		const data = (await res.json().catch(() => null)) as {
+			error?: string;
+			rejectedCategories?: string[];
+		} | null;
+		throw new ContentFlaggedError(
+			data?.error ?? 'This post was flagged by moderation.',
+			data?.rejectedCategories ?? []
+		);
+	}
+	if (!res.ok) {
+		const data = (await res.json().catch(() => null)) as { error?: string } | null;
+		throw new Error(data?.error ?? `Could not update post (${res.status}).`);
+	}
+
+	const data = (await res.json()) as { post: Post };
+	return data.post;
+}
+
+/**
+ * Soft-delete a post the viewer authored (`DELETE /posts/:id`, author-only on
+ * the BE). Throws a plain Error on any non-2xx so the caller can surface it.
+ */
+export async function deletePost(id: string): Promise<void> {
+	const res = await api(`/posts/${encodeURIComponent(id)}`, { method: 'DELETE' });
+	if (!res.ok) {
+		const data = (await res.json().catch(() => null)) as { error?: string } | null;
+		throw new Error(data?.error ?? `Could not delete post (${res.status}).`);
+	}
 }
 
 /** What POST /media returns, ready to drop into a PostInput's `media` array. */
