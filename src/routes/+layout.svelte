@@ -9,6 +9,7 @@
 	import { LOGO } from '$lib/config/assets';
 	import JsonLd from '$lib/components/seo/JsonLd.svelte';
 	import Toast from '$lib/components/ui/Toast.svelte';
+	import LoadingOverlay from '$lib/components/ui/LoadingOverlay.svelte';
 	import { connectEvents, disconnectEvents } from '$lib/realtime/events';
 	import type { Session } from '@meteorclass/pigweed-contract';
 	import { SITE_NAME, SITE_TAGLINE, SITE_URL } from '$lib/config/seo';
@@ -54,9 +55,11 @@
 <JsonLd data={organizationJsonLd} />
 
 <div class="flex min-h-dvh flex-col">
-	<div class="sticky top-0 z-50 flex w-full items-center gap-3 bg-olf-beige px-2 py-3 shadow-sm">
+	<div
+		class="sticky top-0 z-50 flex w-full items-center gap-3 bg-olf-beige px-2 py-2.5 shadow-sm lg:py-3"
+	>
 		<a href="/" aria-label="Our Little Farm" class="flex items-center">
-			<img src={LOGO} alt="Our Little Farm" class="h-7 w-auto rounded-md" />
+			<img src={LOGO} alt="Our Little Farm" class="h-5.5 w-auto rounded-md lg:h-7" />
 		</a>
 		<div class="ml-auto flex items-center gap-2">
 			<LocaleSwitcher />
@@ -73,3 +76,4 @@
 <OrderEggsModal />
 <SubscriptionModal />
 <Toast />
+<LoadingOverlay />

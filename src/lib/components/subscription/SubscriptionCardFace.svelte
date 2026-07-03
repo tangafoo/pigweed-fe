@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Pause, Play } from '@lucide/svelte';
+	import { goto } from '$app/navigation';
 	import { m } from '$lib/paraglide/messages.js';
 	import { whatsappUrl } from '$lib/config/contact';
 	import type { SubscriptionSummary } from '@meteorclass/pigweed-contract';
@@ -45,6 +46,15 @@
 			sub?.status === 'PAUSED' ? m.subscribe_resume_message() : m.subscribe_pause_message()
 		)
 	);
+
+	// "Browse egg plans" — the tier cards live further down the same page
+	// (SubscriptionPanel's #egg-plans), so smooth-scroll to them. In contexts
+	// without them (the subscription modal), fall back to /subscriptions.
+	function browsePlans() {
+		const el = document.getElementById('egg-plans');
+		if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		else void goto('/subscriptions');
+	}
 </script>
 
 <!-- Metal-leaf border → dark holo card body. AMEX-flat, landscape. -->
@@ -137,19 +147,22 @@
 				</div>
 			</div>
 
-			<!-- Embossed cardholder = username + link to the full subscription page -->
+			<!-- Embossed cardholder = username + link to the full subscription page.
+			     Bottom row scales down on phones: smaller emboss + tighter tracking
+			     so the two sides never collide on a narrow card. -->
 			<div class="flex items-end justify-between gap-3 border-t border-olf-beige/15 pt-3">
 				<span
-					class="font-homemade-apple text-xl text-olf-eggshell drop-shadow-[0_1px_0_rgba(0,0,0,0.4)]"
+					class="truncate font-homemade-apple text-base text-olf-eggshell drop-shadow-[0_1px_0_rgba(0,0,0,0.4)] sm:text-xl"
 					>{cardholder}</span
 				>
 				<div class="flex shrink-0 flex-col items-end gap-0.5 text-right">
-					<span class="font-oswald text-xxs tracking-[0.3em] uppercase opacity-50"
+					<span
+						class="font-oswald text-xxs tracking-[0.15em] uppercase opacity-50 sm:tracking-[0.3em]"
 						>Egg Subscription</span
 					>
 					<a
 						href="/subscriptions"
-						class="font-oswald text-xxs tracking-[0.2em] text-olf-yolk uppercase underline underline-offset-2 transition-opacity hover:opacity-80"
+						class="font-oswald text-xxs tracking-[0.1em] text-olf-yolk uppercase underline underline-offset-2 transition-opacity hover:opacity-80 sm:tracking-[0.2em]"
 						>{m.subscribe_card_see_page()} →</a
 					>
 				</div>
@@ -161,13 +174,14 @@
 					class="h-8 w-11 rounded-md opacity-60"
 					style="background: linear-gradient(135deg, #e9cf7a, #b8923a 55%, #f0dd9a);"
 				></div>
-				<p class="font-supermercado-one text-xl text-olf-eggshell">{m.subscribe_card_no_plan()}</p>
-				<a
-					href="/subscriptions"
-					class="rounded-full bg-olf-yolk px-4 py-1.5 font-oswald text-xs font-bold tracking-wider text-olf-darkgreen uppercase transition-transform hover:scale-105"
+				<p class="font-homemade-apple text-xl text-olf-eggshell">{m.subscribe_card_no_plan()}</p>
+				<button
+					type="button"
+					onclick={browsePlans}
+					class="cursor-pointer rounded-full bg-olf-yolk px-4 py-1.5 font-oswald text-xs font-bold tracking-wider text-olf-darkgreen uppercase transition-transform hover:scale-105"
 				>
 					{m.subscribe_modal_browse()}
-				</a>
+				</button>
 			</div>
 		{/if}
 

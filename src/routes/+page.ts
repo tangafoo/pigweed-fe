@@ -1,4 +1,5 @@
 import { env } from '$env/dynamic/public';
+import { browser } from '$app/environment';
 import type { PageLoad } from './$types';
 import type { Post, PostCount } from '@meteorclass/pigweed-contract';
 import { fetchFeed } from '$lib/api/posts';
@@ -19,17 +20,6 @@ async function fetchWeather(fetch: typeof globalThis.fetch) {
 			temperature: Math.round(json.current.temperature_2m),
 			humidity: Math.round(json.current.relative_humidity_2m)
 		};
-	} catch {
-		return null;
-	}
-}
-
-async function fetchUserCount(fetch: typeof globalThis.fetch): Promise<number | null> {
-	try {
-		const res = await fetch(`${API_BASE}/users/count`);
-		if (!res.ok) return null;
-		const json = (await res.json()) as { count: number };
-		return json.count;
 	} catch {
 		return null;
 	}
@@ -67,14 +57,21 @@ export const load: PageLoad = async ({ fetch, setHeaders, parent }) => {
 	// would otherwise serve one user's vote highlights (or a stale anonymous
 	// render) to the next visitor. Anonymous landing stays publicly cacheable.
 	setHeaders({ 'cache-control': session ? 'private, no-store' : 'public, max-age=600' });
-	const [weather, userCount, latestPosts, postCount] = await Promise.all([
-		fetchWeather(fetch),
-		fetchUserCount(fetch),
-		fetchLatestPosts(fetch),
-		fetchPostCount(fetch)
-	]);
+
+	// Kick everything off in parallel. In the browser the promises are returned
+	// UN-awaited so client-side navigation to the landing page is instant — the
+	// hero/produce sections paint immediately, and the weather pills + latest
+	// posts strip stream in via {#await}. On the server we still await, so a
+	// direct visit SSRs the complete page (SEO, cache header above).
+	const weather = fetchWeather(fetch);
+	const strip = Promise.all([fetchLatestPosts(fetch), fetchPostCount(fetch)]).then(
+		([posts, totalCount]) => ({ posts, totalCount })
+	);
+
 	// Random egg photo (1–4) for the "why pay more" section. Chosen in load so
 	// SSR renders the final image — no onMount glimpse, no hydration mismatch.
 	const eggNum = 1 + Math.floor(Math.random() * 4);
-	return { weather, userCount, latestPosts, postCount, eggNum };
+
+	if (browser) return { weather, strip, eggNum };
+	return { weather: await weather, strip: await strip, eggNum };
 };

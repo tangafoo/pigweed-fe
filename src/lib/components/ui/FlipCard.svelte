@@ -70,9 +70,14 @@
 		transform: rotateY(180deg);
 	}
 
-	/* Both faces occupy the same grid cell → flipper height = the taller face. */
+	/* Both faces occupy the same grid cell → flipper height = the taller face.
+	   min-width: 0 kills the grid item's auto minimum — without it a face with
+	   unshrinkable content (the Farm ID's nowrap machine-readable strip) forces
+	   the whole card wider than small phone viewports; with it the face takes
+	   the track width and the strip clips (it's decorative flavor anyway). */
 	.face {
 		grid-area: 1 / 1;
+		min-width: 0;
 		backface-visibility: hidden;
 		-webkit-backface-visibility: hidden;
 	}

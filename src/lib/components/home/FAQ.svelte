@@ -1,14 +1,17 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages.js';
 	import { asset } from '$lib/config/assets';
+	import { orderModal } from '$lib/stores/orderModal.svelte';
 	import JsonLd from '$lib/components/seo/JsonLd.svelte';
-	import { Plus } from '@lucide/svelte';
+	import { Egg, Plus } from '@lucide/svelte';
 	import { slide } from 'svelte/transition';
 
+	// `orderCta` puts an "Order Eggs" button under the answer — the "How do I
+	// order?" panel shouldn't make people hunt for the actual order flow.
 	const items = [
 		{ q: m.home_faq_q1, a: m.home_faq_a1 },
 		{ q: m.home_faq_q2, a: m.home_faq_a2 },
-		{ q: m.home_faq_q3, a: m.home_faq_a3 },
+		{ q: m.home_faq_q3, a: m.home_faq_a3, orderCta: true },
 		{ q: m.home_faq_q4, a: m.home_faq_a4 },
 		{ q: m.home_faq_q5, a: m.home_faq_a5 }
 	];
@@ -102,13 +105,21 @@
 					/>
 				</button>
 				{#if openIndex === i}
-					<p
-						id="faq-panel-{i}"
-						transition:slide={{ duration: slideMs }}
-						class="pt-2 font-oswald text-sm leading-relaxed text-olf-darkgreen/80"
-					>
-						{item.a()}
-					</p>
+					<div id="faq-panel-{i}" transition:slide={{ duration: slideMs }} class="pt-2">
+						<p class="font-oswald text-sm leading-relaxed text-olf-darkgreen/80">
+							{item.a()}
+						</p>
+						{#if item.orderCta}
+							<button
+								type="button"
+								onclick={() => (orderModal.open = true)}
+								class="mt-3 flex items-center gap-1.5 rounded-full bg-olf-darkbrown px-4 py-1.5 font-oswald text-sm font-bold tracking-wider text-olf-beige uppercase transition-transform hover:scale-105"
+							>
+								<Egg size={15} class="shrink-0" />
+								{m.home_order_eggs()}
+							</button>
+						{/if}
+					</div>
 				{/if}
 			</div>
 		{/each}

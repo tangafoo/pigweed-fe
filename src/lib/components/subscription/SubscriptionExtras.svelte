@@ -113,7 +113,11 @@
 				{m.subscribe_delivery_every({ day: deliveryDayName })}
 			</p>
 		</div>
-		<DeliveryCalendar deliveryDay={sub.deliveryDay} />
+		<DeliveryCalendar
+			deliveryDay={sub.deliveryDay}
+			startedAt={sub.startedAt}
+			cadenceWeeks={sub.plan.cadenceWeeks}
+		/>
 		<a
 			href={requestDayUrl}
 			target="_blank"

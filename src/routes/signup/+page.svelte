@@ -9,6 +9,8 @@
 	import type { Animal } from '@meteorclass/pigweed-contract';
 	import type { PageData } from './$types';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
+	import Spinner from '$lib/components/ui/Spinner.svelte';
+	import { loadingScreen } from '$lib/stores/loadingScreen.svelte';
 	import { Dices, Check } from '@lucide/svelte';
 
 	let { data }: { data: PageData } = $props();
@@ -76,23 +78,29 @@
 		error = '';
 		usernameError = '';
 		submitting = true;
-		const result = await signUp({
-			email: email.trim(),
-			username: username.trim(),
-			password,
-			gender,
-			phoneNumber: phone.trim() || undefined
-		});
-		if (result.ok) {
-			// Better Auth signed us in; pull the server-assigned animal + seed.
-			me = (await getSession())?.user ?? null;
-			phase = 'meet';
-		} else if (result.field === 'username') {
-			usernameError = result.message;
-		} else {
-			error = result.message;
+		// Account creation + session fetch is a big wait — global chicken screen.
+		loadingScreen.show(m.signup_submitting());
+		try {
+			const result = await signUp({
+				email: email.trim(),
+				username: username.trim(),
+				password,
+				gender,
+				phoneNumber: phone.trim() || undefined
+			});
+			if (result.ok) {
+				// Better Auth signed us in; pull the server-assigned animal + seed.
+				me = (await getSession())?.user ?? null;
+				phase = 'meet';
+			} else if (result.field === 'username') {
+				usernameError = result.message;
+			} else {
+				error = result.message;
+			}
+		} finally {
+			loadingScreen.hide();
+			submitting = false;
 		}
-		submitting = false;
 	}
 
 	async function reroll() {
@@ -106,8 +114,7 @@
 
 	async function enterFarm() {
 		// Layout's server load re-resolves the session from the new cookie.
-		await invalidateAll();
-		await goto('/');
+		await loadingScreen.during(invalidateAll().then(() => goto('/')));
 	}
 </script>
 
@@ -271,10 +278,15 @@
 				type="button"
 				onclick={reroll}
 				disabled={rerolling}
-				class="mb-3 w-full rounded-full border-2 border-olf-darkbrown px-4 py-2 text-lg font-semibold text-olf-darkbrown disabled:opacity-50"
+				class="mb-3 flex w-full items-center justify-center gap-2 rounded-full border-2 border-olf-darkbrown px-4 py-2 text-lg font-semibold text-olf-darkbrown disabled:opacity-50"
 			>
-				{rerolling ? m.signup_meet_rerolling() : m.signup_meet_reroll()}
-				<Dices size={16} class="inline-block" />
+				{#if rerolling}
+					<Spinner size={16} />
+					{m.signup_meet_rerolling()}
+				{:else}
+					{m.signup_meet_reroll()}
+					<Dices size={16} class="inline-block" />
+				{/if}
 			</button>
 
 			<button

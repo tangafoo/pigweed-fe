@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import type { PostCategory, Post } from '@meteorclass/pigweed-contract';
+	import type { PostCategory, Post, Sort } from '@meteorclass/pigweed-contract';
 	import { fetchFeed } from '$lib/api/posts';
 
 	import PostCard from '$lib/components/posts/PostCard.svelte';
@@ -26,18 +26,29 @@
 		{ value: 'ANIMALS', label: () => m.posts_cat_animals() }
 	];
 
-	// Seed from the SSR load; `override` holds client-refetched results once
-	// the user touches a filter, so `data` stays reactive (no stale capture).
+	// Seed from the load (a resolved feed on SSR, a streaming promise on
+	// client-side navigation — see +page.ts); `override` holds client-refetched
+	// results once the user touches a filter, so `data` stays reactive (no
+	// stale capture). The grid renders through {#await}, so the page shell +
+	// filters paint immediately and the posts flow in when the fetch lands.
 	let override = $state<Post[] | null>(null);
 
-	const posts = $derived(override ?? data.feed.posts);
 	let category = $state<PostCategory | null>(null);
 	// Max-rating filter: "N stars and below" — surfaces the low/critical reviews.
 	// Filtered server-side via the feed's ?maxRating= param (the BE excludes
 	// non-reviews from a <= bound, same as the other filters).
 	let maxRating = $state<number | null>(null);
+	// Feed ordering: newest (default) or by received-award count (the BE
+	// sorts; ties fall back to newest).
+	let sortMode = $state<Sort>('newest');
 	let loading = $state(false);
 	let errored = $state(false);
+
+	const SORTS: { value: Sort; emoji: string; label: () => string }[] = [
+		{ value: 'newest', emoji: '🕓', label: () => m.posts_sort_newest() },
+		{ value: 'awards_desc', emoji: '🏅', label: () => m.posts_sort_awards_desc() },
+		{ value: 'awards_asc', emoji: '🐣', label: () => m.posts_sort_awards_asc() }
+	];
 
 	// Location-bounding. Off by default (the SSR load is browse-all/unbounded).
 	// When on, we pass the viewer's coords + radius to the feed so the BE
@@ -53,7 +64,7 @@
 		errored = false;
 		try {
 			const feed = await fetchFeed({
-				sort: 'newest',
+				sort: sortMode,
 				limit: 30,
 				...(category ? { category } : {}),
 				...(maxRating != null ? { maxRating } : {}),
@@ -105,8 +116,16 @@
 		refetch();
 	}
 
+	function selectSort(value: Sort) {
+		if (value === sortMode) return;
+		sortMode = value;
+		refetch();
+	}
+
 	// Any non-default filter active? Drives the active-filter chips + Clear.
-	const hasFilters = $derived(nearMe || category != null || maxRating != null);
+	const hasFilters = $derived(
+		nearMe || category != null || maxRating != null || sortMode !== 'newest'
+	);
 
 	// Reset every filter at once and refetch the unbounded, unfiltered feed.
 	function clearFilters() {
@@ -114,6 +133,7 @@
 		category = null;
 		maxRating = null;
 		nearMe = false;
+		sortMode = 'newest';
 		refetch();
 	}
 
@@ -124,6 +144,7 @@
 	const ratingTriggerLabel = $derived(
 		maxRating == null ? m.posts_rating_all() : m.posts_rating_max({ rating: maxRating })
 	);
+	const sortTriggerLabel = $derived((SORTS.find((s) => s.value === sortMode) ?? SORTS[0]).label());
 
 	// Removable active-filter chip; clicking it clears that one filter.
 	const CHIP =
@@ -291,6 +312,37 @@
 				{/snippet}
 			</FilterDropdown>
 
+			<!-- Sort: newest (default) or by received awards, both directions. -->
+			<FilterDropdown
+				label={sortTriggerLabel}
+				triggerClass={sortMode !== 'newest'
+					? 'bg-olf-darkgreen text-olf-eggshell'
+					: 'bg-olf-beige text-olf-darkbrown'}
+			>
+				{#snippet children(close)}
+					{#each SORTS as s (s.value)}
+						<li>
+							<button
+								type="button"
+								role="option"
+								aria-selected={sortMode === s.value}
+								onclick={() => {
+									selectSort(s.value);
+									close();
+								}}
+								class="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left font-oswald text-sm text-olf-darkbrown transition-colors hover:bg-olf-darkgreen/10 {sortMode ===
+								s.value
+									? 'font-bold'
+									: ''}"
+							>
+								<span class="w-5 shrink-0 text-center">{s.emoji}</span>
+								<span>{s.label()}</span>
+							</button>
+						</li>
+					{/each}
+				{/snippet}
+			</FilterDropdown>
+
 			<!-- Active-filter chips: shown only when a filter is set. Each chip clears
 			     its own filter; "Clear" (pushed right via ml-auto) clears all. The
 			     parent flex-wrap lets them wrap to a new line when there are many. -->
@@ -315,6 +367,13 @@
 						<X size={12} class="shrink-0 opacity-60" />
 					</button>
 				{/if}
+				{#if sortMode !== 'newest'}
+					<button type="button" onclick={() => selectSort('newest')} class={CHIP}>
+						<span>{SORTS.find((s) => s.value === sortMode)?.emoji}</span>
+						{sortTriggerLabel}
+						<X size={12} class="shrink-0 opacity-60" />
+					</button>
+				{/if}
 				<button
 					type="button"
 					onclick={clearFilters}
@@ -325,7 +384,8 @@
 			{/if}
 		</div>
 
-		<!-- Grid -->
+		<!-- Grid — the initial feed streams in through {#await} (instant shell),
+		     filter refetches reuse the same spinner via `loading`. -->
 		{#if loading}
 			<div class="flex justify-center py-16 text-olf-darkgreen">
 				<Spinner />
@@ -334,21 +394,36 @@
 			<p class="rounded-xl bg-olf-beige px-4 py-10 text-center font-oswald text-red-700">
 				{m.posts_load_error()}
 			</p>
-		{:else if posts.length === 0}
-			<p class="rounded-xl bg-olf-beige px-4 py-12 text-center font-oswald text-olf-darkbrown/70">
-				{m.posts_empty()}
-			</p>
 		{:else}
-			<!-- Pinterest-style masonry: CSS columns so each card keeps its own
-			     natural height instead of stretching to a shared grid-row height
-			     (which left tall whitespace under short, image-less posts). -->
-			<div class="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5">
-				{#each posts as post (post.id)}
-					<div class="mb-4 break-inside-avoid">
-						<PostCard {post} viewerLocation={nearMe ? viewerCoords : null} />
+			{#await data.feed}
+				<div class="flex justify-center py-16 text-olf-darkgreen">
+					<Spinner />
+				</div>
+			{:then feed}
+				{@const posts = override ?? feed.posts}
+				{#if posts.length === 0}
+					<p
+						class="rounded-xl bg-olf-beige px-4 py-12 text-center font-oswald text-olf-darkbrown/70"
+					>
+						{m.posts_empty()}
+					</p>
+				{:else}
+					<!-- Pinterest-style masonry: CSS columns so each card keeps its own
+					     natural height instead of stretching to a shared grid-row height
+					     (which left tall whitespace under short, image-less posts). -->
+					<div class="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5">
+						{#each posts as post (post.id)}
+							<div class="mb-4 break-inside-avoid">
+								<PostCard {post} viewerLocation={nearMe ? viewerCoords : null} />
+							</div>
+						{/each}
 					</div>
-				{/each}
-			</div>
+				{/if}
+			{:catch}
+				<p class="rounded-xl bg-olf-beige px-4 py-10 text-center font-oswald text-red-700">
+					{m.posts_load_error()}
+				</p>
+			{/await}
 		{/if}
 	</div>
 </div>

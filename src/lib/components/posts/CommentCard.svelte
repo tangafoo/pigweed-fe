@@ -1,14 +1,22 @@
 <script lang="ts">
-	import type { Comment, VoteValue, VoteResponse } from '@meteorclass/pigweed-contract';
+	import type {
+		Comment,
+		VoteValue,
+		VoteResponse,
+		AwardSummary
+	} from '@meteorclass/pigweed-contract';
 	import type { CommentNode } from '$lib/utils/comments-tree';
 	import { m } from '$lib/paraglide/messages.js';
 	import { formatRelative } from '$lib/utils/date';
 	import { goto } from '$app/navigation';
 	import { setCommentVote, clearCommentVote } from '$lib/api/votes';
+	import { asset } from '$lib/config/assets';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
+	import AwardModal from '$lib/components/posts/AwardModal.svelte';
+	import AwardGrantersModal from '$lib/components/posts/AwardGrantersModal.svelte';
 	import CommentComposer from '$lib/components/posts/CommentComposer.svelte';
 	import Self from '$lib/components/posts/CommentCard.svelte';
-	import { ArrowBigUp, ArrowBigDown, MessageSquare } from '@lucide/svelte';
+	import { ArrowBigUp, ArrowBigDown, Gift, MessageSquare } from '@lucide/svelte';
 
 	interface Props {
 		node: CommentNode;
@@ -57,10 +65,41 @@
 	let revealed = $state(false);
 	const collapsed = $derived(node.hidden && !revealed);
 
-	const topAwards = $derived(node.awards.slice(0, 3));
+	// Gift-an-award flow — same optimistic pattern as PostCard (no reset
+	// effect needed: the tree keys each card by comment id). Received awards
+	// render Reddit-style as tiny icons next to the gift button.
+	let giftOpen = $state(false);
+	let awardsOverride = $state<AwardSummary[] | null>(null);
+	const awards = $derived(awardsOverride ?? node.awards);
+	const topAwards = $derived(awards.slice(0, 3));
+	const totalAwards = $derived(awards.reduce((n, a) => n + a.count, 0));
+	const awardsTitle = $derived(awards.map((a) => `${a.name} ×${a.count}`).join(' · '));
+	let brokenArt = $state<Record<string, boolean>>({});
+
+	function openGift() {
+		if (!signedIn) return void goto('/login');
+		giftOpen = true;
+	}
+	// Clicking the received-awards stack opens the who-gifted-this modal
+	// (auth-gated on the BE, so signed-out viewers bounce to login).
+	let grantersOpen = $state(false);
+	function openGranters() {
+		if (!signedIn) return void goto('/login');
+		grantersOpen = true;
+	}
+	function onGranted(a: { id: string; assetKey: string; name: string }) {
+		const next = awards.map((s) => (s.awardTypeId === a.id ? { ...s, count: s.count + 1 } : s));
+		if (!next.some((s) => s.awardTypeId === a.id)) {
+			next.push({ awardTypeId: a.id, assetKey: a.assetKey, name: a.name, count: 1 });
+		}
+		awardsOverride = next.sort((x, y) => y.count - x.count);
+	}
 </script>
 
-<div class="flex flex-col gap-1.5">
+<!-- id anchors deep links from the profile's vote history
+     (/posts/x#comment-y); scroll-mt clears the sticky navbar and :target
+     flashes the landing spot (see the style block). -->
+<div id="comment-{node.id}" class="comment-anchor flex scroll-mt-24 flex-col gap-1.5">
 	{#if collapsed}
 		<button
 			type="button"
@@ -126,21 +165,7 @@
 			{node.body}
 		</p>
 
-		<!-- Award stack -->
-		{#if topAwards.length > 0}
-			<div class="flex flex-wrap gap-1">
-				{#each topAwards as a (a.awardTypeId)}
-					<span
-						class="flex items-center gap-1 rounded-full bg-olf-lightgreen px-2 py-0.5 font-oswald text-xxs font-bold text-olf-darkgreen"
-						title={a.name}
-					>
-						🏅 {a.count}
-					</span>
-				{/each}
-			</div>
-		{/if}
-
-		<!-- Actions: vote + reply (suppressed on deleted stubs) -->
+		<!-- Actions: vote + reply + gift (suppressed on deleted stubs) -->
 		{#if !isDeleted}
 			<div class="flex items-center gap-3 text-olf-darkbrown/70">
 				<span class="flex items-center gap-1 font-oswald text-xs">
@@ -180,6 +205,47 @@
 					<MessageSquare size={14} class="shrink-0" />
 					{m.posts_comment_reply()}
 				</button>
+				<!-- Signed-out viewers get NO gift icon — just received awards, read-only. -->
+				{#snippet awardIcons()}
+					<span class="flex items-center -space-x-2">
+						{#each topAwards as a (a.awardTypeId)}
+							{#if brokenArt[a.assetKey]}
+								<span class="text-[11px] leading-none">🏅</span>
+							{:else}
+								<img
+									src={asset(`${a.assetKey}.webp`)}
+									alt={a.name}
+									onerror={() => (brokenArt[a.assetKey] = true)}
+									class="h-4 w-4 shrink-0 rounded-full bg-olf-lightgreen object-contain p-px"
+								/>
+							{/if}
+						{/each}
+					</span>
+					<span class="tabular-nums">{totalAwards}</span>
+				{/snippet}
+				{#if signedIn}
+					<button
+						type="button"
+						onclick={openGift}
+						aria-label={m.award_modal_title()}
+						title={m.award_modal_title()}
+						class="flex items-center hover:text-olf-darkgreen"
+					>
+						<Gift size={15} class="shrink-0" />
+					</button>
+				{/if}
+				{#if totalAwards > 0}
+					<!-- The stack itself opens "who gifted this?" -->
+					<button
+						type="button"
+						onclick={openGranters}
+						aria-label={m.granters_title()}
+						title={awardsTitle}
+						class="flex items-center gap-1 font-oswald text-xs hover:text-olf-darkgreen"
+					>
+						{@render awardIcons()}
+					</button>
+				{/if}
 			</div>
 		{/if}
 
@@ -199,6 +265,19 @@
 		{/if}
 	{/if}
 
+	{#if giftOpen}
+		<AwardModal bind:open={giftOpen} targetType="comment" targetId={node.id} {onGranted} />
+	{/if}
+	{#if grantersOpen}
+		<AwardGrantersModal
+			bind:open={grantersOpen}
+			targetType="comment"
+			targetId={node.id}
+			{awards}
+			recipientUsername={node.author?.username ?? ''}
+		/>
+	{/if}
+
 	<!-- Replies (kept even under a deleted/collapsed parent unless collapsed) -->
 	{#if !collapsed && node.children.length > 0}
 		<div class="mt-1.5 flex flex-col gap-3 border-l-2 border-olf-darkgreen/15 pl-3">
@@ -208,3 +287,28 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	/* Deep-link landing flash: :target matches once the streamed thread has
+	   rendered and the page scrolls here — a soft yolk wash that fades out. */
+	.comment-anchor:target {
+		animation: comment-flash 2.2s ease-out 1;
+		border-radius: 0.75rem;
+	}
+	@keyframes comment-flash {
+		0%,
+		25% {
+			background-color: color-mix(in srgb, var(--color-olf-yolk) 22%, transparent);
+			box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-olf-yolk) 22%, transparent);
+		}
+		100% {
+			background-color: transparent;
+			box-shadow: none;
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.comment-anchor:target {
+			animation: none;
+		}
+	}
+</style>

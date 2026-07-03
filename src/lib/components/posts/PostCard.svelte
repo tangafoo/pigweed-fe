@@ -1,15 +1,25 @@
 <script lang="ts">
-	import type { Post, Session, VoteValue, VoteResponse } from '@meteorclass/pigweed-contract';
+	import type {
+		Post,
+		Session,
+		VoteValue,
+		VoteResponse,
+		AwardSummary
+	} from '@meteorclass/pigweed-contract';
 	import { untrack } from 'svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { setPostVote, clearPostVote } from '$lib/api/votes';
+	import { asset } from '$lib/config/assets';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
+	import AwardModal from '$lib/components/posts/AwardModal.svelte';
+	import AwardGrantersModal from '$lib/components/posts/AwardGrantersModal.svelte';
 	import {
 		Star,
 		ArrowBigUp,
 		ArrowBigDown,
+		Gift,
 		MessageSquare,
 		Maximize2,
 		Minimize2,
@@ -89,9 +99,12 @@
 	let override = $state<VoteResponse | null>(null);
 	let voting = $state(false);
 	$effect(() => {
-		// Reading post.id registers it as the only dependency, so the override
-		// resets exactly when this card is reused for a different post.
-		if (post.id) override = null;
+		// Reading post.id registers it as the only dependency, so the overrides
+		// reset exactly when this card is reused for a different post.
+		if (post.id) {
+			override = null;
+			awardsOverride = null;
+		}
 	});
 
 	const myVote = $derived(override ? override.myVote : post.myVote);
@@ -141,7 +154,40 @@
 					? m.posts_cat_fruits()
 					: m.posts_cat_animals();
 
-	const topAwards = $derived(post.awards.slice(0, 3));
+	// Gift-an-award flow. `awardsOverride` mirrors the vote override: an
+	// optimistic local bump of the award stack after the viewer gifts, reset
+	// when the card is reused (see the post.id effect above).
+	let giftOpen = $state(false);
+	let awardsOverride = $state<AwardSummary[] | null>(null);
+	const awards = $derived(awardsOverride ?? post.awards);
+	// Reddit-style: the top award types render as tiny icons next to the gift
+	// button, with the total gifted count.
+	const topAwards = $derived(awards.slice(0, 3));
+	const totalAwards = $derived(awards.reduce((n, a) => n + a.count, 0));
+	const awardsTitle = $derived(awards.map((a) => `${a.name} ×${a.count}`).join(' · '));
+
+	function openGift() {
+		if (!signedIn) return void goto('/login');
+		giftOpen = true;
+	}
+	// Clicking the received-awards stack opens the who-gifted-this modal
+	// (auth-gated on the BE, so signed-out viewers bounce to login).
+	let grantersOpen = $state(false);
+	function openGranters() {
+		if (!signedIn) return void goto('/login');
+		grantersOpen = true;
+	}
+	function onGranted(a: { id: string; assetKey: string; name: string }) {
+		const next = awards.map((s) => (s.awardTypeId === a.id ? { ...s, count: s.count + 1 } : s));
+		if (!next.some((s) => s.awardTypeId === a.id)) {
+			next.push({ awardTypeId: a.id, assetKey: a.assetKey, name: a.name, count: 1 });
+		}
+		awardsOverride = next.sort((x, y) => y.count - x.count);
+	}
+
+	// Award badge art: <assetKey>.webp (bucket root) from the assets bucket, medal
+	// emoji until the picture exists (or if it 404s).
+	let brokenArt = $state<Record<string, boolean>>({});
 
 	// Origin line bits, kept as two separate values so the template can place
 	// the place label and the distance independently (distance is pushed to
@@ -334,20 +380,6 @@
 				</p>
 			{/if}
 		{/if}
-
-		<!-- Award stack -->
-		{#if topAwards.length > 0}
-			<div class="mt-auto flex flex-wrap gap-1 pt-1">
-				{#each topAwards as a (a.awardTypeId)}
-					<span
-						class="flex items-center gap-1 rounded-full bg-olf-lightgreen px-2 py-0.5 font-oswald text-xxs font-bold text-olf-darkgreen"
-						title={a.name}
-					>
-						🏅 {a.count}
-					</span>
-				{/each}
-			</div>
-		{/if}
 	</div>
 
 	{#if thumb}
@@ -385,14 +417,62 @@
 		</div>
 	{/if}
 	<div class="flex items-center justify-between bg-olf-darkgreen px-3 py-1.5 text-white">
-		<a
-			href="/posts/{post.id}"
-			aria-label={m.posts_comments_heading()}
-			class="flex shrink-0 items-center gap-2 font-oswald text-xs text-olf-eggshell transition-transform hover:scale-110"
-		>
-			<MessageSquare size={18} class="text-white" />
-			<span class="tabular-nums">{commentCount}</span>
-		</a>
+		<span class="flex min-w-0 items-center gap-3 font-oswald text-xs text-olf-eggshell">
+			<a
+				href="/posts/{post.id}"
+				aria-label={m.posts_comments_heading()}
+				class="flex shrink-0 items-center gap-2 transition-transform hover:scale-110"
+			>
+				<MessageSquare size={18} class="text-white" />
+				<span class="tabular-nums">{commentCount}</span>
+			</a>
+			<!-- Gift an award — lives with the comment count on the left; the votes
+			     keep the right side to themselves. Received awards render
+			     Reddit-style right next to it: tiny overlapping icons of the top
+			     types + the total gifted count; tapping the stack opens the
+			     who-gifted-this modal. Signed-out viewers get NO gift icon, and
+			     tapping the stack bounces them to login (the list is auth-gated). -->
+			{#snippet awardIcons()}
+				<span class="flex items-center -space-x-2">
+					{#each topAwards as a (a.awardTypeId)}
+						{#if brokenArt[a.assetKey]}
+							<span class="text-[11px] leading-none">🏅</span>
+						{:else}
+							<img
+								src={asset(`${a.assetKey}.webp`)}
+								alt={a.name}
+								onerror={() => (brokenArt[a.assetKey] = true)}
+								class="h-4 w-4 shrink-0 rounded-full bg-olf-eggshell/90 object-contain p-px"
+							/>
+						{/if}
+					{/each}
+				</span>
+				<span class="tabular-nums">{totalAwards}</span>
+			{/snippet}
+			{#if signedIn}
+				<button
+					type="button"
+					onclick={openGift}
+					aria-label={m.award_modal_title()}
+					title={m.award_modal_title()}
+					class="flex items-center transition-transform hover:scale-110"
+				>
+					<Gift size={17} class="text-white" />
+				</button>
+			{/if}
+			{#if totalAwards > 0}
+				<!-- The stack itself opens "who gifted this?" -->
+				<button
+					type="button"
+					onclick={openGranters}
+					aria-label={m.granters_title()}
+					title={awardsTitle}
+					class="flex items-center gap-1 transition-transform hover:scale-110"
+				>
+					{@render awardIcons()}
+				</button>
+			{/if}
+		</span>
 		<span class="flex shrink-0 items-center gap-2.5 font-oswald text-xs text-olf-eggshell">
 			<button
 				type="button"
@@ -444,6 +524,18 @@
 		</div>
 	{/if}
 </article>
+
+{#if giftOpen}
+	<AwardModal bind:open={giftOpen} targetId={post.id} {onGranted} />
+{/if}
+{#if grantersOpen}
+	<AwardGrantersModal
+		bind:open={grantersOpen}
+		targetId={post.id}
+		{awards}
+		recipientUsername={post.author.username}
+	/>
+{/if}
 
 <style>
 	/* UNMODERATED posts get a foil shimmer — rare collectibles, per the brand. */

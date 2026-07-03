@@ -15,7 +15,12 @@
 
 	type OrderDraft = { eggs: number; date: string };
 	let drafts = $state<OrderDraft[]>([{ eggs: 30, date: '' }]);
-	let byBox = $state(false);
+	// Row-input unit: eggs, boxes, or RM (reverse — type what the customer
+	// paid, get eggs at the batch price). Eggs stays the source of truth.
+	type Unit = 'eggs' | 'boxes' | 'rm';
+	let unit = $state<Unit>('eggs');
+	const UNIT_LABEL: Record<Unit, string> = { eggs: '🥚 Eggs', boxes: '📦 Boxes', rm: '💵 RM' };
+	const cycleUnit = () => (unit = unit === 'eggs' ? 'boxes' : unit === 'boxes' ? 'rm' : 'eggs');
 	// Price per egg in RM (default RM2.00). Free-typed decimal string (no stepper);
 	// `priceRM` is the parsed number applied to every row in the batch.
 	let priceRMStr = $state('2.00');
@@ -26,11 +31,24 @@
 
 	function reset() {
 		drafts = [{ eggs: 30, date: '' }];
-		byBox = false;
+		unit = 'eggs';
+	}
+	// The row's displayed value in the current unit (eggs are canonical).
+	function rowValue(d: OrderDraft): number {
+		if (unit === 'boxes') return d.eggs / EGGS_PER_BOX;
+		if (unit === 'rm') return d.eggs * priceRM;
+		return d.eggs;
 	}
 	function setCount(i: number, v: number) {
 		const n = Math.max(0, Number.isFinite(v) ? v : 0);
-		drafts[i].eggs = byBox ? Math.round(n * EGGS_PER_BOX) : Math.round(n);
+		drafts[i].eggs =
+			unit === 'boxes'
+				? Math.round(n * EGGS_PER_BOX)
+				: unit === 'rm'
+					? priceRM > 0
+						? Math.floor(n / priceRM)
+						: 0
+					: Math.round(n);
 	}
 	async function save() {
 		if (saving || validDrafts === 0) return;
@@ -76,11 +94,11 @@
 	>
 		<button
 			type="button"
-			onclick={() => (byBox = !byBox)}
-			title={byBox ? 'Switch to eggs' : 'Switch to boxes'}
+			onclick={cycleUnit}
+			title="Switch unit (eggs / boxes / RM)"
 			class="inline-flex w-24 cursor-pointer items-center gap-1 text-olf-darkgreen hover:text-olf-moss"
 		>
-			{byBox ? '📦 Boxes' : '🥚 Eggs'}
+			{UNIT_LABEL[unit]}
 			<RefreshCw size={10} class="shrink-0" />
 		</button>
 		<span>Date</span>
@@ -92,14 +110,14 @@
 				<input
 					type="text"
 					inputmode="decimal"
-					value={byBox ? d.eggs / EGGS_PER_BOX : d.eggs}
+					value={rowValue(d)}
 					oninput={(e) => setCount(i, parseFloat(e.currentTarget.value))}
 					class="w-24 rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1.5 font-oswald text-sm text-olf-darkgreen tabular-nums"
 				/>
 				<div class="w-44">
 					<DatePicker bind:value={d.date} placeholder="Today" />
 				</div>
-				{#if byBox}
+				{#if unit !== 'eggs'}
 					<span class="font-oswald text-xxs text-olf-darkgreen/55">= {d.eggs} eggs</span>
 				{/if}
 				{#if d.eggs > 0}

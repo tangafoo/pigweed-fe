@@ -31,8 +31,9 @@
 		</div>
 	{/if}
 
-	<!-- Tier picker (one CTA) -->
-	<div class="w-full">
+	<!-- Tier picker (one CTA). `id` is the scroll target for the empty card's
+	     "Browse egg plans" button; scroll-mt clears the sticky header. -->
+	<div id="egg-plans" class="w-full scroll-mt-20">
 		{#if plans.length > 0}
 			<TierPicker {plans} {subscription} />
 		{:else}

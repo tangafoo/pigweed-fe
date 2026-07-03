@@ -74,14 +74,18 @@
 				class="absolute right-0 z-50 mt-2 w-48 overflow-hidden rounded-xl bg-olf-beige py-1 shadow-xl ring-1 ring-olf-darkgreen/10"
 			>
 				{#if user}
-					<p class="truncate px-4 py-2 font-supermercado-one text-sm text-olf-darkbrown">
+					<!-- The username IS the profile link (no separate "Your profile" row). -->
+					<a
+						role="menuitem"
+						href="/users/{userId}"
+						onclick={() => (open = false)}
+						aria-label={m.home_profile_link()}
+						class="block truncate px-4 py-2 font-supermercado-one text-sm text-olf-darkbrown hover:bg-olf-darkgreen/10"
+					>
 						{user.username}
-					</p>
+					</a>
 					<div class="my-1 border-t border-olf-darkgreen/10"></div>
 				{/if}
-				<a role="menuitem" href="/users/{userId}" onclick={() => (open = false)} class={ITEM}>
-					{m.home_profile_link()}
-				</a>
 				<button role="menuitem" type="button" onclick={orderEggs} class={ITEM}>
 					{m.home_order_eggs()}
 				</button>

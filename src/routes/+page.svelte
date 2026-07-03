@@ -9,6 +9,7 @@
 	import Parallax from '$lib/components/decor/Parallax.svelte';
 	import ProduceOrderButtons from '$lib/components/home/ProduceOrderButtons.svelte';
 	import Seo from '$lib/components/seo/Seo.svelte';
+	import Spinner from '$lib/components/ui/Spinner.svelte';
 
 	import { produceSections } from '$lib/data/produceSections';
 	import { asset } from '$lib/config/assets';
@@ -26,9 +27,6 @@
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-
-	const weather = $derived(data.weather);
-	const latestPosts = $derived(data.latestPosts);
 
 	// LocalBusiness rich result for the farm — anchors us in Mantin so Google
 	// (and AI answer engines) can answer "sustainable farm near KL" with us.
@@ -156,20 +154,29 @@
 				{m.home_hero_title()}
 			</p>
 			<div class="ml-3 flex flex-col gap-2 self-end lg:flex-row">
-				<p
-					class="flex items-center gap-1 self-start rounded-full bg-olf-beige/80 px-2 backdrop-blur-md"
-				>
-					<Sun size={12} class="shrink-0" />
-					{weather ? `${weather.temperature}°C` : m.home_weather_heat_fallback()}
-				</p>
-				<p
-					class="flex items-center gap-1 self-start rounded-full bg-olf-beige/80 px-2 backdrop-blur-md"
-				>
-					<CloudRain size={12} class="shrink-0" />
-					{weather
-						? m.home_weather_humidity({ value: weather.humidity })
-						: m.home_weather_humidity_fallback()}
-				</p>
+				<!-- Weather streams in (see +page.ts) — the pills render the
+				     fallback copy while pending, then swap to live values. -->
+				{#snippet weatherPills(weather: { temperature: number; humidity: number } | null)}
+					<p
+						class="flex items-center gap-1 self-start rounded-full bg-olf-beige/80 px-2 backdrop-blur-md"
+					>
+						<Sun size={12} class="shrink-0" />
+						{weather ? `${weather.temperature}°C` : m.home_weather_heat_fallback()}
+					</p>
+					<p
+						class="flex items-center gap-1 self-start rounded-full bg-olf-beige/80 px-2 backdrop-blur-md"
+					>
+						<CloudRain size={12} class="shrink-0" />
+						{weather
+							? m.home_weather_humidity({ value: weather.humidity })
+							: m.home_weather_humidity_fallback()}
+					</p>
+				{/snippet}
+				{#await data.weather}
+					{@render weatherPills(null)}
+				{:then weather}
+					{@render weatherPills(weather)}
+				{/await}
 			</div>
 		</div>
 
@@ -225,7 +232,15 @@
 	</p>
 </div>
 
-<LatestPostsStrip posts={latestPosts} totalCount={data.postCount} session={data.session} />
+<!-- The strip's feed data streams in (see +page.ts); hold its place with a
+     same-colored section so the page doesn't jump when the posts land. -->
+{#await data.strip}
+	<section class="flex justify-center bg-olf-lightgreen py-16 text-olf-darkgreen">
+		<Spinner />
+	</section>
+{:then strip}
+	<LatestPostsStrip posts={strip.posts} totalCount={strip.totalCount} session={data.session} />
+{/await}
 
 <FarmPromise />
 

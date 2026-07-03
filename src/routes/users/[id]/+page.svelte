@@ -10,6 +10,7 @@
 	import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
 	import DashboardNav from '$lib/components/layout/DashboardNav.svelte';
 	import Seo from '$lib/components/seo/Seo.svelte';
+	import { getUserAwards } from '$lib/api/users';
 	import { absoluteUrl, SITE_NAME } from '$lib/config/seo';
 	import { ANIMAL_LABEL } from '$lib/utils/labels';
 	import { asset } from '$lib/config/assets';
@@ -17,6 +18,18 @@
 
 	let { data }: { data: PageData } = $props();
 	const profile = $derived(data.profile);
+
+	// Total awards received — fetched client-side (aggregated per type on the
+	// BE; we just sum the counts for the header stat). Re-fetches when the
+	// route moves to a different user; stale responses are dropped.
+	let awardTotal = $state<number | null>(null);
+	$effect(() => {
+		const id = profile.id;
+		awardTotal = null;
+		getUserAwards(id).then((a) => {
+			if (id === profile.id) awardTotal = a.reduce((n, x) => n + x.count, 0);
+		});
+	});
 
 	// Owner side-menu section (profile | subscription | achievements | settings) via ?tab=.
 	type Section = 'profile' | 'subscription' | 'achievements' | 'settings';
@@ -97,6 +110,9 @@
 				<span class="text-olf-darkbrown"
 					>{m.profile_stat_comments({ count: profile.commentCount })}</span
 				>
+				{#if awardTotal != null}
+					<span class="text-olf-darkbrown">🎁 {m.profile_stat_awards({ count: awardTotal })}</span>
+				{/if}
 			</div>
 		</section>
 

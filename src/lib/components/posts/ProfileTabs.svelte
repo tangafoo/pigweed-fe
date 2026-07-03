@@ -123,9 +123,17 @@
 	score: number,
 	primary: string,
 	createdAt: string,
-	deleted: boolean
+	deleted: boolean,
+	href: string | null
 )}
-	<li class="flex items-stretch gap-3 overflow-hidden rounded-xl bg-olf-darkbrown text-white">
+	<!-- `href` (skipped for deleted targets) makes the whole row a link — post
+	     votes open the post, comment votes deep-link to #comment-<id>. -->
+	<li
+		class="group relative flex items-stretch gap-3 overflow-hidden rounded-xl bg-olf-darkbrown text-white"
+	>
+		{#if href}
+			<a {href} aria-label={primary} class="absolute inset-0 z-10"></a>
+		{/if}
 		<div class="flex shrink-0 flex-col items-center justify-center gap-0.5 bg-black/25 px-2.5 py-3">
 			<ArrowBigUp
 				size={18}
@@ -146,7 +154,13 @@
 			/>
 		</div>
 		<div class="min-w-0 flex-1 self-center py-3 pr-4 font-oswald">
-			<p class="truncate {deleted ? 'text-white/40 italic' : ''}">{primary}</p>
+			<p
+				class="truncate {deleted ? 'text-white/40 italic' : ''} {href
+					? 'group-hover:underline'
+					: ''}"
+			>
+				{primary}
+			</p>
 			<p class="text-xs text-white/60">{formatRelative(createdAt)}</p>
 		</div>
 	</li>
@@ -248,7 +262,8 @@
 							v.post.upvoteCount - v.post.downvoteCount,
 							v.post.title,
 							v.createdAt,
-							v.post.deletedAt !== null
+							v.post.deletedAt !== null,
+							v.post.deletedAt === null ? `/posts/${v.postId}` : null
 						)}
 					{/each}
 				</ul>
@@ -267,7 +282,10 @@
 						v.comment.upvoteCount - v.comment.downvoteCount,
 						v.comment.body,
 						v.createdAt,
-						v.comment.deletedAt !== null
+						v.comment.deletedAt !== null,
+						v.comment.deletedAt === null
+							? `/posts/${v.comment.post.id}#comment-${v.commentId}`
+							: null
 					)}
 				{/each}
 			</ul>

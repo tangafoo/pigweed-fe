@@ -13,14 +13,20 @@ export const load: PageServerLoad = async ({ params, parent, request, fetch }) =
 	const { session } = await parent();
 	const cookie = request.headers.get('cookie') ?? undefined;
 
-	const profile = await getUserProfile(params.id, cookie);
-	if (!profile) throw error(404, 'No such user');
-
 	const isOwner = session?.user.id === params.id;
 
-	const [plans, mine] = isOwner
-		? await Promise.all([fetchPlans(fetch), fetchMySubscription(fetch, cookie)])
-		: [[], { subscription: null, stats: null }];
+	// The subscription data doesn't depend on the profile — fetch everything
+	// in one parallel round instead of profile-then-subscription.
+	const [profile, [plans, mine]] = await Promise.all([
+		getUserProfile(params.id, cookie),
+		isOwner
+			? Promise.all([fetchPlans(fetch), fetchMySubscription(fetch, cookie)])
+			: Promise.resolve([[], { subscription: null, stats: null }] as [
+					never[],
+					{ subscription: null; stats: null }
+				])
+	]);
+	if (!profile) throw error(404, 'No such user');
 
 	return {
 		profile,

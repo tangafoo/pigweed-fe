@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import type { PageData } from './$types';
 	import type { Comment, Post } from '@meteorclass/pigweed-contract';
 	import { slide, fade } from 'svelte/transition';
@@ -12,6 +13,7 @@
 	import CommentCard from '$lib/components/posts/CommentCard.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import Seo from '$lib/components/seo/Seo.svelte';
+	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import { ArrowLeft } from '@lucide/svelte';
 
 	let { data }: { data: PageData } = $props();
@@ -49,16 +51,41 @@
 		}
 	}
 
-	// The flat comment list, tracking the loader but locally appendable (a new
-	// comment/reply overwrites it; navigating re-seeds from `data.comments`).
-	let comments = $derived(data.comments);
+	// The flat comment list. `data.comments` is a STREAMED promise (see
+	// +page.server.ts) so the post paints before the thread arrives; this
+	// effect resolves it into local state (null = still loading), which stays
+	// locally appendable and re-seeds itself when navigating between posts.
+	let comments = $state<Comment[] | null>(null);
+	$effect(() => {
+		let stale = false;
+		comments = null;
+		Promise.resolve(data.comments).then((list) => {
+			if (stale) return;
+			comments = list;
+			// Deep link (/posts/x#comment-y from the profile's vote history):
+			// the thread streams in AFTER the browser's native fragment jump
+			// already ran and found nothing — so once the tree renders, do the
+			// jump ourselves (:target then flashes the comment).
+			void tick().then(() => {
+				const hash = window.location.hash;
+				if (!stale && hash.startsWith('#comment-')) {
+					document
+						.getElementById(hash.slice(1))
+						?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				}
+			});
+		});
+		return () => {
+			stale = true;
+		};
+	});
 
 	// Flat list (parentCommentId + depth) → nested tree, assembled client-side.
-	const tree = $derived(buildCommentTree(comments));
+	const tree = $derived(comments ? buildCommentTree(comments) : []);
 
 	// A new comment/reply lands here; appending re-derives the tree + count.
 	function addComment(c: Comment) {
-		comments = [...comments, c];
+		comments = [...(comments ?? []), c];
 	}
 
 	const seoDescription = $derived(
@@ -89,7 +116,7 @@
 			<div in:fade={{ duration: 150 }}>
 				<PostCard
 					{post}
-					liveCommentCount={comments.length}
+					liveCommentCount={comments?.length}
 					expandImage
 					canManage={isAuthor}
 					onEdit={() => (editing = true)}
@@ -120,7 +147,7 @@
 
 		<section class="flex flex-col gap-4 rounded-xl bg-olf-eggshell p-4 shadow-md">
 			<h2 class="font-homemade-apple text-2xl font-bold text-olf-darkgreen">
-				{m.posts_comments_heading()} ({comments.length})
+				{m.posts_comments_heading()}{#if comments}&nbsp;({comments.length}){/if}
 			</h2>
 
 			<CommentComposer
@@ -130,7 +157,9 @@
 				onPosted={addComment}
 			/>
 
-			{#if tree.length === 0}
+			{#if comments === null}
+				<div class="flex justify-center py-6 text-olf-darkgreen"><Spinner /></div>
+			{:else if tree.length === 0}
 				<p class="py-6 text-center font-oswald text-olf-darkbrown/60">
 					{m.posts_comments_empty()}
 				</p>

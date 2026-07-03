@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { createPost, uploadMedia, ContentFlaggedError } from '$lib/api/posts';
+	import { loadingScreen } from '$lib/stores/loadingScreen.svelte';
 	import { MANTIN_COORDS } from '$lib/config/seo';
 	import { CATEGORY_COLOR } from '$lib/config/categories';
 
@@ -107,6 +108,9 @@
 		const position = coords ?? { lat: MANTIN_COORDS.lat, lng: MANTIN_COORDS.lng };
 
 		submitting = true;
+		// Publishing is the app's biggest task (uploads + moderation + redirect)
+		// — block the whole screen with the global chicken loader, staged copy.
+		loadingScreen.show(m.posts_new_stage_uploading());
 		try {
 			// Upload media to our R2 proxy, preserving order.
 			stage = 'uploading';
@@ -118,6 +122,7 @@
 
 			// Create the post.
 			stage = 'posting';
+			loadingScreen.update(m.posts_new_stage_posting());
 			await createPost({
 				title: title.trim(),
 				body: body.trim(),
@@ -139,6 +144,7 @@
 						? err.message
 						: m.posts_new_failed();
 		} finally {
+			loadingScreen.hide();
 			submitting = false;
 			stage = '';
 		}

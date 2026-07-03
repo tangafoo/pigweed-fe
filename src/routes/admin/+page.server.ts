@@ -23,16 +23,18 @@ export const load: PageServerLoad = async ({ parent, request, fetch, url }) => {
 	const orderedOn = url.searchParams.get('orderedOn') ?? '';
 	const page = Math.max(1, Number(url.searchParams.get('page') ?? 1));
 
-	const usersRes = await fetchAdminUsers(q, page, orderedOn, fetch, cookie);
-	if (!usersRes.ok && (usersRes.status === 401 || usersRes.status === 403)) {
-		throw error(404, 'Not found');
-	}
-
-	const [stats, plans, benefits] = await Promise.all([
+	// Fire all four together — the users call still acts as the admin probe
+	// (the others just 403 harmlessly alongside it if the viewer isn't admin),
+	// but a real admin saves a full sequential round-trip.
+	const [usersRes, stats, plans, benefits] = await Promise.all([
+		fetchAdminUsers(q, page, orderedOn, fetch, cookie),
 		fetchAdminStats(fetch, cookie),
 		fetchAdminPlans(fetch, cookie),
 		fetchAdminBenefits(fetch, cookie)
 	]);
+	if (!usersRes.ok && (usersRes.status === 401 || usersRes.status === 403)) {
+		throw error(404, 'Not found');
+	}
 
 	return {
 		q,

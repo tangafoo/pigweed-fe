@@ -38,10 +38,18 @@
 	let searching = $state(false);
 	let timer: ReturnType<typeof setTimeout>;
 
+	// Most-recent orderers first (nulls last), likeliest picks on top —
+	// regulars buy again.
+	const byRecentOrder = (a: AdminUserRow, b: AdminUserRow) =>
+		(b.lastOrderAt ? +new Date(b.lastOrderAt) : 0) -
+			(a.lastOrderAt ? +new Date(a.lastOrderAt) : 0) || b.eggsEaten - a.eggsEaten;
+
 	// Instant client-side filter over the loaded list (no round-trip).
+	// EMPTY QUERY IS NOT EMPTY RESULTS: with nothing typed, show a ready
+	// shortlist immediately so picking a regular is one tap, zero typing.
 	const localResults = $derived.by(() => {
 		const term = q.trim().toLowerCase();
-		if (!term) return [];
+		if (!term) return [...users].sort(byRecentOrder);
 		return users.filter(
 			(u) => u.username.toLowerCase().includes(term) || u.email.toLowerCase().includes(term)
 		);

@@ -137,6 +137,13 @@ export const setUserFlags = (
 	flags: { isFoundingFlock?: boolean; isFarmOwner?: boolean; isAdmin?: boolean }
 ) => send(`/admin/users/${userId}/flags`, 'PATCH', flags);
 
+/**
+ * Generic profile patch — partial body, only present keys change (phone
+ * today; email in a future phase). Role flags stay on `setUserFlags`.
+ */
+export const updateUserProfile = (userId: string, patch: { phoneNumber?: string | null }) =>
+	send(`/admin/users/${userId}`, 'PATCH', patch);
+
 // Egg order ledger.
 export async function fetchOrders(userId: string): Promise<EggOrder[]> {
 	const res = await api(`/admin/users/${userId}/orders`);

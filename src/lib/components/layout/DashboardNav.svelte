@@ -35,8 +35,10 @@
 	] as const);
 </script>
 
+<!-- top-20 keeps a clear gap below the sticky navbar (~52px tall) when the
+     menu pins while scrolling. -->
 <aside
-	class="flex flex-wrap gap-2 sm:sticky sm:top-16 sm:w-44 sm:shrink-0 sm:flex-col sm:self-start"
+	class="flex flex-wrap gap-2 sm:sticky sm:top-20 sm:w-44 sm:shrink-0 sm:flex-col sm:self-start"
 >
 	{#each items as it (it.id)}
 		{@const Icon = it.icon}

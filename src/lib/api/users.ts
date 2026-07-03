@@ -1,5 +1,10 @@
 import { api } from './client';
-import type { PublicProfile, Achievement, UserVotesResponse } from '@meteorclass/pigweed-contract';
+import type {
+	PublicProfile,
+	Achievement,
+	AwardSummary,
+	UserVotesResponse
+} from '@meteorclass/pigweed-contract';
 
 /**
  * One earned-achievement row from GET /users/:id/achievements. The contract
@@ -49,6 +54,21 @@ export async function getUserAchievements(
  * The profile "View all" modal cross-references this against the user's earned
  * list to show locked vs unlocked. Public; returns [] on failure.
  */
+/**
+ * Awards this user has RECEIVED across their posts + comments, aggregated
+ * per type (`Golden Egg ×4`) — same AwardSummary shape as a post's stack,
+ * sorted desc by count. Empty on any failure.
+ */
+export async function getUserAwards(userId: string): Promise<AwardSummary[]> {
+	try {
+		const res = await api(`/users/${encodeURIComponent(userId)}/awards`);
+		if (!res.ok) return [];
+		return ((await res.json()) as { awards: AwardSummary[] }).awards;
+	} catch {
+		return [];
+	}
+}
+
 export async function getAchievementCatalog(cookie?: string): Promise<Achievement[]> {
 	try {
 		const res = await api('/achievements', cookieHeaders(cookie));

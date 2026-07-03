@@ -3,6 +3,7 @@
 	import { m } from '$lib/paraglide/messages.js';
 	import { createComment } from '$lib/api/comments';
 	import { ContentFlaggedError } from '$lib/api/posts';
+	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import { SendHorizontal } from '@lucide/svelte';
 
 	interface Props {
@@ -95,8 +96,13 @@
 				disabled={!canSubmit}
 				class="flex shrink-0 items-center gap-1.5 rounded-full bg-olf-darkgreen px-4 py-1.5 font-oswald text-sm font-bold tracking-wider text-olf-eggshell uppercase transition-opacity disabled:opacity-50"
 			>
-				<SendHorizontal size={15} class="shrink-0" />
-				{submitting ? m.posts_comment_posting() : (submitLabel ?? m.posts_comment_submit())}
+				{#if submitting}
+					<Spinner size={15} />
+					{m.posts_comment_posting()}
+				{:else}
+					<SendHorizontal size={15} class="shrink-0" />
+					{submitLabel ?? m.posts_comment_submit()}
+				{/if}
 			</button>
 		</div>
 	</form>

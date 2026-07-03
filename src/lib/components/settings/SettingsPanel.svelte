@@ -4,6 +4,7 @@
 	import { formatDate } from '$lib/utils/date';
 	import { Fingerprint, KeyRound, Trash2, Plus, LogOut } from '@lucide/svelte';
 	import { goto, invalidateAll } from '$app/navigation';
+	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import UserFlipCard from '$lib/components/posts/UserFlipCard.svelte';
 	import type { Session, SubscriptionSummary } from '@meteorclass/pigweed-contract';
 
@@ -68,6 +69,9 @@
 		try {
 			const result = await authClient.passkey.addPasskey({ name: newName.trim() || undefined });
 			if (result?.error) {
+				// Server rejected the attestation — with a correct BE this is rare,
+				// so log the real reason (rpID/origin mismatches land here).
+				console.error('[passkey] add rejected:', result.error);
 				error = m.passkey_add_error();
 				return;
 			}
@@ -78,6 +82,9 @@
 			if (e instanceof Error && e.name === 'NotAllowedError') {
 				error = m.passkey_add_cancelled();
 			} else {
+				// SecurityError here = the BE's PASSKEY_RP_ID doesn't match the
+				// domain the site is served from. Log it so prod is debuggable.
+				console.error('[passkey] add failed:', e);
 				error = m.passkey_add_error();
 			}
 		} finally {
@@ -149,57 +156,64 @@
 		{:else}
 			<ul class="mb-5 flex flex-col gap-3">
 				{#each passkeys as pk (pk.id)}
+					<!-- The row itself never gains buttons — the delete confirm lives in
+					     the panel below, so the name/meta line keeps its full width on
+					     phones (inline Yes/No used to crush this row into a 4-line mess). -->
 					<li class="flex items-center gap-3 rounded-xl bg-olf-darkbrown px-4 py-3 text-white">
 						<span
 							class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-olf-lightgreen"
 						>
 							<Fingerprint size={24} class="text-olf-darkbrown" />
 						</span>
-						<div class="flex-1 font-oswald">
-							<p class="font-bold">{pk.name ?? m.passkey_unnamed_device()}</p>
+						<div class="min-w-0 flex-1 font-oswald">
+							<p class="truncate font-bold">{pk.name ?? m.passkey_unnamed_device()}</p>
 							<p class="text-xs text-white/70">
 								{m.passkey_added_label()}: {formatDate(pk.createdAt)}
 								{#if pk.deviceType}
-									· {m.passkey_device_type_label()}: {pk.deviceType}
+									· {pk.deviceType}
 								{/if}
 							</p>
 						</div>
 
-						{#if confirmingId === pk.id}
-							<div class="flex items-center gap-2">
+						<button
+							type="button"
+							onclick={() => (confirmingId = confirmingId === pk.id ? null : pk.id)}
+							aria-label={m.passkey_delete_button()}
+							aria-expanded={confirmingId === pk.id}
+							class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-olf-eggshell transition-colors {confirmingId ===
+							pk.id
+								? 'bg-red-700'
+								: 'bg-olf-rose'}"
+						>
+							<Trash2 size={16} />
+						</button>
+					</li>
+					{#if confirmingId === pk.id}
+						<li
+							class="-mt-2 flex flex-col gap-3 rounded-xl bg-red-700/15 px-4 py-3 font-oswald text-sm text-olf-darkbrown"
+						>
+							<div>
+								<p class="font-bold">{m.passkey_delete_confirm_title()}</p>
+								<p class="text-olf-darkbrown/70">{m.passkey_delete_confirm_body()}</p>
+							</div>
+							<div class="flex justify-end gap-2">
+								<button
+									type="button"
+									onclick={() => (confirmingId = null)}
+									class="rounded-full bg-olf-eggshell px-4 py-1.5 text-sm font-bold whitespace-nowrap text-olf-darkbrown"
+								>
+									{m.passkey_delete_confirm_no()}
+								</button>
 								<button
 									type="button"
 									onclick={() => deletePasskey(pk.id)}
 									disabled={deleteBusy === pk.id}
-									class="rounded-full bg-red-700 px-3 py-1 font-oswald text-sm font-bold disabled:opacity-50"
+									class="flex items-center gap-1.5 rounded-full bg-red-700 px-4 py-1.5 text-sm font-bold whitespace-nowrap text-white disabled:opacity-50"
 								>
+									{#if deleteBusy === pk.id}<Spinner size={13} />{/if}
 									{m.passkey_delete_confirm_yes()}
 								</button>
-								<button
-									type="button"
-									onclick={() => (confirmingId = null)}
-									class="rounded-full bg-olf-lightbrown px-3 py-1 font-oswald text-sm font-bold"
-								>
-									{m.passkey_delete_confirm_no()}
-								</button>
 							</div>
-						{:else}
-							<button
-								type="button"
-								onclick={() => (confirmingId = pk.id)}
-								aria-label={m.passkey_delete_button()}
-								class="flex h-9 w-9 items-center justify-center rounded-full bg-olf-rose text-olf-eggshell"
-							>
-								<Trash2 size={16} />
-							</button>
-						{/if}
-					</li>
-					{#if confirmingId === pk.id}
-						<li
-							class="-mt-2 rounded-xl bg-red-700/15 px-4 py-2 font-oswald text-sm text-olf-darkbrown"
-						>
-							<p class="font-bold">{m.passkey_delete_confirm_title()}</p>
-							<p class="text-olf-darkbrown/70">{m.passkey_delete_confirm_body()}</p>
 						</li>
 					{/if}
 				{/each}

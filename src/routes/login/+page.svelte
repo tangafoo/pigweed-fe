@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
 	import { authClient, signIn } from '$lib/api/auth';
+	import { loadingScreen } from '$lib/stores/loadingScreen.svelte';
 	import Seo from '$lib/components/seo/Seo.svelte';
+	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import { FingerprintPattern } from '@lucide/svelte';
 	import type { PageData } from './$types';
@@ -24,14 +26,21 @@
 		if (submitting) return;
 		error = '';
 		submitting = true;
-		const result = await signIn(identifier.trim(), password);
-		if (result.ok) {
-			// Layout's server load re-resolves the session from the new cookie.
-			await invalidateAll();
-			await goto('/');
-		} else {
-			error = result.message;
-			submitting = false;
+		// Signing in re-resolves the session + reloads every layout load — a
+		// "big" wait, so the global chicken loading screen takes over.
+		loadingScreen.show(m.login_submitting());
+		try {
+			const result = await signIn(identifier.trim(), password);
+			if (result.ok) {
+				// Layout's server load re-resolves the session from the new cookie.
+				await invalidateAll();
+				await goto('/');
+			} else {
+				error = result.message;
+				submitting = false;
+			}
+		} finally {
+			loadingScreen.hide();
 		}
 	}
 
@@ -55,8 +64,12 @@
 				error = m.passkey_signin_no_passkey();
 				return;
 			}
-			await invalidateAll();
-			await goto('/');
+			// Ceremony done (the OS prompt is gone) — cover the session refresh
+			// + redirect with the global loading screen.
+			await loadingScreen.during(
+				invalidateAll().then(() => goto('/')),
+				m.login_submitting()
+			);
 		} catch (e) {
 			// NotAllowedError fires when the user cancels the OS prompt or
 			// times out. Anything else is a generic ceremony failure.
@@ -117,8 +130,9 @@
 		<button
 			type="submit"
 			disabled={submitting || !identifier || !password}
-			class="w-full rounded-full bg-olf-darkbrown px-4 py-2 font-oswald text-lg font-bold text-white disabled:opacity-50"
+			class="flex w-full items-center justify-center gap-2 rounded-full bg-olf-darkbrown px-4 py-2 font-oswald text-lg font-bold text-white disabled:opacity-50"
 		>
+			{#if submitting}<Spinner size={16} />{/if}
 			{submitting ? m.login_submitting() : m.login_submit()}
 		</button>
 
