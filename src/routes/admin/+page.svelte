@@ -10,7 +10,8 @@
 		Gift,
 		Umbrella,
 		Home,
-		Receipt
+		Receipt,
+		Package
 	} from '@lucide/svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import AddUserModal from '$lib/components/admin/AddUserModal.svelte';
@@ -19,6 +20,7 @@
 	import EggsPanel from '$lib/components/admin/EggsPanel.svelte';
 	import TiersPanel from '$lib/components/admin/TiersPanel.svelte';
 	import BenefitsPanel from '$lib/components/admin/BenefitsPanel.svelte';
+	import BoxesPanel from '$lib/components/admin/BoxesPanel.svelte';
 	import { adminUrlWith } from '$lib/components/admin/shared.svelte';
 	import type { PageData } from './$types';
 
@@ -28,7 +30,7 @@
 	// survives a refresh (and is shareable). Defaults to 'home'. Each section is
 	// its own panel component under lib/components/admin/; this page just owns
 	// the shell (nav + stat strip) and the shared add-user modal.
-	const VIEWS = ['home', 'users', 'eggs', 'tiers', 'benefits'] as const;
+	const VIEWS = ['home', 'users', 'eggs', 'boxes', 'tiers', 'benefits'] as const;
 	type View = (typeof VIEWS)[number];
 	const view = $derived(
 		(VIEWS.includes(page.url.searchParams.get('view') as View)
@@ -44,6 +46,7 @@
 	const NAV = [
 		{ id: 'home', label: 'Home', icon: Home },
 		{ id: 'eggs', label: 'Eggs', icon: Receipt },
+		{ id: 'boxes', label: 'Boxes', icon: Package },
 		{ id: 'users', label: 'Users', icon: UsersIcon },
 		{ id: 'tiers', label: 'Tiers', icon: Layers },
 		{ id: 'benefits', label: 'Benefits', icon: Gift }
@@ -108,18 +111,21 @@
 		</div>
 
 		{#if view === 'home'}
-			<HomePanel stats={data.stats} users={data.users} />
+			<HomePanel stats={data.stats} users={data.users} boxes={data.boxes} />
 		{:else if view === 'users'}
 			<UsersPanel
 				users={data.users}
 				plans={data.plans}
+				boxes={data.boxes}
 				total={data.total}
 				pageNum={data.page}
 				orderedOn={data.orderedOn}
 				onAddUser={openAddUser}
 			/>
 		{:else if view === 'eggs'}
-			<EggsPanel users={data.users} onAddUser={openAddUser} />
+			<EggsPanel users={data.users} boxes={data.boxes} onAddUser={openAddUser} />
+		{:else if view === 'boxes'}
+			<BoxesPanel boxes={data.boxes} />
 		{:else if view === 'tiers'}
 			<TiersPanel plans={data.plans} benefits={data.benefits} />
 		{:else if view === 'benefits'}
@@ -128,5 +134,5 @@
 	</main>
 
 	<!-- Add user modal (pre-register by email + magic link); reused across panels -->
-	<AddUserModal bind:open={addUserOpen} oncreated={() => invalidateAll()} />
+	<AddUserModal bind:open={addUserOpen} boxes={data.boxes} oncreated={() => invalidateAll()} />
 </div>

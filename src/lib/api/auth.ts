@@ -1,6 +1,6 @@
 import { createAuthClient } from 'better-auth/svelte';
 import { passkeyClient } from '@better-auth/passkey/client';
-import { usernameClient } from 'better-auth/client/plugins';
+import { usernameClient, magicLinkClient } from 'better-auth/client/plugins';
 import { api, API_BASE } from './client';
 import type { Session, Animal, Gender, MyEggStats } from '@meteorclass/pigweed-contract';
 
@@ -21,7 +21,7 @@ export type { Animal, Gender, SessionUser, Session } from '@meteorclass/pigweed-
  */
 export const authClient = createAuthClient({
 	baseURL: API_BASE,
-	plugins: [usernameClient(), passkeyClient()]
+	plugins: [usernameClient(), passkeyClient(), magicLinkClient()]
 });
 
 function parseSession(data: unknown): Session | null {
@@ -64,6 +64,75 @@ export async function signIn(identifier: string, password: string): Promise<Sign
 	} catch (e) {
 		console.error('[auth] signIn network failure:', e);
 		return { ok: false, message: 'Can’t reach the farm right now. Try again.' };
+	}
+}
+
+export type MagicLinkResult = { ok: true } | { ok: false; reason: 'rate-limited' | 'error' };
+
+/**
+ * Email the user a one-click sign-in link (passwordless). The BE always
+ * answers 200 whether or not the email has an account (no enumeration), so
+ * `ok: true` means "sent if it exists" — word the success copy accordingly.
+ * The link hits the BE's /magic-link/verify, sets the session cookie, and
+ * redirects: success → `/`, failure (expired / used / unknown email) → back
+ * to /login with `?error=INVALID_TOKEN|EXPIRED_TOKEN|new_user_signup_disabled`
+ * for the page to translate. Rate-limited to 3/min per IP on the BE.
+ */
+export async function sendMagicLink(email: string): Promise<MagicLinkResult> {
+	try {
+		const origin = window.location.origin;
+		const { error } = await authClient.signIn.magicLink({
+			email,
+			callbackURL: `${origin}/`,
+			errorCallbackURL: `${origin}/login`
+		});
+		if (!error) return { ok: true };
+		return { ok: false, reason: error.status === 429 ? 'rate-limited' : 'error' };
+	} catch (e) {
+		console.error('[auth] sendMagicLink network failure:', e);
+		return { ok: false, reason: 'error' };
+	}
+}
+
+/**
+ * Whether the signed-in user has a password. `listAccounts()` lists Better
+ * Auth's `account`-table rows — the provider links (a `credential` row holds
+ * the password hash; OAuth would add its own). It is NOT the pigweed `user`
+ * row: magic-link-onboarded customers (admin "Add user") ARE full users
+ * (username, avatar, etc.) but have no `account` row at all — nobody ever set
+ * a password for them — so `credential` is absent and we show the "set a
+ * password" banner. A normal email+password signup has both a user row and a
+ * `credential` account. `null` = couldn't tell (network) — treat as "don't nag".
+ */
+export async function hasPassword(): Promise<boolean | null> {
+	try {
+		const { data, error } = await authClient.listAccounts();
+		if (error || !Array.isArray(data)) return null;
+		return data.some((a) => a.providerId === 'credential');
+	} catch {
+		return null;
+	}
+}
+
+export type SetPasswordResult = { ok: true } | { ok: false; reason: 'too-short' | 'error' };
+
+/**
+ * Bootstrap a password onto a passwordless (magic-link) account via the
+ * BE's /users/me/set-password. The BE refuses (409) when a password
+ * already exists — this can only ever ADD one, never change one.
+ */
+export async function setPassword(newPassword: string): Promise<SetPasswordResult> {
+	try {
+		const res = await api('/users/me/set-password', {
+			method: 'POST',
+			body: JSON.stringify({ newPassword })
+		});
+		if (res.ok) return { ok: true };
+		const data = (await res.json().catch(() => null)) as { code?: string } | null;
+		return { ok: false, reason: data?.code === 'PASSWORD_TOO_SHORT' ? 'too-short' : 'error' };
+	} catch (e) {
+		console.error('[auth] setPassword network failure:', e);
+		return { ok: false, reason: 'error' };
 	}
 }
 

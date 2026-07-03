@@ -8,6 +8,7 @@
 	import SubscriptionPanel from '$lib/components/subscription/SubscriptionPanel.svelte';
 	import AchievementsPanel from '$lib/components/settings/AchievementsPanel.svelte';
 	import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
+	import SetPasswordBanner from '$lib/components/settings/SetPasswordBanner.svelte';
 	import DashboardNav from '$lib/components/layout/DashboardNav.svelte';
 	import Seo from '$lib/components/seo/Seo.svelte';
 	import { getUserAwards } from '$lib/api/users';
@@ -117,6 +118,10 @@
 		</section>
 
 		{#if data.isOwner}
+			<!-- Magic-link-only accounts (admin pre-registered) get nudged to
+			     set a password; renders nothing for everyone else. -->
+			<SetPasswordBanner />
+
 			<!-- Dashboard: shared side menu + section -->
 			<div class="mt-5 flex flex-col gap-5 sm:flex-row">
 				<DashboardNav userId={profile.id} active={tab} />

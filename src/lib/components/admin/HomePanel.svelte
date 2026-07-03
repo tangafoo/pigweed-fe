@@ -8,15 +8,19 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import RollingNumber from '$lib/components/ui/RollingNumber.svelte';
 	import UserPicker from '$lib/components/admin/UserPicker.svelte';
+	import BoxPicker from '$lib/components/admin/BoxPicker.svelte';
 	import { eggStats } from '$lib/data/eggFacts';
 	import * as admin from '$lib/api/admin';
 	import type { AdminStats, AdminUserRow, Animal, Gender } from '@meteorclass/pigweed-contract';
+	import type { AdminBox } from '$lib/components/admin/shared.svelte';
 
 	interface HomePanelProps {
 		stats: AdminStats;
 		users: AdminUserRow[];
+		/** Admin box denominations for the calculator's tap-to-add chips. */
+		boxes: AdminBox[];
 	}
-	let { stats, users }: HomePanelProps = $props();
+	let { stats, users, boxes }: HomePanelProps = $props();
 
 	// Total eggs gauge. Fill a ring toward the next 1,000-egg milestone — a
 	// simple game-y "level" sense of the flock's appetite.
@@ -38,41 +42,49 @@
 	let calcEggs = $state(30);
 	let calcWeeks = $state(4);
 
-	// Primary-input unit — what the admin is TYPING. Eggs/boxes compute money
+	// Primary-input unit — what the admin is TYPING. Eggs compute money
 	// (forward); RM computes eggs (reverse: floor(amount / price), a partial
-	// egg isn't for sale). One box = 30 eggs (a standard tray / smallest tier).
-	const EGGS_PER_BOX = 30;
-	const BOX_PRESETS = [2, 3, 4, 5];
-	type CalcUnit = 'eggs' | 'boxes' | 'rm';
+	// egg isn't for sale). Box composition is the tap-to-add chips below (admin
+	// denominations), so there's no fixed "1 box = 30" typing unit anymore.
+	type CalcUnit = 'eggs' | 'rm';
 	let unit = $state<CalcUnit>('eggs');
 	const UNITS: { id: CalcUnit; label: string }[] = [
 		{ id: 'eggs', label: '🥚 Eggs' },
-		{ id: 'boxes', label: '📦 Boxes' },
 		{ id: 'rm', label: '💵 RM' }
 	];
 
-	// RM-mode source; eggs/boxes modes keep `calcEggs` as the source of truth.
+	// RM-mode source; eggs mode keeps `calcEggs` as the source of truth.
 	let calcAmountStr = $state('60.00');
 	const calcAmount = $derived(Math.max(0, parseFloat(calcAmountStr) || 0));
 	const effectiveEggs = $derived(
 		unit === 'rm' ? (calcPrice > 0 ? Math.floor(calcAmount / calcPrice) : 0) : calcEggs
 	);
-	const boxCount = $derived(effectiveEggs / EGGS_PER_BOX);
-	const boxLabel = $derived(
-		Number.isInteger(boxCount)
-			? `${boxCount} box${boxCount === 1 ? '' : 'es'}`
-			: `${boxCount.toFixed(1)} boxes`
+	// Box-equivalent readout — expressed in the LARGEST active box (the "Tray"
+	// by default), fully driven by the admin catalog. Empty when no boxes exist.
+	const canonicalBox = $derived(
+		[...boxes].filter((b) => b.active).sort((a, b) => b.eggs - a.eggs)[0] ?? null
 	);
+	const boxLabel = $derived.by(() => {
+		if (!canonicalBox) return '';
+		const n = effectiveEggs / canonicalBox.eggs;
+		const name = canonicalBox.name.toLowerCase();
+		return Number.isInteger(n) ? `${n} ${name}${n === 1 ? '' : 's'}` : `${n.toFixed(1)} ${name}s`;
+	});
 
 	const calcTotal = $derived(Math.max(0, calcPrice * (effectiveEggs || 0) * (calcWeeks || 0)));
 	const calcMoney = $derived(
 		`RM${calcTotal.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 	);
 
-	// Write the primary field back to `calcEggs`, converting from boxes if needed.
+	// Write the primary (eggs) field back to `calcEggs`.
 	function setPrimary(v: number) {
-		const n = Math.max(0, Number.isFinite(v) ? v : 0);
-		calcEggs = unit === 'boxes' ? Math.round(n * EGGS_PER_BOX) : Math.round(n);
+		calcEggs = Math.max(0, Number.isFinite(v) ? Math.round(v) : 0);
+	}
+	// A box chip ADDS its eggs (compose the order). In RM mode, hop back to eggs
+	// so the composed count is what's shown/logged.
+	function addBox(eggs: number) {
+		if (unit === 'rm') unit = 'eggs';
+		calcEggs += eggs;
 	}
 
 	// "Add customer?" — search a user and log an egg order straight from the
@@ -105,11 +117,12 @@
 	const quoteMessage = $derived.by(() => {
 		const hello = custSelected ? `Hello ${custSelected.username}!` : 'Hello!';
 		const price = `RM${calcPrice.toFixed(2)}`;
+		const boxNote = boxLabel ? ` (${boxLabel})` : '';
 		if (unit === 'rm') {
-			return `${hello} 🐔 Our Little Farm here.\n\nFor RM${calcAmount.toFixed(2)} you'll get ${effectiveEggs} fresh farm eggs (${boxLabel}) at ${price} per egg.\n\nThank you! 🌱`;
+			return `${hello} 🐔 Our Little Farm here.\n\nFor RM${calcAmount.toFixed(2)} you'll get ${effectiveEggs} fresh farm eggs${boxNote} at ${price} per egg.\n\nThank you! 🌱`;
 		}
 		const cadence = (calcWeeks || 0) > 1 ? ` every week for ${calcWeeks} weeks` : '';
-		return `${hello} 🐔 Our Little Farm here.\n\nYour egg quote: ${effectiveEggs} fresh farm eggs (${boxLabel})${cadence} at ${price} per egg.\nTotal: ${calcMoney}.\n\nThank you! 🌱`;
+		return `${hello} 🐔 Our Little Farm here.\n\nYour egg quote: ${effectiveEggs} fresh farm eggs${boxNote}${cadence} at ${price} per egg.\nTotal: ${calcMoney}.\n\nThank you! 🌱`;
 	});
 	async function addCalcOrder() {
 		if (!custSelected || custSaving || effectiveEggs <= 0) return;
@@ -215,7 +228,7 @@
 
 				<!-- Mode selector: what you're TYPING (RM = reverse, cash → eggs) -->
 				<div
-					class="grid grid-cols-3 gap-1 rounded-full bg-olf-eggshell/10 p-1 font-oswald text-xs font-bold"
+					class="grid grid-cols-2 gap-1 rounded-full bg-olf-eggshell/10 p-1 font-oswald text-xs font-bold"
 				>
 					{#each UNITS as u (u.id)}
 						<button
@@ -237,7 +250,7 @@
 					class="flex items-center justify-between gap-3 rounded-xl border border-olf-beige/15 bg-black/20 px-4 py-2.5"
 				>
 					<span class="font-oswald text-xxs tracking-[0.25em] uppercase opacity-60">
-						{unit === 'rm' ? 'Cash in hand' : unit === 'boxes' ? 'Boxes' : 'Eggs'}
+						{unit === 'rm' ? 'Cash in hand' : 'Eggs'}
 					</span>
 					<span class="flex items-baseline gap-1.5">
 						{#if unit === 'rm'}
@@ -253,7 +266,7 @@
 							<input
 								type="text"
 								inputmode="decimal"
-								value={unit === 'boxes' ? boxCount : calcEggs}
+								value={calcEggs}
 								oninput={(e) => setPrimary(parseFloat(e.currentTarget.value))}
 								class="w-28 bg-transparent text-right font-oswald text-3xl font-bold text-olf-eggshell tabular-nums outline-none"
 							/>
@@ -266,24 +279,22 @@
 					</span>
 				{/if}
 
-				<!-- quick box presets (punching one in RM mode hops back to boxes) -->
-				<div class="-mt-1 flex flex-wrap gap-1.5">
-					{#each BOX_PRESETS as b (b)}
-						<button
-							type="button"
-							onclick={() => {
-								calcEggs = b * EGGS_PER_BOX;
-								if (unit === 'rm') unit = 'boxes';
-							}}
-							class="cursor-pointer rounded-full px-2.5 py-1 font-oswald text-xxs font-bold tracking-wide transition-colors {effectiveEggs ===
-							b * EGGS_PER_BOX
-								? 'bg-olf-yolk text-olf-darkgreen'
-								: 'bg-olf-eggshell/10 text-olf-beige/80 hover:bg-olf-eggshell/20'}"
-						>
-							{b} box
-						</button>
-					{/each}
-				</div>
+				<!-- Tap-to-add box composer (admin denominations). Adds eggs; typing an
+				     exact count in the field above still works for odd orders. -->
+				{#if boxes.length}
+					<div class="-mt-1 flex flex-wrap items-center gap-1.5">
+						<BoxPicker {boxes} variant="dark" onadd={addBox} />
+						{#if unit === 'eggs' && calcEggs > 0}
+							<button
+								type="button"
+								onclick={() => (calcEggs = 0)}
+								class="cursor-pointer font-oswald text-xxs font-bold text-olf-beige/50 hover:text-olf-yolk"
+							>
+								clear
+							</button>
+						{/if}
+					</div>
+				{/if}
 
 				<!-- Dials: price (+ recent-price hotkeys) and weeks -->
 				<div class="grid grid-cols-2 gap-2 font-oswald text-sm">
@@ -358,7 +369,7 @@
 							<RollingNumber text={calcMoney} />
 						{/if}
 					</span>
-					{#if unit === 'rm'}
+					{#if unit === 'rm' && boxLabel}
 						<span class="font-oswald text-xs text-olf-beige/70">({boxLabel})</span>
 					{/if}
 				</div>

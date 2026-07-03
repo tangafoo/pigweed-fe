@@ -6,11 +6,16 @@
 	import EggOrderEntry from '$lib/components/admin/EggOrderEntry.svelte';
 	import * as admin from '$lib/api/admin';
 	import type { RegisterUserResult } from '$lib/api/admin';
+	import type { AdminBox } from '$lib/components/admin/shared.svelte';
 
 	// Pre-register a user from an email + magic link. Reused by the Users panel
 	// and the Eggs panel. After a successful create (or when the email already
 	// existed), offers to log egg orders for that user inline.
-	let { open = $bindable(false), oncreated }: { open?: boolean; oncreated?: () => void } = $props();
+	let {
+		open = $bindable(false),
+		boxes = [],
+		oncreated
+	}: { open?: boolean; boxes?: AdminBox[]; oncreated?: () => void } = $props();
 
 	let email = $state('');
 	let username = $state('');
@@ -145,7 +150,7 @@
 						in:fade={{ duration: 150, easing: sineIn }}
 						class="rounded-lg border border-olf-darkgreen/15 bg-olf-eggshell/60 p-3"
 					>
-						<EggOrderEntry userId={result.id} onsaved={() => oncreated?.()} />
+						<EggOrderEntry userId={result.id} {boxes} onsaved={() => oncreated?.()} />
 					</div>
 				{/if}
 

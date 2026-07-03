@@ -1,20 +1,38 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
-	import { authClient, signIn } from '$lib/api/auth';
+	import { page } from '$app/state';
+	import { authClient, signIn, sendMagicLink } from '$lib/api/auth';
 	import { loadingScreen } from '$lib/stores/loadingScreen.svelte';
 	import Seo from '$lib/components/seo/Seo.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import { m } from '$lib/paraglide/messages.js';
-	import { FingerprintPattern } from '@lucide/svelte';
+	import { FingerprintPattern, Mail } from '@lucide/svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
+	// A failed magic-link verify redirects back here with ?error= set by the
+	// BE (see sendMagicLink in $lib/api/auth) — translate it into the page's
+	// error slot so the user knows why they're looking at the login form again.
+	function magicLinkRedirectError(): string {
+		switch (page.url.searchParams.get('error')) {
+			case 'INVALID_TOKEN':
+			case 'EXPIRED_TOKEN':
+				return m.magic_link_expired();
+			case 'new_user_signup_disabled':
+				return m.magic_link_no_account();
+			default:
+				return '';
+		}
+	}
+
 	let identifier = $state('');
 	let password = $state('');
-	let error = $state('');
+	let error = $state(magicLinkRedirectError());
 	let submitting = $state(false);
 	let passkeyBusy = $state(false);
+	let magicBusy = $state(false);
+	let magicSent = $state(false);
 
 	// Already clucking — no reason to sit on the sign-in page.
 	$effect(() => {
@@ -80,6 +98,30 @@
 			}
 		} finally {
 			passkeyBusy = false;
+		}
+	}
+
+	async function emailMagicLink() {
+		if (magicBusy) return;
+		error = '';
+		// The link needs an address — reuse the identifier field, but it
+		// accepts usernames too, so gate on it actually being an email.
+		const email = identifier.trim();
+		if (!email.includes('@')) {
+			error = m.magic_link_need_email();
+			return;
+		}
+		magicBusy = true;
+		try {
+			const result = await sendMagicLink(email);
+			if (result.ok) {
+				magicSent = true;
+			} else {
+				error =
+					result.reason === 'rate-limited' ? m.magic_link_too_many() : m.magic_link_generic_error();
+			}
+		} finally {
+			magicBusy = false;
 		}
 	}
 </script>
@@ -151,6 +193,28 @@
 			<FingerprintPattern size={20} />
 			{passkeyBusy ? m.passkey_add_in_progress() : m.passkey_signin_button()}
 		</button>
+
+		<div class="my-4 flex items-center gap-3 font-oswald text-xs text-olf-darkbrown/60">
+			<span class="h-px flex-1 bg-olf-darkbrown/20"></span>
+			{m.login_magic_divider()}
+			<span class="h-px flex-1 bg-olf-darkbrown/20"></span>
+		</div>
+
+		{#if magicSent}
+			<p class="rounded-lg bg-olf-darkgreen px-3 py-2 font-oswald text-sm text-white">
+				{m.magic_link_sent()}
+			</p>
+		{:else}
+			<button
+				type="button"
+				onclick={emailMagicLink}
+				disabled={magicBusy}
+				class="flex w-full items-center justify-center gap-2 rounded-full border-2 border-olf-darkbrown bg-olf-beige px-4 py-2 font-oswald text-lg font-bold text-olf-darkbrown disabled:opacity-50"
+			>
+				{#if magicBusy}<Spinner size={16} />{:else}<Mail size={20} />{/if}
+				{magicBusy ? m.magic_link_sending() : m.magic_link_button()}
+			</button>
+		{/if}
 
 		<p class="mt-4 text-center font-oswald text-sm text-olf-darkbrown/70">
 			{m.login_no_account()}

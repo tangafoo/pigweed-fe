@@ -4,7 +4,8 @@ import {
 	fetchAdminUsers,
 	fetchAdminStats,
 	fetchAdminPlans,
-	fetchAdminBenefits
+	fetchAdminBenefits,
+	fetchAdminBoxes
 } from '$lib/api/admin';
 
 /**
@@ -26,11 +27,12 @@ export const load: PageServerLoad = async ({ parent, request, fetch, url }) => {
 	// Fire all four together — the users call still acts as the admin probe
 	// (the others just 403 harmlessly alongside it if the viewer isn't admin),
 	// but a real admin saves a full sequential round-trip.
-	const [usersRes, stats, plans, benefits] = await Promise.all([
+	const [usersRes, stats, plans, benefits, boxes] = await Promise.all([
 		fetchAdminUsers(q, page, orderedOn, fetch, cookie),
 		fetchAdminStats(fetch, cookie),
 		fetchAdminPlans(fetch, cookie),
-		fetchAdminBenefits(fetch, cookie)
+		fetchAdminBenefits(fetch, cookie),
+		fetchAdminBoxes(fetch, cookie)
 	]);
 	if (!usersRes.ok && (usersRes.status === 401 || usersRes.status === 403)) {
 		throw error(404, 'Not found');
@@ -44,6 +46,7 @@ export const load: PageServerLoad = async ({ parent, request, fetch, url }) => {
 		total: usersRes.data.total,
 		stats: stats.data,
 		plans: plans.data.plans,
-		benefits: benefits.data.benefits
+		benefits: benefits.data.benefits,
+		boxes: boxes.data.boxes
 	};
 };

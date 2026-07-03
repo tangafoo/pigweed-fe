@@ -29,13 +29,16 @@
 		AdminEggLedgerTotals,
 		AdminUserRow
 	} from '@meteorclass/pigweed-contract';
+	import type { AdminBox } from '$lib/components/admin/shared.svelte';
 
 	interface EggsPanelProps {
 		users: AdminUserRow[];
+		/** Box denominations for the add-order composer. */
+		boxes: AdminBox[];
 		/** Opens the shared AddUserModal (owned by the page). */
 		onAddUser: () => void;
 	}
-	let { users, onAddUser }: EggsPanelProps = $props();
+	let { users, boxes, onAddUser }: EggsPanelProps = $props();
 
 	// ─── Global egg ledger (accounting view) ────────────────────────
 	// Loaded client-side on demand (not in the SvelteKit `load`); refetched
@@ -497,6 +500,7 @@
 			>
 				<EggOrderEntry
 					userId={addOrderUser.id}
+					{boxes}
 					onsaved={async (count) => {
 						addOrderOpen = false;
 						toasts.push({

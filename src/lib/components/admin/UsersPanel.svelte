@@ -20,13 +20,16 @@
 		Check,
 		Copy,
 		ExternalLink,
-		Pencil
+		Pencil,
+		PauseCircle,
+		Play
 	} from '@lucide/svelte';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import DatePicker from '$lib/components/ui/DatePicker.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import EggOrderEntry from '$lib/components/admin/EggOrderEntry.svelte';
+	import PauseSubscriptionModal from '$lib/components/admin/PauseSubscriptionModal.svelte';
 	import {
 		adminUrlWith,
 		createBusyRunner,
@@ -36,17 +39,20 @@
 	} from '$lib/components/admin/shared.svelte';
 	import * as admin from '$lib/api/admin';
 	import type { AdminUserRow, EggOrder } from '@meteorclass/pigweed-contract';
+	import type { AdminBox } from '$lib/components/admin/shared.svelte';
 
 	interface UsersPanelProps {
 		users: AdminUserRow[];
 		plans: AdminPlan[];
+		/** Box denominations for the per-user egg composer. */
+		boxes: AdminBox[];
 		total: number;
 		pageNum: number;
 		orderedOn: string;
 		/** Opens the shared AddUserModal (owned by the page). */
 		onAddUser: () => void;
 	}
-	let { users, plans, total, pageNum, orderedOn, onAddUser }: UsersPanelProps = $props();
+	let { users, plans, boxes, total, pageNum, orderedOn, onAddUser }: UsersPanelProps = $props();
 
 	const runner = createBusyRunner();
 	const busy = $derived(runner.busy);
@@ -182,6 +188,30 @@
 		if (userToDelete && !deleteDialog.open) deleteDialog.showModal();
 		else if (!userToDelete && deleteDialog.open) deleteDialog.close();
 	});
+
+	// ─── Pause subscription (modal-configured window) ───────────────
+	// Opened from the row's pause icon AND the expanded tab's Pause button.
+	let pauseModalUser = $state<AdminUserRow | null>(null);
+	let pausing = $state(false);
+	async function confirmPause(opts: { pausedAt?: string; pauseDays?: number }) {
+		const u = pauseModalUser;
+		if (!u || pausing) return;
+		pausing = true;
+		const ok = await admin.pauseUser(u.id, opts);
+		pausing = false;
+		if (ok) {
+			pauseModalUser = null;
+			await invalidateAll();
+		}
+	}
+	// Human "Paused from X · resumes Y" line for a paused subscription.
+	function pauseWindowLabel(sub: AdminUserRow['subscription']): string {
+		if (!sub) return '';
+		const parts = ['Paused'];
+		if (sub.pausedAt) parts.push(`from ${orderDateLabel(sub.pausedAt)}`);
+		parts.push(sub.pauseUntil ? `· resumes ${orderDateLabel(sub.pauseUntil)}` : '· open-ended');
+		return parts.join(' ');
+	}
 
 	// ─── Batch delete: check rows, one red button, one confirm ──────
 	// Selection lives in a SvelteSet keyed by user id; the visible count is
@@ -421,6 +451,29 @@
 						/>
 						subscribed
 					</label>
+					<!-- Pause / resume shortcut — pause opens the config modal; resume is
+					     instant. Only shown when there's a subscription to act on. -->
+					{#if u.subscription?.status === 'ACTIVE'}
+						<button
+							type="button"
+							onclick={() => (pauseModalUser = u)}
+							aria-label="Pause subscription"
+							title="Pause subscription"
+							class="flex size-8 items-center justify-center rounded-lg text-olf-yolk hover:bg-olf-yolk/15"
+						>
+							<PauseCircle size={16} />
+						</button>
+					{:else if u.subscription?.status === 'PAUSED'}
+						<button
+							type="button"
+							onclick={() => run(() => admin.resumeUser(u.id))}
+							aria-label="Resume subscription"
+							title={pauseWindowLabel(u.subscription)}
+							class="flex size-8 items-center justify-center rounded-lg text-olf-moss hover:bg-olf-moss/15"
+						>
+							<Play size={16} />
+						</button>
+					{/if}
 					<button
 						type="button"
 						onclick={() => openDelete(u)}
@@ -564,7 +617,7 @@
 						</div>
 					{:else if expandTab === 'eggs'}
 						<!-- Bulk add records (shared component) -->
-						<EggOrderEntry userId={u.id} onsaved={() => onOrdersSaved(u.id)} />
+						<EggOrderEntry userId={u.id} {boxes} onsaved={() => onOrdersSaved(u.id)} />
 
 						<!-- Ledger -->
 						<div class="mt-4">
@@ -664,7 +717,7 @@
 									{:else}
 										<Button
 											disabled={busy}
-											onclick={() => run(() => admin.pauseUser(u.id))}
+											onclick={() => (pauseModalUser = u)}
 											class="rounded-lg bg-olf-yolk px-3 py-1.5 font-oswald text-xs font-bold text-olf-eggshell disabled:opacity-50"
 											>Pause</Button
 										>
@@ -687,6 +740,14 @@
 							>
 								{u.subscription.plan.name}
 							</div>
+							{#if u.subscription.status === 'PAUSED'}
+								<p
+									class="mt-1.5 flex items-center gap-1.5 font-oswald text-xs text-olf-darkgreen/70"
+								>
+									<PauseCircle size={13} class="shrink-0 text-olf-yolk" />
+									{pauseWindowLabel(u.subscription)}
+								</p>
+							{/if}
 						{/if}
 						<div class="mt-3 flex flex-wrap gap-2 border-t border-olf-darkgreen/15 pt-3">
 							<Button
@@ -938,3 +999,13 @@
 		{/if}
 	</div>
 </dialog>
+
+<!-- Pause-subscription config modal (shared by the row icon + the expanded
+     Subscription tab's Pause button). -->
+<PauseSubscriptionModal
+	open={pauseModalUser !== null}
+	username={pauseModalUser?.username ?? ''}
+	busy={pausing}
+	onConfirm={confirmPause}
+	onCancel={() => (pauseModalUser = null)}
+/>

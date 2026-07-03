@@ -1,26 +1,33 @@
 <script lang="ts">
-	import { Plus, X, RefreshCw } from '@lucide/svelte';
+	import { Plus, X, RefreshCw, RotateCcw } from '@lucide/svelte';
 	import { slide } from 'svelte/transition';
 	import Button from '$lib/components/ui/Button.svelte';
 	import DatePicker from '$lib/components/ui/DatePicker.svelte';
+	import BoxPicker from '$lib/components/admin/BoxPicker.svelte';
+	import type { AdminBox } from '$lib/components/admin/shared.svelte';
 	import * as admin from '$lib/api/admin';
 
 	// Reusable bulk egg-record entry: a list of draft rows (eggs + date) plus a
 	// single unit price for the batch, saved all at once against `userId`. Used
 	// in the user expand card, the Add-user modal, and the Eggs panel.
-	let { userId, onsaved }: { userId: string; onsaved?: (count: number) => void } = $props();
-
-	const EGGS_PER_BOX = 30;
-	const BOX_PRESETS = [2, 3, 4, 5];
+	// `boxes` feeds the tap-to-add composer above each row; it's optional so old
+	// call-sites that don't thread it degrade to plain egg/RM entry.
+	let {
+		userId,
+		boxes = [],
+		onsaved
+	}: { userId: string; boxes?: AdminBox[]; onsaved?: (count: number) => void } = $props();
 
 	type OrderDraft = { eggs: number; date: string };
 	let drafts = $state<OrderDraft[]>([{ eggs: 30, date: '' }]);
-	// Row-input unit: eggs, boxes, or RM (reverse — type what the customer
-	// paid, get eggs at the batch price). Eggs stays the source of truth.
-	type Unit = 'eggs' | 'boxes' | 'rm';
+	// Row-input unit: eggs, or RM (reverse — type what the customer paid, get
+	// eggs at the batch price). Boxes are composed via the BoxPicker chips
+	// (admin denominations), so there's no ambiguous "1 box = 30" unit anymore.
+	// Eggs stays the source of truth.
+	type Unit = 'eggs' | 'rm';
 	let unit = $state<Unit>('eggs');
-	const UNIT_LABEL: Record<Unit, string> = { eggs: '🥚 Eggs', boxes: '📦 Boxes', rm: '💵 RM' };
-	const cycleUnit = () => (unit = unit === 'eggs' ? 'boxes' : unit === 'boxes' ? 'rm' : 'eggs');
+	const UNIT_LABEL: Record<Unit, string> = { eggs: '🥚 Eggs', rm: '💵 RM' };
+	const cycleUnit = () => (unit = unit === 'eggs' ? 'rm' : 'eggs');
 	// Price per egg in RM (default RM2.00). Free-typed decimal string (no stepper);
 	// `priceRM` is the parsed number applied to every row in the batch.
 	let priceRMStr = $state('2.00');
@@ -35,21 +42,15 @@
 	}
 	// The row's displayed value in the current unit (eggs are canonical).
 	function rowValue(d: OrderDraft): number {
-		if (unit === 'boxes') return d.eggs / EGGS_PER_BOX;
 		if (unit === 'rm') return d.eggs * priceRM;
 		return d.eggs;
 	}
 	function setCount(i: number, v: number) {
 		const n = Math.max(0, Number.isFinite(v) ? v : 0);
-		drafts[i].eggs =
-			unit === 'boxes'
-				? Math.round(n * EGGS_PER_BOX)
-				: unit === 'rm'
-					? priceRM > 0
-						? Math.floor(n / priceRM)
-						: 0
-					: Math.round(n);
+		drafts[i].eggs = unit === 'rm' ? (priceRM > 0 ? Math.floor(n / priceRM) : 0) : Math.round(n);
 	}
+	// A box chip adds its eggs to the row (compose an order from boxes).
+	const addBox = (i: number, eggs: number) => (drafts[i].eggs += eggs);
 	async function save() {
 		if (saving || validDrafts === 0) return;
 		saving = true;
@@ -139,21 +140,23 @@
 					</button>
 				{/if}
 			</div>
-			<!-- Box-quantity hotkeys (1 box = 30 eggs) -->
-			<div class="flex flex-wrap gap-1.5">
-				{#each BOX_PRESETS as b (b)}
-					<button
-						type="button"
-						onclick={() => (d.eggs = b * EGGS_PER_BOX)}
-						class="cursor-pointer rounded-full px-2.5 py-1 font-oswald text-xxs font-bold tracking-wide transition-colors {d.eggs ===
-						b * EGGS_PER_BOX
-							? 'bg-olf-darkgreen text-olf-beige'
-							: 'bg-olf-darkgreen/10 text-olf-darkgreen hover:bg-olf-darkgreen/20'}"
-					>
-						{b} box
-					</button>
-				{/each}
-			</div>
+			<!-- Tap-to-add box composer (admin denominations). Adds to the row; the
+			     number field above stays free-typed for odd counts (e.g. 35). -->
+			{#if boxes.length}
+				<div class="flex flex-wrap items-center gap-1.5">
+					<BoxPicker {boxes} onadd={(eggs) => addBox(i, eggs)} />
+					{#if d.eggs > 0}
+						<button
+							type="button"
+							onclick={() => (d.eggs = 0)}
+							title="Clear this row"
+							class="flex cursor-pointer items-center gap-1 font-oswald text-xxs font-bold text-olf-darkgreen/50 hover:text-olf-darkbrown"
+						>
+							<RotateCcw size={11} class="shrink-0" /> clear
+						</button>
+					{/if}
+				</div>
+			{/if}
 		</div>
 	{/each}
 

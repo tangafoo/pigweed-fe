@@ -4,6 +4,7 @@ import type {
 	AdminStats,
 	AdminPlansResponse,
 	AdminEggLedgerResponse,
+	AdminEggBoxesResponse,
 	SubscriptionBenefit,
 	EggOrder
 } from '@meteorclass/pigweed-contract';
@@ -73,6 +74,9 @@ export const fetchAdminBenefits = (fetchImpl?: typeof globalThis.fetch, cookie?:
 		cookie
 	);
 
+export const fetchAdminBoxes = (fetchImpl?: typeof globalThis.fetch, cookie?: string) =>
+	getJson<AdminEggBoxesResponse>('/admin/boxes', { boxes: [] }, fetchImpl, cookie);
+
 // Pre-register a user from an email + send a magic link. Returns the assigned
 // identity (username + animal) so the modal can confirm what they were given.
 export type RegisterUserResult = { id: string; username: string; animal: string; existed: boolean };
@@ -126,7 +130,10 @@ export const subscribeUserTier = (
 
 export const unsubscribeUser = (userId: string) =>
 	send(`/admin/users/${userId}/unsubscribe`, 'POST');
-export const pauseUser = (userId: string) => send(`/admin/users/${userId}/pause`, 'POST');
+// Pause a subscription. `pausedAt` (ISO) defaults to today server-side;
+// `pauseDays` sets the length (BE derives the resume date). Both optional.
+export const pauseUser = (userId: string, opts: { pausedAt?: string; pauseDays?: number } = {}) =>
+	send(`/admin/users/${userId}/pause`, 'POST', opts);
 export const resumeUser = (userId: string) => send(`/admin/users/${userId}/resume`, 'POST');
 
 // Hard-delete a user (cascades to their posts, comments, votes, orders, …).
@@ -210,6 +217,19 @@ export async function exportEggLedgerCsv(params: EggLedgerParams = {}): Promise<
 		return false;
 	}
 }
+
+// Egg-box denominations (the tap-to-add composer catalog).
+export const createBox = (input: {
+	name: string;
+	eggs: number;
+	sortOrder?: number;
+	active?: boolean;
+}) => send('/admin/boxes', 'POST', input);
+export const updateBox = (
+	id: string,
+	patch: { name?: string; eggs?: number; sortOrder?: number; active?: boolean }
+) => send(`/admin/boxes/${id}`, 'PATCH', patch);
+export const deleteBox = (id: string) => send(`/admin/boxes/${id}`, 'DELETE');
 
 export const createBenefit = (label: string, sortOrder: number) =>
 	send('/admin/benefits', 'POST', { label, sortOrder });
