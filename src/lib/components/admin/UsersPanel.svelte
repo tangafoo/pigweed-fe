@@ -649,7 +649,7 @@
 											autocapitalize="none"
 											autocomplete="off"
 											spellcheck="false"
-											class="rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1 text-sm"
+											class="w-full rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1 text-sm sm:w-1/2"
 										/>
 										<span class="text-xxs text-olf-darkgreen/45"
 											>lowercase letters, numbers, underscore · 3–30 chars</span
@@ -666,7 +666,7 @@
 											autocapitalize="none"
 											autocomplete="off"
 											spellcheck="false"
-											class="rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1 text-sm"
+											class="w-full rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1 text-sm sm:w-1/2"
 										/>
 									</label>
 									<label class="flex flex-col gap-0.5">
@@ -678,7 +678,7 @@
 											type="tel"
 											bind:value={detailsDraft.phoneNumber}
 											placeholder="+60…"
-											class="rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1 text-sm tabular-nums"
+											class="w-full rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1 text-sm tabular-nums sm:w-1/2"
 										/>
 									</label>
 									{#if detailsError}
@@ -692,7 +692,7 @@
 											onclick={() => saveDetails(u)}
 											class="flex items-center gap-1.5 rounded-md bg-olf-darkgreen px-4 py-1.5 font-oswald text-xs font-bold text-white disabled:opacity-50"
 										>
-											{#if detailsSaving}<Spinner size={13} />{/if} Save
+											Save
 										</Button>
 										<Button
 											disabled={detailsSaving}
@@ -703,65 +703,67 @@
 									</div>
 								</div>
 							{:else}
-								<div
-									class="flex items-start justify-between gap-2 font-oswald text-sm text-olf-darkgreen"
-								>
-									<div class="flex flex-col gap-3">
-										<div class="flex flex-col gap-0.5">
-											<span
-												class="text-xxs font-bold tracking-[0.2em] text-olf-darkgreen/50 uppercase"
-												>Username</span
-											>
-											<span>{u.username}</span>
-										</div>
-										<div class="flex flex-col gap-0.5">
-											<span
-												class="text-xxs font-bold tracking-[0.2em] text-olf-darkgreen/50 uppercase"
-												>Email</span
-											>
-											<span class="flex items-center gap-1.5"
-												><span class="break-all">{u.email}</span>{@render copyBtn(u.email)}</span
-											>
-										</div>
-										<div class="flex flex-col gap-0.5">
-											<span
-												class="text-xxs font-bold tracking-[0.2em] text-olf-darkgreen/50 uppercase"
-												>Phone</span
-											>
-											<span>{u.phoneNumber || '—'}</span>
-										</div>
+								<div class="flex flex-col gap-3 font-oswald text-sm text-olf-darkgreen">
+									<div class="flex flex-col gap-0.5">
+										<span
+											class="text-xxs font-bold tracking-[0.2em] text-olf-darkgreen/50 uppercase"
+											>Username</span
+										>
+										<span>{u.username}</span>
 									</div>
-									<button
-										type="button"
-										onclick={() => openDetailsEdit(u)}
-										class="flex shrink-0 cursor-pointer items-center gap-1 rounded-md border border-olf-darkgreen/20 px-2.5 py-1 font-oswald text-xs font-bold text-olf-darkgreen hover:bg-olf-darkgreen/10"
-									>
-										<Pencil size={12} class="shrink-0" /> Edit
-									</button>
+									<div class="flex flex-col gap-0.5">
+										<span
+											class="text-xxs font-bold tracking-[0.2em] text-olf-darkgreen/50 uppercase"
+											>Email</span
+										>
+										<span class="flex items-center gap-1.5"
+											><span class="break-all">{u.email}</span>{@render copyBtn(u.email)}</span
+										>
+									</div>
+									<div class="flex flex-col gap-0.5">
+										<span
+											class="text-xxs font-bold tracking-[0.2em] text-olf-darkgreen/50 uppercase"
+											>Phone</span
+										>
+										<span>{u.phoneNumber || '—'}</span>
+									</div>
 								</div>
 							{/if}
 
 							<!-- Per-user actions — Details-only (they're about the person,
 							     not the eggs/subscription views). -->
-							<div class="flex flex-wrap items-center gap-2 border-t border-olf-darkgreen/15 pt-3">
-								<a
-									href="/users/{u.id}"
-									target="_blank"
-									rel="noopener"
-									class="flex items-center gap-1.5 rounded-md border border-olf-darkgreen/20 px-3 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen hover:bg-olf-darkgreen/10"
-									><ExternalLink size={14} /> View user profile</a
-								>
-								<Button
-									disabled={busy}
-									onclick={() =>
-										run(() => admin.setUserFlags(u.id, { isFarmOwner: !u.isFarmOwner }))}
-									class="flex items-center gap-1.5 rounded-md border px-3 py-1.5 font-oswald text-xs font-bold disabled:opacity-50 {u.isFarmOwner
-										? 'border-olf-darkgreen bg-olf-darkgreen text-olf-beige'
-										: 'border-olf-darkgreen/20 text-olf-darkgreen hover:bg-olf-darkgreen/10'}"
-								>
-									<Crown size={14} />
-									{u.isFarmOwner ? 'Remove as farm owner' : 'Make farm owner?'}
-								</Button>
+							<div
+								class="flex flex-wrap items-center justify-between gap-2 border-t border-olf-darkgreen/15 pt-3"
+							>
+								<div class="flex flex-wrap items-center gap-2">
+									<a
+										href="/users/{u.id}"
+										target="_blank"
+										rel="noopener"
+										class="flex items-center gap-1.5 rounded-md border border-olf-darkgreen/20 px-3 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen hover:bg-olf-darkgreen/10"
+										><ExternalLink size={14} /> View user profile</a
+									>
+									{#if editingDetailsId !== u.id}
+										<button
+											type="button"
+											onclick={() => openDetailsEdit(u)}
+											class="flex items-center gap-1.5 rounded-md border border-olf-darkgreen/20 px-3 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen hover:bg-olf-darkgreen/10"
+										>
+											<Pencil size={14} /> Edit
+										</button>
+									{/if}
+									<Button
+										disabled={busy}
+										onclick={() =>
+											run(() => admin.setUserFlags(u.id, { isFarmOwner: !u.isFarmOwner }))}
+										class="flex items-center gap-1.5 rounded-md border px-3 py-1.5 font-oswald text-xs font-bold disabled:opacity-50 {u.isFarmOwner
+											? 'border-olf-darkgreen bg-olf-darkgreen text-olf-beige'
+											: 'border-olf-darkgreen/20 text-olf-darkgreen hover:bg-olf-darkgreen/10'}"
+									>
+										<Crown size={14} />
+										{u.isFarmOwner ? 'Remove as farm owner' : 'Make farm owner?'}
+									</Button>
+								</div>
 								<button
 									type="button"
 									onclick={() => openDelete(u)}

@@ -206,6 +206,11 @@ export const recordOrder = (
 	userId: string,
 	input: { eggs: number; unitPriceCents?: number; orderedAt?: string }
 ) => send(`/admin/users/${userId}/orders`, 'POST', input);
+// Edit a logged order (egg amount / price / date). Omitted fields are left as-is.
+export const updateOrder = (
+	orderId: string,
+	patch: { eggs?: number; unitPriceCents?: number; orderedAt?: string }
+) => send(`/admin/orders/${orderId}`, 'PATCH', patch);
 // Soft delete + restore (recoverable — mom-proofing).
 export const deleteOrder = (orderId: string) => send(`/admin/orders/${orderId}`, 'DELETE');
 export const restoreOrder = (orderId: string) => send(`/admin/orders/${orderId}/restore`, 'POST');

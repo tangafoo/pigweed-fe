@@ -2,6 +2,7 @@
 	import { Search, X } from '@lucide/svelte';
 	import { fly } from 'svelte/transition';
 	import { sineOut } from 'svelte/easing';
+	import { SvelteSet } from 'svelte/reactivity';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import * as admin from '$lib/api/admin';
@@ -57,7 +58,7 @@
 
 	// Merge local + server hits, dedupe by id, cap at `limit`.
 	const results = $derived.by(() => {
-		const seen = new Set<string>();
+		const seen = new SvelteSet<string>();
 		const out: AdminUserRow[] = [];
 		for (const u of [...localResults, ...serverResults]) {
 			if (seen.has(u.id)) continue;
