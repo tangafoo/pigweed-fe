@@ -96,6 +96,26 @@ export async function fetchGranters(
 	}
 }
 
+/**
+ * Who gifted a specific award type to a user, aggregated across all their posts
+ * + comments. Self-only + free on the BE (the profile awards section is
+ * owner-only), so no unlock gate — just returns the list (newest first).
+ */
+export async function fetchUserAwardGranters(
+	userId: string,
+	awardTypeId: string
+): Promise<Granter[]> {
+	try {
+		const res = await api(
+			`/users/${encodeURIComponent(userId)}/awards/granters?awardTypeId=${encodeURIComponent(awardTypeId)}`
+		);
+		if (!res.ok) return [];
+		return ((await res.json()) as { granters: Granter[] }).granters ?? [];
+	} catch {
+		return [];
+	}
+}
+
 export type UnlockResult = { ok: true } | { ok: false; code: 'nocoins' | 'error' };
 
 /** Spend 1 unlockCoin to permanently unlock a target's granters list. */

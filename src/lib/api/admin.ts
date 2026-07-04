@@ -5,6 +5,7 @@ import type {
 	AdminPlansResponse,
 	AdminEggLedgerResponse,
 	AdminEggBoxesResponse,
+	AdminAnalytics,
 	SubscriptionBenefit,
 	EggOrder
 } from '@meteorclass/pigweed-contract';
@@ -77,6 +78,26 @@ export const fetchAdminBenefits = (fetchImpl?: typeof globalThis.fetch, cookie?:
 export const fetchAdminBoxes = (fetchImpl?: typeof globalThis.fetch, cookie?: string) =>
 	getJson<AdminEggBoxesResponse>('/admin/boxes', { boxes: [] }, fetchImpl, cookie);
 
+const EMPTY_ANALYTICS: AdminAnalytics = {
+	generatedAt: '',
+	weekly: [],
+	customers: [],
+	totals: { revenueCents: 0, eggs: 0, orders: 0, customers: 0 },
+	window: {
+		days: 30,
+		revenueCents: 0,
+		eggs: 0,
+		orders: 0,
+		activeCustomers: 0,
+		prevRevenueCents: 0,
+		prevEggs: 0,
+		prevOrders: 0,
+		prevActiveCustomers: 0
+	}
+};
+export const fetchAdminAnalytics = (fetchImpl?: typeof globalThis.fetch, cookie?: string) =>
+	getJson<AdminAnalytics>('/admin/analytics', EMPTY_ANALYTICS, fetchImpl, cookie);
+
 // Pre-register a user from an email + send a magic link. Returns the assigned
 // identity (username + animal) so the modal can confirm what they were given.
 export type RegisterUserResult = { id: string; username: string; animal: string; existed: boolean };
@@ -145,11 +166,35 @@ export const setUserFlags = (
 ) => send(`/admin/users/${userId}/flags`, 'PATCH', flags);
 
 /**
- * Generic profile patch — partial body, only present keys change (phone
- * today; email in a future phase). Role flags stay on `setUserFlags`.
+ * Generic profile patch — partial body, only present keys change. Role flags
+ * stay on `setUserFlags`. Returns just ok/fail (used for the phone quick-edit).
  */
 export const updateUserProfile = (userId: string, patch: { phoneNumber?: string | null }) =>
 	send(`/admin/users/${userId}`, 'PATCH', patch);
+
+/**
+ * Edit a user's identity/contact details in one shot (username / email / phone).
+ * Username updates all three name columns server-side + validates format &
+ * uniqueness; email validates format & uniqueness. Returns the BE's specific
+ * error message (taken / invalid) so the form can show it inline.
+ */
+export type UpdateDetailsResult = { ok: true } | { ok: false; message: string };
+export async function updateUserDetails(
+	userId: string,
+	patch: { username?: string; email?: string; phoneNumber?: string | null }
+): Promise<UpdateDetailsResult> {
+	try {
+		const res = await api(`/admin/users/${userId}`, {
+			method: 'PATCH',
+			body: JSON.stringify(patch)
+		});
+		if (res.ok) return { ok: true };
+		const data = (await res.json().catch(() => null)) as { error?: string } | null;
+		return { ok: false, message: data?.error ?? 'Could not save. Try again.' };
+	} catch {
+		return { ok: false, message: 'Network error — try again.' };
+	}
+}
 
 // Egg order ledger.
 export async function fetchOrders(userId: string): Promise<EggOrder[]> {

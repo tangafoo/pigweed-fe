@@ -1,6 +1,6 @@
 import { createAuthClient } from 'better-auth/svelte';
 import { passkeyClient } from '@better-auth/passkey/client';
-import { usernameClient, magicLinkClient } from 'better-auth/client/plugins';
+import { usernameClient, magicLinkClient, emailOTPClient } from 'better-auth/client/plugins';
 import { api, API_BASE } from './client';
 import type { Session, Animal, Gender, MyEggStats } from '@meteorclass/pigweed-contract';
 
@@ -21,7 +21,7 @@ export type { Animal, Gender, SessionUser, Session } from '@meteorclass/pigweed-
  */
 export const authClient = createAuthClient({
 	baseURL: API_BASE,
-	plugins: [usernameClient(), passkeyClient(), magicLinkClient()]
+	plugins: [usernameClient(), passkeyClient(), magicLinkClient(), emailOTPClient()]
 });
 
 function parseSession(data: unknown): Session | null {

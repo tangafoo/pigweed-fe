@@ -78,6 +78,12 @@ Yak never had.
 
 ## Visual identity — non-negotiable
 
+- **Readable text first, beautiful UI second — especially in the admin
+  panel.** The admin (the farm owner) is ~49; the admin panel is a work
+  tool she uses daily. Default to legible sizes there (`text-sm`+ for real
+  content; avoid `text-xxs`/`text-[9px]` for anything she must read — reserve
+  those for incidental chrome). When readability and a tighter layout
+  conflict in the admin surfaces, readability wins.
 - **Heavy SVG, GSAP-animated, math-driven.** Visual state _derives_ from
   data state. The backend stays numeric; the frontend goes feral.
 - **No whitespace.** Every surface is deliberately, saturatedly colored.

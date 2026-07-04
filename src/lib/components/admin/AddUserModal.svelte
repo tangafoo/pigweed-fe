@@ -130,7 +130,7 @@
 			<div class="flex flex-col gap-3">
 				<p class="font-oswald text-sm">
 					{result.existed ? 'That email already had an account.' : 'Registered!'} A magic-link sign-in
-					was emailed to <b>{email}</b>.
+					was emailed to <b>{email}</b> — they can leave a review straight away. ⭐
 				</p>
 				<div class="rounded-lg bg-olf-darkgreen/5 px-4 py-3 font-oswald text-sm">
 					They join as <b>{result.username}</b>, a <b>{result.animal.toLowerCase()}</b> 🐣
