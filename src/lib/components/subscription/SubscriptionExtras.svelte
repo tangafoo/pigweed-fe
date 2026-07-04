@@ -19,6 +19,9 @@
 	let { subscription: sub, stats }: SubscriptionExtrasProps = $props();
 
 	const eggs = $derived(stats.totalEggs ?? 0);
+	// Hero shows the friendly BOX count (10 eggs/box) — a big raw egg number
+	// reads alarmingly. The fun-facts carousel below still plays off egg counts.
+	const boxes = $derived(Math.floor(eggs / 10));
 	const facts = $derived(eggStats(eggs));
 	const trivia = $derived(eggTrivia(eggs));
 	const startedLabel = $derived(
@@ -55,10 +58,10 @@
 			>
 			<div class="flex flex-col leading-none">
 				<span class="font-supermercado-one text-5xl text-olf-darkgreen">
-					<RollingNumber text={String(eggs)} />
+					<RollingNumber text={String(boxes)} />
 				</span>
 				<span class="mt-1 font-oswald text-xs tracking-[0.2em] text-olf-darkgreen/60 uppercase">
-					{m.subscribe_stats_eggs_label()}
+					{m.subscribe_stats_boxes_label()}
 				</span>
 			</div>
 		</div>

@@ -106,11 +106,6 @@
 		{/if}
 	</div>
 
-	<p class="max-w-prose font-oswald text-sm text-olf-darkgreen/70">
-		The box shortcuts on every egg-order screen. Tapping a box adds its eggs to the order — odd
-		counts are always still typeable. The 30 box is the “Tray”.
-	</p>
-
 	<div class="overflow-hidden rounded-2xl bg-olf-beige shadow">
 		<!-- Column headers -->
 		<div

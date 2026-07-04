@@ -19,7 +19,7 @@
 	}: { userId: string; boxes?: AdminBox[]; onsaved?: (count: number) => void } = $props();
 
 	type OrderDraft = { eggs: number; date: string };
-	let drafts = $state<OrderDraft[]>([{ eggs: 30, date: '' }]);
+	let drafts = $state<OrderDraft[]>([{ eggs: 0, date: '' }]);
 	// Row-input unit: eggs, or RM (reverse — type what the customer paid, get
 	// eggs at the batch price). Boxes are composed via the BoxPicker chips
 	// (admin denominations), so there's no ambiguous "1 box = 30" unit anymore.
@@ -37,7 +37,7 @@
 	const validDrafts = $derived(drafts.filter((d) => d.eggs > 0).length);
 
 	function reset() {
-		drafts = [{ eggs: 30, date: '' }];
+		drafts = [{ eggs: 0, date: '' }];
 		unit = 'eggs';
 	}
 	// The row's displayed value in the current unit (eggs are canonical).
@@ -150,9 +150,9 @@
 							type="button"
 							onclick={() => (d.eggs = 0)}
 							title="Clear this row"
-							class="flex cursor-pointer items-center gap-1 font-oswald text-xxs font-bold text-olf-darkgreen/50 hover:text-olf-darkbrown"
+							class="flex cursor-pointer items-center gap-1 font-oswald text-sm font-bold text-olf-darkgreen/50 hover:text-olf-darkbrown"
 						>
-							<RotateCcw size={11} class="shrink-0" /> clear
+							<RotateCcw size={13} class="shrink-0" /> clear
 						</button>
 					{/if}
 				</div>
@@ -163,7 +163,7 @@
 	<div class="flex flex-wrap items-center gap-2">
 		<button
 			type="button"
-			onclick={() => (drafts = [...drafts, { eggs: 30, date: '' }])}
+			onclick={() => (drafts = [...drafts, { eggs: 0, date: '' }])}
 			class="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-olf-darkgreen/20 px-3 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen hover:bg-olf-darkgreen/10"
 		>
 			<Plus size={14} /> Add more

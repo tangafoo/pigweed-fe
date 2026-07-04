@@ -39,8 +39,21 @@
 	// 2.00, so let the admin just type it; `calcPrice` is the parsed number.
 	let calcPriceStr = $state('2.00');
 	const calcPrice = $derived(parseFloat(calcPriceStr) || 0);
-	let calcEggs = $state(30);
+	let calcEggs = $state(0);
 	let calcWeeks = $state(4);
+
+	// Total-eggs gauge unit swapper: view the flock's lifetime intake as raw eggs
+	// or in any admin box denomination (10 / 15 / Tray). null = eggs.
+	const gaugeBoxes = $derived([...boxes].filter((b) => b.active).sort((a, b) => a.eggs - b.eggs));
+	let gaugeBoxId = $state<string | null>(null);
+	const gaugeBox = $derived(gaugeBoxes.find((b) => b.id === gaugeBoxId) ?? null);
+	const gaugeValue = $derived(gaugeBox ? Math.floor(totalEggs / gaugeBox.eggs) : totalEggs);
+	const gaugeUnit = $derived(gaugeBox ? `${gaugeBox.name} · ${gaugeBox.eggs}🥚` : 'eggs sold');
+	// Tapping the big number cycles the unit: eggs → each box denomination → back.
+	function cycleGaugeUnit() {
+		const ids: (string | null)[] = [null, ...gaugeBoxes.map((b) => b.id)];
+		gaugeBoxId = ids[(ids.indexOf(gaugeBoxId) + 1) % ids.length];
+	}
 
 	// Primary-input unit — what the admin is TYPING. Eggs compute money
 	// (forward); RM computes eggs (reverse: floor(amount / price), a partial
@@ -487,6 +500,35 @@
 
 		<!-- Gauge + milestone (right column) -->
 		<div class="flex flex-col items-center gap-4">
+			<!-- Unit swapper: eggs, or lifetime intake counted in a box denomination -->
+			{#if gaugeBoxes.length}
+				<div
+					class="flex flex-wrap justify-center gap-1 rounded-full bg-olf-darkgreen/10 p-1 font-oswald text-sm font-bold"
+				>
+					<button
+						type="button"
+						onclick={() => (gaugeBoxId = null)}
+						aria-pressed={gaugeBoxId === null}
+						class="cursor-pointer rounded-full px-3 py-1 transition-colors {gaugeBoxId === null
+							? 'bg-olf-darkgreen text-olf-eggshell'
+							: 'text-olf-darkgreen/70 hover:bg-olf-darkgreen/10'}"
+					>
+						🥚 Eggs
+					</button>
+					{#each gaugeBoxes as b (b.id)}
+						<button
+							type="button"
+							onclick={() => (gaugeBoxId = b.id)}
+							aria-pressed={gaugeBoxId === b.id}
+							class="cursor-pointer rounded-full px-3 py-1 transition-colors {gaugeBoxId === b.id
+								? 'bg-olf-darkgreen text-olf-eggshell'
+								: 'text-olf-darkgreen/70 hover:bg-olf-darkgreen/10'}"
+						>
+							{b.name}
+						</button>
+					{/each}
+				</div>
+			{/if}
 			<!-- Total eggs gauge -->
 			<div class="relative flex size-64 shrink-0 items-center justify-center">
 				<svg viewBox="0 0 220 220" class="size-full -rotate-90">
@@ -512,13 +554,22 @@
 						class="text-olf-yolk transition-[stroke-dashoffset] duration-1000 ease-out"
 					/>
 				</svg>
-				<div class="absolute flex flex-col items-center text-center">
-					<span class="text-3xl">🥚</span>
-					<span class="font-supermercado-one text-5xl leading-none text-olf-darkgreen tabular-nums">
-						<RollingNumber text={String(totalEggs)} />
-					</span>
+				<div class="absolute flex flex-col items-center px-6 text-center">
+					<span class="text-3xl">{gaugeBox ? '📦' : '🥚'}</span>
+					<!-- Tap the number to cycle eggs → box denominations → back. -->
+					<button
+						type="button"
+						onclick={cycleGaugeUnit}
+						disabled={gaugeBoxes.length === 0}
+						title="Tap to switch unit"
+						class="font-supermercado-one text-5xl leading-none text-olf-darkgreen tabular-nums {gaugeBoxes.length
+							? 'cursor-pointer'
+							: ''}"
+					>
+						<RollingNumber text={String(gaugeValue)} />
+					</button>
 					<span class="mt-1 font-oswald text-xs tracking-widest text-olf-darkgreen/60 uppercase">
-						eggs eaten
+						{gaugeUnit}
 					</span>
 				</div>
 			</div>

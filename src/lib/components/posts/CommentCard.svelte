@@ -12,6 +12,7 @@
 	import { setCommentVote, clearCommentVote } from '$lib/api/votes';
 	import { asset } from '$lib/config/assets';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
+	import Badge from '$lib/components/posts/Badge.svelte';
 	import AwardModal from '$lib/components/posts/AwardModal.svelte';
 	import AwardGrantersModal from '$lib/components/posts/AwardGrantersModal.svelte';
 	import CommentComposer from '$lib/components/posts/CommentComposer.svelte';
@@ -132,20 +133,14 @@
 					{node.author.username}
 				</a>
 				{#if node.author.isFarmOwner}
-					<span
-						class="shrink-0 rounded bg-olf-darkgreen px-1.5 font-oswald text-xxs font-bold tracking-wider text-white"
-						title={m.posts_op_tooltip()}
-					>
-						{m.posts_op_badge()}
-					</span>
+					<Badge variant="owner" label={m.posts_op_badge()} title={m.posts_op_tooltip()} />
 				{/if}
 				{#if node.author.isFoundingFlock}
-					<span
-						class="shrink-0 rounded bg-olf-yolk px-1.5 font-oswald text-xxs font-bold tracking-wider text-olf-eggshell"
+					<Badge
+						variant="founder"
+						label={m.subscribe_founder_badge()}
 						title={m.subscribe_founder_tooltip()}
-					>
-						{m.subscribe_founder_badge()}
-					</span>
+					/>
 				{/if}
 			{/if}
 			<time

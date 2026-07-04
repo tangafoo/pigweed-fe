@@ -10,12 +10,13 @@
 		Shield,
 		FileText,
 		Star,
-		MessageSquare,
 		Search,
 		Plus,
 		Trash2,
 		ChevronDown,
 		ChevronRight,
+		ChevronUp,
+		ChevronsUpDown,
 		CalendarDays,
 		Check,
 		Copy,
@@ -34,7 +35,6 @@
 		adminUrlWith,
 		createBusyRunner,
 		orderDateLabel,
-		SORT_SELECT,
 		type AdminPlan
 	} from '$lib/components/admin/shared.svelte';
 	import * as admin from '$lib/api/admin';
@@ -92,21 +92,41 @@
 			.catch(() => {});
 	}
 
-	// Inline phone edit (Details tab) — admins log walk-up customers' numbers.
-	let phoneEditId = $state<string | null>(null);
-	let phoneDraft = $state('');
-	function startPhoneEdit(u: AdminUserRow) {
-		phoneEditId = u.id;
-		phoneDraft = u.phoneNumber ?? '';
+	// Batch "Edit details" (Details tab) — username + email + phone in one form.
+	// Only changed fields are sent; the BE validates username (format+unique,
+	// syncs the 3 name columns) and email (format+unique).
+	let editingDetailsId = $state<string | null>(null);
+	let detailsDraft = $state({ username: '', email: '', phoneNumber: '' });
+	let detailsError = $state('');
+	let detailsSaving = $state(false);
+	function openDetailsEdit(u: AdminUserRow) {
+		editingDetailsId = u.id;
+		detailsError = '';
+		detailsDraft = { username: u.username, email: u.email, phoneNumber: u.phoneNumber ?? '' };
 	}
-	async function savePhone(u: AdminUserRow) {
-		const next = phoneDraft.trim();
-		if (next === (u.phoneNumber ?? '')) {
-			phoneEditId = null;
+	async function saveDetails(u: AdminUserRow) {
+		if (detailsSaving) return;
+		const patch: { username?: string; email?: string; phoneNumber?: string | null } = {};
+		const uname = detailsDraft.username.trim().toLowerCase();
+		const email = detailsDraft.email.trim().toLowerCase();
+		const phone = detailsDraft.phoneNumber.trim();
+		if (uname !== u.username) patch.username = uname;
+		if (email !== u.email) patch.email = email;
+		if (phone !== (u.phoneNumber ?? '')) patch.phoneNumber = phone || null;
+		if (Object.keys(patch).length === 0) {
+			editingDetailsId = null;
 			return;
 		}
-		await run(() => admin.updateUserProfile(u.id, { phoneNumber: next || null }));
-		phoneEditId = null;
+		detailsSaving = true;
+		detailsError = '';
+		const res = await admin.updateUserDetails(u.id, patch);
+		detailsSaving = false;
+		if (res.ok) {
+			editingDetailsId = null;
+			await invalidateAll();
+		} else {
+			detailsError = res.message;
+		}
 	}
 
 	// Subscription form (Subscription tab).
@@ -282,40 +302,47 @@
 	let adminsOpen = $state(false);
 	let usersOpen = $state(true);
 
-	// Client-side sort of the loaded page (the base is small, so the page is
-	// effectively everyone). Default: newest first ("date added").
-	const SORTS = [
-		{ id: 'date', label: 'Newest' },
-		{ id: 'subscribed', label: 'Subscribed' },
-		{ id: 'reviews', label: 'Most reviews' },
-		{ id: 'posts', label: 'Most posts' },
-		{ id: 'coins', label: 'Most coins' }
-	] as const;
-	type SortId = (typeof SORTS)[number]['id'];
-	let userSort = $state<SortId>('date');
-	let adminSort = $state<SortId>('date');
-	const byDate = (a: AdminUserRow, b: AdminUserRow) =>
-		+new Date(b.createdAt) - +new Date(a.createdAt);
-	function sortUsers(list: AdminUserRow[], sort: SortId): AdminUserRow[] {
-		const arr = [...list];
-		switch (sort) {
-			case 'subscribed':
-				return arr.sort(
-					(a, b) =>
-						(b.subscription?.status === 'ACTIVE' ? 1 : 0) -
-							(a.subscription?.status === 'ACTIVE' ? 1 : 0) || byDate(a, b)
-				);
-			case 'reviews':
-				return arr.sort((a, b) => b.reviewCount - a.reviewCount || byDate(a, b));
-			case 'posts':
-				return arr.sort((a, b) => b.postCount - a.postCount || byDate(a, b));
-			case 'coins':
-				return arr.sort((a, b) => b.coinBalance - a.coinBalance || byDate(a, b));
-			default:
-				return arr.sort(byDate);
+	// Click-to-sort the loaded page by any column (asc/desc), matching the eggs
+	// table. Sort is client-side over the loaded page (the base is small).
+	type SortField = 'date' | 'customer' | 'posts' | 'reviews' | 'eggs' | 'subscribed';
+	let userSortField = $state<SortField>('date');
+	let userSortDir = $state<'asc' | 'desc'>('desc');
+	function toggleUserSort(f: SortField) {
+		if (userSortField === f) userSortDir = userSortDir === 'asc' ? 'desc' : 'asc';
+		else {
+			userSortField = f;
+			// Names read best A→Z; counts/dates most-first.
+			userSortDir = f === 'customer' ? 'asc' : 'desc';
 		}
 	}
-	const sortedAdmins = $derived(sortUsers(admins, adminSort));
+	const sortVal = (u: AdminUserRow, f: SortField): number | string => {
+		switch (f) {
+			case 'customer':
+				return u.username.toLowerCase();
+			case 'posts':
+				return u.postCount;
+			case 'reviews':
+				return u.reviewCount;
+			case 'eggs':
+				return u.eggsEaten;
+			case 'subscribed':
+				return u.subscription?.status === 'ACTIVE' ? 1 : 0;
+			default:
+				return +new Date(u.createdAt);
+		}
+	};
+	function sortUsers(list: AdminUserRow[], field: SortField, dir: 'asc' | 'desc'): AdminUserRow[] {
+		const s = dir === 'asc' ? 1 : -1;
+		return [...list].sort((a, b) => {
+			const av = sortVal(a, field);
+			const bv = sortVal(b, field);
+			if (av < bv) return -s;
+			if (av > bv) return s;
+			return +new Date(b.createdAt) - +new Date(a.createdAt); // stable tiebreak
+		});
+	}
+	// Admins are rarely touched — always newest-first.
+	const sortedAdmins = $derived(sortUsers(admins, 'date', 'desc'));
 	// Users group: filter by the search box (scoped here, admins untouched), then sort.
 	const filteredRegular = $derived.by(() => {
 		const q = searchQ.trim().toLowerCase();
@@ -324,7 +351,36 @@
 			(u) => u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
 		);
 	});
-	const sortedRegular = $derived(sortUsers(filteredRegular, userSort));
+	const sortedRegular = $derived(sortUsers(filteredRegular, userSortField, userSortDir));
+
+	// Shared column template so the header and every row line up as a real table.
+	// Mobile: [avatar | customer | subscribed | actions] (stats hidden). md+: the
+	// full 8 columns. Header + rows both apply MD_COLS so cells align exactly.
+	// NOTE: every column is a FIXED width (no `auto`) so the header (empty
+	// actions cell) and the rows (delete+chevron) reserve identical space —
+	// otherwise the 1fr customer column differs and shifts every column after it.
+	const MD_COLS = 'md:grid-cols-[4rem_minmax(0,1fr)_3rem_3rem_4.5rem_5rem_8rem_4.5rem]';
+	const ROW_GRID = `grid grid-cols-[3rem_minmax(0,1fr)_auto_auto] items-center gap-2 ${MD_COLS} md:gap-3`;
+	const joinedShort = (iso: string) =>
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- transient formatting
+		new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+
+	// Client-side paging over the loaded/filtered set — default 10 rows.
+	const PAGE_SIZES = [10, 25, 50];
+	let pageSize = $state(10);
+	let clientPage = $state(1);
+	// Any filter/sort/size change resets to the first page.
+	$effect(() => {
+		searchQ;
+		userSortField;
+		userSortDir;
+		pageSize;
+		clientPage = 1;
+	});
+	const clientPages = $derived(Math.max(1, Math.ceil(sortedRegular.length / pageSize)));
+	const pagedRegular = $derived(
+		sortedRegular.slice((clientPage - 1) * pageSize, clientPage * pageSize)
+	);
 
 	const statusClass = (s?: string) =>
 		s === 'ACTIVE'
@@ -354,6 +410,44 @@
 		</button>
 	{/snippet}
 
+	<!-- Clickable column header — toggles sort field/direction (like the eggs table). -->
+	{#snippet sortTh(label: string, field: SortField, extra = '')}
+		<button
+			type="button"
+			onclick={() => toggleUserSort(field)}
+			class="flex cursor-pointer items-center gap-0.5 tracking-widest uppercase transition-colors hover:text-olf-darkgreen {userSortField ===
+			field
+				? 'text-olf-darkgreen'
+				: ''} {extra}"
+		>
+			<span>{label}</span>
+			{#if userSortField === field}
+				{#if userSortDir === 'asc'}<ChevronUp size={12} class="shrink-0" />{:else}<ChevronDown
+						size={12}
+						class="shrink-0"
+					/>{/if}
+			{:else}
+				<ChevronsUpDown size={12} class="shrink-0 opacity-40" />
+			{/if}
+		</button>
+	{/snippet}
+
+	<!-- Table header row — same grid columns as the rows (md+ only). -->
+	{#snippet usersHeader()}
+		<div
+			class="hidden {MD_COLS} border-b border-olf-darkgreen/10 bg-olf-darkgreen/5 px-3 py-2 font-oswald text-xxs font-bold text-olf-darkgreen/50 md:grid md:items-center md:gap-3"
+		>
+			<span></span>
+			{@render sortTh('Customer', 'customer')}
+			<div class="flex justify-center">{@render sortTh('Posts', 'posts')}</div>
+			<div class="flex justify-center">{@render sortTh('Reviews', 'reviews')}</div>
+			<div class="flex justify-center">{@render sortTh('Eggs', 'eggs')}</div>
+			<div class="flex justify-center">{@render sortTh('Added', 'date')}</div>
+			<div class="flex justify-center">{@render sortTh('Subscribed', 'subscribed')}</div>
+			<span></span>
+		</div>
+	{/snippet}
+
 	{#snippet userRow(u: AdminUserRow, i: number)}
 		<div
 			in:slide|global={{ duration: 220, delay: i * 35, easing: sineOut }}
@@ -369,15 +463,13 @@
 						openExpand(u, 'details');
 					}
 				}}
-				class="flex flex-wrap items-center gap-4 px-3 py-2.5 transition-colors hover:bg-olf-darkgreen/5 {expandedId ===
+				class="{ROW_GRID} px-3 py-2.5 transition-colors hover:bg-olf-darkgreen/5 {expandedId ===
 				u.id
 					? 'bg-olf-darkgreen/5'
 					: ''}"
 			>
-				<!-- Batch-select + avatar share a TIGHT inner gap (the row's gap-4 was
-				     too airy between these two on mobile); rowClick ignores inputs,
-				     so the checkbox never toggles the expand card. -->
-				<span class="flex shrink-0 items-center gap-2">
+				<!-- 1 · batch-select + avatar -->
+				<span class="flex shrink-0 items-center gap-1.5">
 					<input
 						type="checkbox"
 						checked={selectedIds.has(u.id)}
@@ -387,7 +479,8 @@
 					/>
 					<Avatar animal={u.animal} avatarSeed={u.avatarSeed} gender={u.gender} size="sm" />
 				</span>
-				<div class="min-w-0 flex-1">
+				<!-- 2 · customer -->
+				<div class="min-w-0">
 					<span class="flex items-center gap-1.5">
 						<span class="truncate font-supermercado-one text-sm">{u.username}</span>
 						{#if u.isFoundingFlock}<span title="Founding flock"
@@ -407,73 +500,83 @@
 						<span class="block truncate font-oswald text-xxs opacity-50">📱 {u.phoneNumber}</span>
 					{/if}
 				</div>
-
-				<div class="hidden items-center gap-4 font-oswald text-xs text-olf-darkgreen/70 md:flex">
-					<span class="flex items-center gap-1" title="Posts"
-						><FileText size={13} />{u.postCount}</span
-					>
-					<span class="flex items-center gap-1" title="Reviews"
-						><Star size={13} />{u.reviewCount}</span
-					>
-					<span class="flex items-center gap-1" title="Comments"
-						><MessageSquare size={13} />{u.commentCount}</span
-					>
-					<button
-						type="button"
-						onclick={() => openExpand(u, 'eggs')}
-						class="flex items-center gap-1 rounded-md px-1 font-bold text-olf-darkgreen hover:bg-olf-darkgreen/10"
-						title="Eggs eaten — view order history"
-					>
-						🥚 {u.eggsEaten}
-					</button>
-					{#if u.lastOrderAt}
-						<span class="flex items-center gap-1" title="Last order">
-							<CalendarDays size={13} />{new Date(u.lastOrderAt).toLocaleDateString(undefined, {
-								day: 'numeric',
-								month: 'short'
-							})}
-						</span>
-					{/if}
-				</div>
-
-				<div class="flex flex-wrap items-center justify-end gap-3">
-					<!-- Checkbox reflects subscribed state and OPENS the Subscription tab
-					     (never toggles directly). preventDefault keeps it bound to data. -->
-					<label class="flex cursor-pointer items-center gap-1.5 font-oswald text-xs">
-						<input
-							type="checkbox"
-							checked={u.subscription?.status === 'ACTIVE'}
-							onclick={(e) => {
-								e.preventDefault();
-								openExpand(u, 'subscription');
-							}}
-							class="size-4 rounded text-olf-moss focus:ring-olf-moss"
-						/>
-						subscribed
-					</label>
-					<!-- Pause / resume shortcut — pause opens the config modal; resume is
-					     instant. Only shown when there's a subscription to act on. -->
+				<!-- 3 · posts -->
+				<span
+					class="hidden items-center justify-center gap-1 font-oswald text-xs text-olf-darkgreen/70 tabular-nums md:flex"
+					title="Posts"><FileText size={13} class="shrink-0" />{u.postCount}</span
+				>
+				<!-- 4 · reviews -->
+				<span
+					class="hidden items-center justify-center gap-1 font-oswald text-xs text-olf-darkgreen/70 tabular-nums md:flex"
+					title="Reviews"><Star size={13} class="shrink-0" />{u.reviewCount}</span
+				>
+				<!-- 5 · eggs (opens the eggs tab) -->
+				<button
+					type="button"
+					onclick={() => openExpand(u, 'eggs')}
+					class="hidden items-center justify-center gap-1 rounded-md font-oswald text-xs font-bold text-olf-darkgreen tabular-nums hover:bg-olf-darkgreen/10 md:flex"
+					title="Eggs sold — view order history">🥚 {u.eggsEaten}</button
+				>
+				<!-- 6 · added (join date) -->
+				<span
+					class="hidden items-center justify-center gap-1 font-oswald text-xs text-olf-darkgreen/70 tabular-nums md:flex"
+					title="Joined"><CalendarDays size={13} class="shrink-0" />{joinedShort(u.createdAt)}</span
+				>
+				<!-- 7 · subscribed pill + pause/resume shortcut -->
+				<div class="flex items-center justify-center gap-1.5">
 					{#if u.subscription?.status === 'ACTIVE'}
+						<button
+							type="button"
+							onclick={() => openExpand(u, 'subscription')}
+							class="cursor-pointer rounded-full bg-olf-darkgreen px-2.5 py-1 font-oswald text-xs font-bold tracking-wide text-olf-eggshell uppercase transition-colors hover:bg-olf-moss"
+						>
+							subscribed
+						</button>
 						<button
 							type="button"
 							onclick={() => (pauseModalUser = u)}
 							aria-label="Pause subscription"
 							title="Pause subscription"
-							class="flex size-8 items-center justify-center rounded-lg text-olf-yolk hover:bg-olf-yolk/15"
+							class="flex size-7 items-center justify-center rounded-lg text-olf-yolk hover:bg-olf-yolk/15"
 						>
 							<PauseCircle size={16} />
 						</button>
 					{:else if u.subscription?.status === 'PAUSED'}
 						<button
 							type="button"
+							onclick={() => openExpand(u, 'subscription')}
+							class="cursor-pointer rounded-full bg-olf-yolk px-2.5 py-1 font-oswald text-xs font-bold tracking-wide text-olf-darkgreen uppercase transition-colors hover:brightness-105"
+						>
+							paused
+						</button>
+						<button
+							type="button"
 							onclick={() => run(() => admin.resumeUser(u.id))}
 							aria-label="Resume subscription"
 							title={pauseWindowLabel(u.subscription)}
-							class="flex size-8 items-center justify-center rounded-lg text-olf-moss hover:bg-olf-moss/15"
+							class="flex size-7 items-center justify-center rounded-lg text-olf-moss hover:bg-olf-moss/15"
 						>
 							<Play size={16} />
 						</button>
+					{:else}
+						<label
+							class="flex cursor-pointer items-center gap-1.5 font-oswald text-xs text-olf-darkgreen"
+						>
+							<input
+								type="checkbox"
+								checked={false}
+								onclick={(e) => {
+									e.preventDefault();
+									openExpand(u, 'subscription');
+								}}
+								class="size-4 rounded text-olf-moss focus:ring-olf-moss"
+							/>
+							subscribe
+						</label>
 					{/if}
+				</div>
+				<!-- 8 · actions -->
+				<div class="flex items-center justify-end gap-1">
 					<button
 						type="button"
 						onclick={() => openDelete(u)}
@@ -534,56 +637,109 @@
 						<!-- Contact card: the who-is-this basics, copyable email, and an
 						     editable phone (walk-up customers give it verbally). -->
 						<div class="flex flex-col gap-3 font-oswald text-sm text-olf-darkgreen">
-							<div class="flex flex-col gap-0.5">
-								<span class="text-xxs font-bold tracking-[0.2em] text-olf-darkgreen/50 uppercase"
-									>Username</span
-								>
-								<span>{u.username}</span>
-							</div>
-							<div class="flex flex-col gap-0.5">
-								<span class="text-xxs font-bold tracking-[0.2em] text-olf-darkgreen/50 uppercase"
-									>Email</span
-								>
-								<span class="flex items-center gap-1.5">
-									<span class="break-all">{u.email}</span>
-									{@render copyBtn(u.email)}
-								</span>
-							</div>
-							<div class="flex flex-col gap-0.5">
-								<span class="text-xxs font-bold tracking-[0.2em] text-olf-darkgreen/50 uppercase"
-									>Phone</span
-								>
-								{#if phoneEditId === u.id}
-									<span class="flex items-center gap-2">
-										{#if busy}<Spinner size={12} />{/if}
-										<!-- svelte-ignore a11y_autofocus -->
+							{#if editingDetailsId === u.id}
+								<div class="flex flex-col gap-3 font-oswald text-sm text-olf-darkgreen">
+									<label class="flex flex-col gap-0.5">
+										<span
+											class="text-xxs font-bold tracking-[0.2em] text-olf-darkgreen/50 uppercase"
+											>Username</span
+										>
+										<input
+											bind:value={detailsDraft.username}
+											autocapitalize="none"
+											autocomplete="off"
+											spellcheck="false"
+											class="rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1 text-sm"
+										/>
+										<span class="text-xxs text-olf-darkgreen/45"
+											>lowercase letters, numbers, underscore · 3–30 chars</span
+										>
+									</label>
+									<label class="flex flex-col gap-0.5">
+										<span
+											class="text-xxs font-bold tracking-[0.2em] text-olf-darkgreen/50 uppercase"
+											>Email</span
+										>
+										<input
+											type="email"
+											bind:value={detailsDraft.email}
+											autocapitalize="none"
+											autocomplete="off"
+											spellcheck="false"
+											class="rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1 text-sm"
+										/>
+									</label>
+									<label class="flex flex-col gap-0.5">
+										<span
+											class="text-xxs font-bold tracking-[0.2em] text-olf-darkgreen/50 uppercase"
+											>Phone</span
+										>
 										<input
 											type="tel"
-											bind:value={phoneDraft}
-											onblur={() => savePhone(u)}
-											onkeydown={(e) => {
-												if (e.key === 'Enter') savePhone(u);
-												else if (e.key === 'Escape') phoneEditId = null;
-											}}
+											bind:value={detailsDraft.phoneNumber}
 											placeholder="+60…"
-											autofocus
-											class="w-48 rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1 text-sm tabular-nums"
+											class="rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1 text-sm tabular-nums"
 										/>
-									</span>
-								{:else}
-									<span class="flex items-center gap-1.5">
-										<span>{u.phoneNumber || '—'}</span>
-										<button
-											type="button"
-											onclick={() => startPhoneEdit(u)}
-											aria-label="Edit phone"
-											class="inline-flex shrink-0 cursor-pointer text-olf-darkgreen/40 hover:text-olf-darkgreen"
+									</label>
+									{#if detailsError}
+										<p class="rounded-lg bg-red-700 px-3 py-2 font-oswald text-xs text-white">
+											{detailsError}
+										</p>
+									{/if}
+									<div class="flex gap-2">
+										<Button
+											disabled={detailsSaving}
+											onclick={() => saveDetails(u)}
+											class="flex items-center gap-1.5 rounded-md bg-olf-darkgreen px-4 py-1.5 font-oswald text-xs font-bold text-white disabled:opacity-50"
 										>
-											<Pencil size={12} class="shrink-0" />
-										</button>
-									</span>
-								{/if}
-							</div>
+											{#if detailsSaving}<Spinner size={13} />{/if} Save
+										</Button>
+										<Button
+											disabled={detailsSaving}
+											onclick={() => (editingDetailsId = null)}
+											class="rounded-md px-3 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen/70 hover:text-olf-darkgreen"
+											>Cancel</Button
+										>
+									</div>
+								</div>
+							{:else}
+								<div
+									class="flex items-start justify-between gap-2 font-oswald text-sm text-olf-darkgreen"
+								>
+									<div class="flex flex-col gap-3">
+										<div class="flex flex-col gap-0.5">
+											<span
+												class="text-xxs font-bold tracking-[0.2em] text-olf-darkgreen/50 uppercase"
+												>Username</span
+											>
+											<span>{u.username}</span>
+										</div>
+										<div class="flex flex-col gap-0.5">
+											<span
+												class="text-xxs font-bold tracking-[0.2em] text-olf-darkgreen/50 uppercase"
+												>Email</span
+											>
+											<span class="flex items-center gap-1.5"
+												><span class="break-all">{u.email}</span>{@render copyBtn(u.email)}</span
+											>
+										</div>
+										<div class="flex flex-col gap-0.5">
+											<span
+												class="text-xxs font-bold tracking-[0.2em] text-olf-darkgreen/50 uppercase"
+												>Phone</span
+											>
+											<span>{u.phoneNumber || '—'}</span>
+										</div>
+									</div>
+									<button
+										type="button"
+										onclick={() => openDetailsEdit(u)}
+										class="flex shrink-0 cursor-pointer items-center gap-1 rounded-md border border-olf-darkgreen/20 px-2.5 py-1 font-oswald text-xs font-bold text-olf-darkgreen hover:bg-olf-darkgreen/10"
+									>
+										<Pencil size={12} class="shrink-0" /> Edit
+									</button>
+								</div>
+							{/if}
 
 							<!-- Per-user actions — Details-only (they're about the person,
 							     not the eggs/subscription views). -->
@@ -777,12 +933,10 @@
 				{#if adminsOpen}<ChevronDown size={16} />{:else}<ChevronRight size={16} />{/if}
 				Admins ({admins.length})
 			</Button>
-			<select bind:value={adminSort} aria-label="Sort admins" class={SORT_SELECT}>
-				{#each SORTS as srt (srt.id)}<option value={srt.id}>{srt.label}</option>{/each}
-			</select>
 		</div>
 		{#if adminsOpen && mounted}
-			<div class="rounded-xl border border-olf-darkgreen/10 bg-olf-eggshell/60">
+			<div class="overflow-hidden rounded-xl border border-olf-darkgreen/10 bg-olf-eggshell/60">
+				{@render usersHeader()}
 				{#each sortedAdmins as u, i (u.id)}{@render userRow(u, i)}{/each}
 				{#if admins.length === 0}
 					<p class="px-3 py-4 font-oswald text-xs text-olf-darkgreen/50">No admins on this page.</p>
@@ -844,14 +998,12 @@
 							})}
 					/>
 				</div>
-				<select bind:value={userSort} aria-label="Sort users" class={SORT_SELECT}>
-					{#each SORTS as srt (srt.id)}<option value={srt.id}>{srt.label}</option>{/each}
-				</select>
 			</div>
 		</div>
 		{#if usersOpen && mounted}
-			<div class="rounded-xl border border-olf-darkgreen/10 bg-olf-eggshell/60">
-				{#each sortedRegular as u, i (u.id)}{@render userRow(u, i)}{/each}
+			<div class="overflow-hidden rounded-xl border border-olf-darkgreen/10 bg-olf-eggshell/60">
+				{@render usersHeader()}
+				{#each pagedRegular as u, i (u.id)}{@render userRow(u, i)}{/each}
 				{#if regular.length === 0}
 					<p class="px-3 py-4 font-oswald text-xs text-olf-darkgreen/50">No users found.</p>
 				{/if}
@@ -859,16 +1011,43 @@
 		{/if}
 	</div>
 
-	{#if total > 50}
+	<!-- Rows-per-page (below the table). appearance-none + our own chevron so the
+	     native arrow never overlaps the number. -->
+	{#if usersOpen && mounted}
+		<label class="flex items-center gap-1.5 self-start font-oswald text-xs text-olf-darkgreen/70">
+			Show
+			<span class="relative">
+				<select
+					bind:value={pageSize}
+					aria-label="Rows per page"
+					class="cursor-pointer appearance-none rounded-lg border border-olf-darkgreen/20 bg-white py-1.5 pr-8 pl-3 font-oswald text-sm text-olf-darkgreen"
+				>
+					{#each PAGE_SIZES as n (n)}<option value={n}>{n}</option>{/each}
+				</select>
+				<ChevronDown
+					size={14}
+					class="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-olf-darkgreen/50"
+				/>
+			</span>
+			per page
+		</label>
+	{/if}
+
+	{#if usersOpen && sortedRegular.length > pageSize}
 		<div class="flex items-center justify-center gap-4 font-oswald text-sm text-olf-darkgreen">
-			{#if pageNum > 1}<a href={adminUrlWith({ page: String(pageNum - 1) })} class="underline"
-					>← Prev</a
-				>{/if}
-			<span>Page {pageNum} of {Math.ceil(total / 50)}</span>
-			{#if pageNum < Math.ceil(total / 50)}<a
-					href={adminUrlWith({ page: String(pageNum + 1) })}
-					class="underline">Next →</a
-				>{/if}
+			<button
+				type="button"
+				disabled={clientPage <= 1}
+				onclick={() => (clientPage -= 1)}
+				class="underline disabled:opacity-40">← Prev</button
+			>
+			<span class="tabular-nums">Page {clientPage} of {clientPages}</span>
+			<button
+				type="button"
+				disabled={clientPage >= clientPages}
+				onclick={() => (clientPage += 1)}
+				class="underline disabled:opacity-40">Next →</button
+			>
 		</div>
 	{/if}
 </section>
@@ -956,7 +1135,7 @@
 			<dl
 				class="divide-y divide-olf-darkgreen/10 overflow-hidden rounded-lg border border-olf-darkgreen/15 font-oswald text-sm"
 			>
-				{#each [['Posts', userToDelete.postCount], ['Reviews', userToDelete.reviewCount], ['Comments', userToDelete.commentCount], ['Eggs eaten', userToDelete.eggsEaten]] as [label, val] (label)}
+				{#each [['Posts', userToDelete.postCount], ['Reviews', userToDelete.reviewCount], ['Comments', userToDelete.commentCount], ['Eggs sold', userToDelete.eggsEaten]] as [label, val] (label)}
 					<div class="flex items-center justify-between gap-3 px-3 py-1.5">
 						<dt class="text-olf-darkgreen/70">{label}</dt>
 						<dd class="font-bold text-olf-darkgreen tabular-nums">{val}</dd>

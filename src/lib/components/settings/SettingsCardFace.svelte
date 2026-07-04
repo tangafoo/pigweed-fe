@@ -84,8 +84,12 @@
 		}
 	}
 
-	// Egg ledger rollup + achievement count — lazy, fetched once.
+	// Egg ledger rollup + achievement count — lazy, fetched once. We surface the
+	// count as BOXES (10 eggs each) rather than a raw egg total — a big raw number
+	// ("1,240 eggs") reads alarmingly; boxes are the friendly unit.
+	const EGGS_PER_BOX = 10;
 	let eggsEaten = $state<number | null>(null);
+	const eggBoxes = $derived(eggsEaten == null ? null : Math.floor(eggsEaten / EGGS_PER_BOX));
 	let lastOrderAt = $state<string | null>(null);
 	let achCount = $state<number | null>(null);
 	onMount(async () => {
@@ -304,9 +308,9 @@
 				</p>
 				<div class="flex flex-col">
 					<span class="text-[9px] tracking-[0.15em] text-olf-darkbrown/55 uppercase">
-						{m.account_field_eggs_eaten()}
+						{m.account_field_egg_boxes()}
 					</span>
-					<span class="text-sm font-bold text-olf-darkbrown">🥚 {eggsEaten ?? '…'}</span>
+					<span class="text-sm font-bold text-olf-darkbrown">📦 {eggBoxes ?? '…'}</span>
 				</div>
 				<div class="flex flex-col">
 					<span class="text-[9px] tracking-[0.15em] text-olf-darkbrown/55 uppercase">

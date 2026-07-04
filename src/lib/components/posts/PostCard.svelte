@@ -13,6 +13,7 @@
 	import { setPostVote, clearPostVote } from '$lib/api/votes';
 	import { asset } from '$lib/config/assets';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
+	import Badge from '$lib/components/posts/Badge.svelte';
 	import AwardModal from '$lib/components/posts/AwardModal.svelte';
 	import AwardGrantersModal from '$lib/components/posts/AwardGrantersModal.svelte';
 	import {
@@ -258,20 +259,18 @@
 						{post.author.username}
 					</a>
 					{#if post.author.isFarmOwner}
-						<span
-							class="shrink-0 rounded bg-olf-darkgreen px-1.5 font-oswald text-xxs font-bold tracking-wider text-white"
+						<Badge
+							variant="owner"
+							label={compact ? m.posts_op_badge_short() : m.posts_op_badge()}
 							title={m.posts_op_tooltip()}
-						>
-							{compact ? m.posts_op_badge_short() : m.posts_op_badge()}
-						</span>
+						/>
 					{/if}
 					{#if post.author.isFoundingFlock}
-						<span
-							class="shrink-0 rounded bg-olf-yolk px-1.5 font-oswald text-xxs font-bold tracking-wider text-olf-eggshell"
+						<Badge
+							variant="founder"
+							label={compact ? m.subscribe_founder_badge_short() : m.subscribe_founder_badge()}
 							title={m.subscribe_founder_tooltip()}
-						>
-							{compact ? m.subscribe_founder_badge_short() : m.subscribe_founder_badge()}
-						</span>
+						/>
 					{/if}
 				</span>
 				{#if post.rating != null}
@@ -383,9 +382,23 @@
 	</div>
 
 	{#if thumb}
+		<!-- The image itself is the expand control (tap to grow/shrink); the corner
+		     icon just reflects the current state. -->
 		<div
 			bind:clientWidth={boxW}
-			class="relative w-full overflow-hidden bg-olf-lightbrown transition-[height] duration-300 ease-out motion-reduce:transition-none"
+			role="button"
+			tabindex="0"
+			aria-label={expanded ? m.posts_image_collapse() : m.posts_image_expand()}
+			onclick={() => (expanded = !expanded)}
+			onkeydown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					expanded = !expanded;
+				}
+			}}
+			class="relative w-full overflow-hidden bg-olf-lightbrown transition-[height] duration-300 ease-out motion-reduce:transition-none {expanded
+				? 'cursor-zoom-out'
+				: 'cursor-zoom-in'}"
 			style="height: {boxH}px"
 		>
 			<img
@@ -402,18 +415,17 @@
 					{m.posts_unmoderated()}
 				</span>
 			{/if}
-			<button
-				type="button"
-				onclick={() => (expanded = !expanded)}
-				aria-label={expanded ? m.posts_image_collapse() : m.posts_image_expand()}
-				class="absolute right-2 bottom-2 flex size-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/75"
+			<!-- State indicator — reacts to `expanded`, driven by the image tap above. -->
+			<span
+				aria-hidden="true"
+				class="pointer-events-none absolute right-2 bottom-2 flex size-7 items-center justify-center rounded-full bg-black/60 text-white"
 			>
 				{#if expanded}
 					<Minimize2 size={15} />
 				{:else}
 					<Maximize2 size={15} />
 				{/if}
-			</button>
+			</span>
 		</div>
 	{/if}
 	<div class="flex items-center justify-between bg-olf-darkgreen px-3 py-1.5 text-white">

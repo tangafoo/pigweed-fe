@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { Plus, Save, X, Pencil, Gift } from '@lucide/svelte';
+	import { slide } from 'svelte/transition';
+	import { Plus, Save, X, Pencil, Gift, ChevronDown, ChevronRight } from '@lucide/svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import {
 		adminUrlWith,
@@ -19,6 +20,10 @@
 	const runner = createBusyRunner();
 	const busy = $derived(runner.busy);
 	const run = (fn: () => Promise<unknown>) => runner.run(fn);
+
+	// Benefits are collapsed per-tier by default (they're identical across tiers
+	// today, so the list is noise until you actually want to trim one).
+	let openBenefits = $state<Record<string, boolean>>({});
 
 	// ─── Per-tier benefit checklist (local checked sets) ────────────
 	let checklist = $state<Record<string, string[]>>({});
@@ -101,7 +106,9 @@
 			<Plus size={14} /> Add tier
 		</Button>
 	</div>
-	<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+	<!-- items-start: a card that expands (show benefits) must NOT stretch its
+	     row-mates. Standing rule for any grid of independently-expanding cards. -->
+	<div class="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
 		{#each plans as p (p.id)}
 			{@const selectedIds = checklist[p.id] ?? []}
 			{@const selected = benefits.filter((b) => selectedIds.includes(b.id))}
@@ -184,31 +191,43 @@
 						</Button>
 					</div>
 
+					<!-- Collapsed by default: a count + toggle; expand to trim perks. -->
+					<button
+						type="button"
+						onclick={() => (openBenefits[p.id] = !openBenefits[p.id])}
+						class="flex w-fit cursor-pointer items-center gap-1.5 font-oswald text-sm font-bold text-olf-darkgreen/70 hover:text-olf-darkgreen"
+					>
+						{#if openBenefits[p.id]}<ChevronDown size={15} />{:else}<ChevronRight size={15} />{/if}
+						{openBenefits[p.id] ? 'Hide' : 'Show'} benefits ({selected.length})
+					</button>
+
 					<!-- Perk pills: selected (filled) first, the rest faded. Tap to toggle. -->
-					<div class="flex flex-wrap gap-x-1 gap-y-2">
-						{#each selected as b (b.id)}
-							<button
-								type="button"
-								onclick={() => pillClick(p.id, b)}
-								class="rounded-full bg-olf-blue px-3 py-1.5 font-oswald text-xs font-medium text-white transition-transform hover:scale-[1.03] {b.active
-									? ''
-									: 'line-through opacity-60'}"
-							>
-								{b.label}
-							</button>
-						{/each}
-						{#each unselected as b (b.id)}
-							<button
-								type="button"
-								onclick={() => pillClick(p.id, b)}
-								class="rounded-full border border-olf-darkgreen/30 px-3 py-1 font-oswald text-xs font-bold text-olf-darkgreen/60 opacity-70 transition-all hover:opacity-100 {b.active
-									? ''
-									: 'border-dashed line-through'}"
-							>
-								{b.label}
-							</button>
-						{/each}
-					</div>
+					{#if openBenefits[p.id]}
+						<div class="flex flex-wrap gap-x-1 gap-y-2" transition:slide={{ duration: 200 }}>
+							{#each selected as b (b.id)}
+								<button
+									type="button"
+									onclick={() => pillClick(p.id, b)}
+									class="rounded-full bg-olf-blue px-3 py-1.5 font-oswald text-xs font-medium text-white transition-transform hover:scale-[1.03] {b.active
+										? ''
+										: 'line-through opacity-60'}"
+								>
+									{b.label}
+								</button>
+							{/each}
+							{#each unselected as b (b.id)}
+								<button
+									type="button"
+									onclick={() => pillClick(p.id, b)}
+									class="rounded-full border border-olf-darkgreen/30 px-3 py-1 font-oswald text-xs font-bold text-olf-darkgreen/60 opacity-70 transition-all hover:opacity-100 {b.active
+										? ''
+										: 'border-dashed line-through'}"
+								>
+									{b.label}
+								</button>
+							{/each}
+						</div>
+					{/if}
 				{/if}
 			</div>
 		{/each}

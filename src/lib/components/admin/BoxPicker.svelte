@@ -31,12 +31,13 @@
 				type="button"
 				onclick={() => onadd(b.eggs)}
 				title={`Add ${b.name} (${b.eggs} eggs)`}
-				class="flex cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 font-oswald text-xxs font-bold tracking-wide transition-colors {variant ===
+				class="flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-1.5 font-oswald text-sm font-bold tracking-wide transition-colors {variant ===
 				'dark'
 					? 'bg-olf-eggshell/10 text-olf-beige/85 hover:bg-olf-yolk hover:text-olf-darkgreen'
 					: 'bg-olf-darkgreen/10 text-olf-darkgreen hover:bg-olf-darkgreen/20'}"
 			>
-				<Package size={11} class="shrink-0 opacity-70" />
+				<Package size={14} class="shrink-0 opacity-70" />
+				<span class="font-bold opacity-80">+</span>
 				{b.name}
 				<span class="opacity-60">· {b.eggs}</span>
 			</button>

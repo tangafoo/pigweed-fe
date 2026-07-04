@@ -153,6 +153,23 @@
 		});
 	});
 
+	// Client-side page-size (default 10) over the loaded flat rows. (The grouped
+	// week/month view shows everything — it's a summary, not a browse list.)
+	const EGG_PAGE_SIZES = [10, 25, 50, 100];
+	let eggPageSize = $state(10);
+	let eggClientPage = $state(1);
+	$effect(() => {
+		ledgerSortField;
+		ledgerSortDir;
+		eggPageSize;
+		ledgerRows;
+		eggClientPage = 1;
+	});
+	const eggClientPages = $derived(Math.max(1, Math.ceil(sortedLedgerRows.length / eggPageSize)));
+	const pagedLedgerRows = $derived(
+		sortedLedgerRows.slice((eggClientPage - 1) * eggPageSize, eggClientPage * eggPageSize)
+	);
+
 	// Delete-record confirmation (soft delete is recoverable, but confirm anyway).
 	// The modal shell is the shared ConfirmDialog; this panel keeps its own
 	// (admin-authority) delete action.
@@ -420,24 +437,57 @@
 				{/each}
 			{:else}
 				<div class="divide-y divide-olf-darkgreen/10">
-					{#each sortedLedgerRows as o (o.id)}{@render ledgerRowMarkup(o)}{/each}
+					{#each pagedLedgerRows as o (o.id)}{@render ledgerRowMarkup(o)}{/each}
 				</div>
 			{/if}
 		</div>
 	</div>
 
-	<!-- Show-deleted toggle (under the table — affects what the ledger lists) -->
-	<label
-		class="flex cursor-pointer items-center gap-1.5 self-start font-oswald text-xs text-olf-darkgreen/70"
-	>
-		<input
-			type="checkbox"
-			bind:checked={ledgerShowDeleted}
-			onchange={() => reloadLedger()}
-			class="size-4 rounded text-olf-darkbrown"
-		/>
-		Show deleted records
-	</label>
+	<!-- Show-deleted toggle + rows-per-page (under the table) -->
+	<div class="flex flex-wrap items-center gap-4">
+		<label
+			class="flex cursor-pointer items-center gap-1.5 font-oswald text-xs text-olf-darkgreen/70"
+		>
+			<input
+				type="checkbox"
+				bind:checked={ledgerShowDeleted}
+				onchange={() => reloadLedger()}
+				class="size-4 rounded text-olf-darkbrown"
+			/>
+			Show deleted records
+		</label>
+		{#if !ledgerGroups}
+			<label class="flex items-center gap-1.5 font-oswald text-xs text-olf-darkgreen/70">
+				Show
+				<select
+					bind:value={eggPageSize}
+					aria-label="Rows per page"
+					class="cursor-pointer rounded-lg border border-olf-darkgreen/20 bg-white px-2 py-1.5 font-oswald text-sm text-olf-darkgreen"
+				>
+					{#each EGG_PAGE_SIZES as n (n)}<option value={n}>{n}</option>{/each}
+				</select>
+			</label>
+		{/if}
+	</div>
+
+	<!-- Client-side paging over the loaded flat rows (hidden when grouped). -->
+	{#if !ledgerGroups && sortedLedgerRows.length > eggPageSize}
+		<div class="flex items-center justify-center gap-4 font-oswald text-sm text-olf-darkgreen">
+			<button
+				type="button"
+				disabled={eggClientPage <= 1}
+				onclick={() => (eggClientPage -= 1)}
+				class="underline disabled:opacity-40">← Prev</button
+			>
+			<span class="tabular-nums">Page {eggClientPage} of {eggClientPages}</span>
+			<button
+				type="button"
+				disabled={eggClientPage >= eggClientPages}
+				onclick={() => (eggClientPage += 1)}
+				class="underline disabled:opacity-40">Next →</button
+			>
+		</div>
+	{/if}
 
 	{#if ledgerTotal > LEDGER_LIMIT}
 		<div class="flex items-center justify-center gap-4 font-oswald text-sm text-olf-darkgreen">

@@ -1,17 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { m } from '$lib/paraglide/messages.js';
-	import { formatDate } from '$lib/utils/date';
+	import { formatDate, formatRelative } from '$lib/utils/date';
 	import {
 		getUserAchievements,
 		getUserAwards,
 		getAchievementCatalog,
 		type EarnedAchievement
 	} from '$lib/api/users';
+	import { fetchUserAwardGranters, type Granter } from '$lib/api/awards';
 	import type { Achievement, AwardSummary } from '@meteorclass/pigweed-contract';
-	import { Trophy, Lock, X } from '@lucide/svelte';
+	import { Trophy, Lock, X, Gift } from '@lucide/svelte';
 	import AwardCoin from '$lib/components/ui/AwardCoin.svelte';
+	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
+	import { asset } from '$lib/config/assets';
 
 	let { userId }: { userId: string } = $props();
 
@@ -57,12 +60,43 @@
 		}
 	}
 
+	// Award granters — tap a received award to see who gifted it (across all your
+	// posts + comments). Self-only + free on the BE (this panel is owner-only).
+	let grantersFor = $state<AwardSummary | null>(null);
+	let granters = $state<Granter[]>([]);
+	let grantersLoading = $state(false);
+	async function openGranters(a: AwardSummary) {
+		grantersFor = a;
+		granters = [];
+		grantersLoading = true;
+		const rows = await fetchUserAwardGranters(userId, a.awardTypeId);
+		if (grantersFor?.awardTypeId === a.awardTypeId) granters = rows;
+		grantersLoading = false;
+	}
+	// One row per granter with a ×n badge (they may have gifted the same award
+	// more than once across different posts/comments). Rows arrive newest-first.
+	const granterGroups = $derived.by(() => {
+		const map = new Map<string, { granter: Granter['granter']; count: number; lastAt: string }>();
+		for (const g of granters) {
+			const ex = map.get(g.granter.id);
+			if (ex) ex.count += 1;
+			else map.set(g.granter.id, { granter: g.granter, count: 1, lastAt: g.createdAt });
+		}
+		return [...map.values()];
+	});
+
 	onMount(() => {
 		loadAchievements();
 	});
 </script>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && showAllModal && (showAllModal = false)} />
+<svelte:window
+	onkeydown={(e) => {
+		if (e.key !== 'Escape') return;
+		if (grantersFor) grantersFor = null;
+		else if (showAllModal) showAllModal = false;
+	}}
+/>
 
 <section class="rounded-2xl bg-olf-beige p-6">
 	{#if achLoading}
@@ -77,12 +111,17 @@
 			<h3 class="mb-3 font-homemade-apple text-2xl text-olf-darkgreen">
 				{m.profile_awards_heading()}
 			</h3>
-			<div class="mb-6 flex flex-wrap items-start gap-x-5 gap-y-3">
+			<div class="mb-6 flex flex-wrap items-start gap-x-8 gap-y-5">
 				{#each awards as a (a.awardTypeId)}
-					<div class="flex flex-col items-center gap-1.5">
+					<button
+						type="button"
+						onclick={() => openGranters(a)}
+						title="See who gave this"
+						class="flex cursor-pointer flex-col items-center gap-3"
+					>
 						<AwardCoin assetKey={a.assetKey} name={a.name} size={72} count={a.count} />
-						<span class="font-oswald text-xs font-bold text-olf-darkbrown">{a.name}</span>
-					</div>
+						<span class="font-oswald text-sm font-bold text-olf-darkbrown">{a.name}</span>
+					</button>
 				{/each}
 			</div>
 			<h3 class="mb-3 font-homemade-apple text-2xl text-olf-darkgreen">
@@ -179,21 +218,107 @@
 								: 'bg-olf-darkbrown/10 text-olf-darkbrown/45'}"
 						>
 							{#if earned}
-								<Trophy size={22} class="shrink-0 fill-olf-yolk text-olf-yolk" />
+								<Trophy size={24} class="shrink-0 fill-olf-yolk text-olf-yolk" />
 							{:else}
-								<Lock size={22} class="shrink-0" />
+								<Lock size={24} class="shrink-0" />
 							{/if}
-							<span class="font-oswald text-xs leading-tight font-bold">{a.name}</span>
+							<span class="font-oswald text-sm leading-tight font-bold">{a.name}</span>
 							{#if a.description}
-								<span class="font-oswald text-xxs leading-tight opacity-80">{a.description}</span>
+								<span class="font-oswald text-xs leading-snug opacity-80">{a.description}</span>
 							{/if}
 							<span
-								class="mt-1.5 rounded-full px-2.5 py-0.5 font-oswald text-xxs font-bold {earned
+								class="mt-auto flex items-center gap-1 rounded-full px-2.5 py-0.5 font-oswald text-xs font-bold {earned
 									? 'bg-olf-eggshell/15 text-olf-eggshell'
 									: 'bg-olf-darkbrown/10 text-olf-darkbrown/45'}"
 							>
+								<img src={asset('egg05.webp')} alt="" class="size-3.5 shrink-0 object-contain" />
 								{m.achievement_reward({ coins: a.rewardCoins })}
 							</span>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
+	</div>
+{/if}
+
+{#if grantersFor}
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+		role="presentation"
+		onclick={(e) => {
+			if (e.target === e.currentTarget) grantersFor = null;
+		}}
+	>
+		<div
+			role="dialog"
+			aria-modal="true"
+			aria-label={m.granters_title()}
+			tabindex="-1"
+			class="max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-2xl bg-olf-beige p-5 shadow-xl"
+		>
+			<header class="mb-4 flex items-center justify-between gap-3">
+				<h3
+					class="flex items-center gap-2 font-homemade-apple text-2xl font-bold text-olf-darkgreen"
+				>
+					<Gift size={20} class="shrink-0" />
+					{m.granters_title()}
+				</h3>
+				<button
+					type="button"
+					onclick={() => (grantersFor = null)}
+					aria-label={m.achievements_close()}
+					class="flex size-8 shrink-0 items-center justify-center rounded-full text-olf-darkbrown hover:bg-olf-darkbrown/10"
+				>
+					<X size={18} />
+				</button>
+			</header>
+
+			<!-- The award on show: coin + name, centered above the granter list. -->
+			<div class="mb-4 flex flex-col items-center gap-1.5">
+				<AwardCoin
+					assetKey={grantersFor.assetKey}
+					name={grantersFor.name}
+					size={64}
+					count={grantersFor.count}
+				/>
+				<span class="font-oswald text-sm font-bold text-olf-darkgreen">{grantersFor.name}</span>
+			</div>
+
+			{#if grantersLoading}
+				<div class="flex justify-center py-10 text-olf-darkbrown/60"><Spinner /></div>
+			{:else if granterGroups.length === 0}
+				<p
+					class="rounded-xl bg-olf-darkbrown/10 px-4 py-6 text-center font-oswald text-olf-darkbrown/70"
+				>
+					{m.granters_empty()}
+				</p>
+			{:else}
+				<ul class="flex flex-col gap-2">
+					{#each granterGroups as g (g.granter.id)}
+						<li
+							class="flex items-center gap-3 rounded-xl bg-olf-eggshell px-3 py-2 text-olf-darkbrown"
+						>
+							<a href="/users/{g.granter.id}" class="shrink-0">
+								<Avatar
+									animal={g.granter.animal}
+									avatarSeed={g.granter.avatarSeed}
+									gender={g.granter.gender}
+									size="sm"
+								/>
+							</a>
+							<div class="min-w-0 flex-1 font-oswald">
+								<a href="/users/{g.granter.id}" class="truncate font-bold hover:underline"
+									>{g.granter.username}</a
+								>
+								<p class="text-xxs text-olf-darkbrown/55">{formatRelative(g.lastAt)}</p>
+							</div>
+							{#if g.count > 1}
+								<span
+									class="shrink-0 rounded-full bg-olf-darkgreen px-2 py-0.5 font-oswald text-xs font-bold text-olf-eggshell tabular-nums"
+									>×{g.count}</span
+								>
+							{/if}
 						</li>
 					{/each}
 				</ul>

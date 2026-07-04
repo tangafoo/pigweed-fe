@@ -5,6 +5,7 @@
 	import { page } from '$app/state';
 	import { authClient } from '$lib/api/auth';
 	import { orderModal } from '$lib/stores/orderModal.svelte';
+	import { loadingScreen } from '$lib/stores/loadingScreen.svelte';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import type { Session } from '@meteorclass/pigweed-contract';
 
@@ -74,11 +75,17 @@
 				class="absolute right-0 z-50 mt-2 w-48 overflow-hidden rounded-xl bg-olf-beige py-1 shadow-xl ring-1 ring-olf-darkgreen/10"
 			>
 				{#if user}
-					<!-- The username IS the profile link (no separate "Your profile" row). -->
+					<!-- The username IS the profile link (no separate "Your profile" row).
+					     The profile route can be slow in prod, so cover the hop with the
+					     global chicken loading screen. -->
 					<a
 						role="menuitem"
 						href="/users/{userId}"
-						onclick={() => (open = false)}
+						onclick={(e) => {
+							e.preventDefault();
+							open = false;
+							loadingScreen.during(goto(`/users/${userId}`), m.login_submitting());
+						}}
 						aria-label={m.home_profile_link()}
 						class="block truncate px-4 py-2 font-supermercado-one text-sm text-olf-darkbrown hover:bg-olf-darkgreen/10"
 					>
@@ -102,7 +109,18 @@
 				</a>
 				{#if isAdmin}
 					<div class="my-1 border-t border-olf-darkgreen/10"></div>
-					<a role="menuitem" href="/admin" onclick={() => (open = false)} class={ITEM}>
+					<!-- The admin dashboard loads a lot of data; cover the hop with the
+					     global chicken loading screen (same as the profile link). -->
+					<a
+						role="menuitem"
+						href="/admin"
+						onclick={(e) => {
+							e.preventDefault();
+							open = false;
+							loadingScreen.during(goto('/admin'), m.login_submitting());
+						}}
+						class={ITEM}
+					>
 						{m.nav_admin_panel()}
 					</a>
 				{/if}

@@ -113,9 +113,9 @@
 							<button
 								type="button"
 								onclick={() => (orderModal.open = true)}
-								class="mt-3 flex items-center gap-1.5 rounded-full bg-olf-darkbrown px-4 py-1.5 font-oswald text-sm font-bold tracking-wider text-olf-beige uppercase transition-transform hover:scale-105"
+								class="mt-3 flex items-center gap-1.5 rounded-full bg-olf-darkbrown px-3 py-1 font-oswald text-xs font-bold tracking-wider text-olf-beige uppercase transition-transform hover:scale-105"
 							>
-								<Egg size={15} class="shrink-0" />
+								<Egg size={13} class="shrink-0" />
 								{m.home_order_eggs()}
 							</button>
 						{/if}
