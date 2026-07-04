@@ -3,12 +3,14 @@
 	import { m } from '$lib/paraglide/messages.js';
 	import { formatRelative } from '$lib/utils/date';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
+	import AwardCoin from '$lib/components/ui/AwardCoin.svelte';
 	import JsonLd from '$lib/components/seo/JsonLd.svelte';
 	import ProfileTabs from '$lib/components/posts/ProfileTabs.svelte';
 	import SubscriptionPanel from '$lib/components/subscription/SubscriptionPanel.svelte';
 	import AchievementsPanel from '$lib/components/settings/AchievementsPanel.svelte';
 	import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
 	import SetPasswordBanner from '$lib/components/settings/SetPasswordBanner.svelte';
+	import VerifyEmailBanner from '$lib/components/settings/VerifyEmailBanner.svelte';
 	import DashboardNav from '$lib/components/layout/DashboardNav.svelte';
 	import Seo from '$lib/components/seo/Seo.svelte';
 	import { getUserAwards } from '$lib/api/users';
@@ -24,11 +26,16 @@
 	// BE; we just sum the counts for the header stat). Re-fetches when the
 	// route moves to a different user; stale responses are dropped.
 	let awardTotal = $state<number | null>(null);
+	let awards = $state<Awaited<ReturnType<typeof getUserAwards>>>([]);
 	$effect(() => {
 		const id = profile.id;
 		awardTotal = null;
+		awards = [];
 		getUserAwards(id).then((a) => {
-			if (id === profile.id) awardTotal = a.reduce((n, x) => n + x.count, 0);
+			if (id === profile.id) {
+				awardTotal = a.reduce((n, x) => n + x.count, 0);
+				awards = a;
+			}
 		});
 	});
 
@@ -79,47 +86,69 @@
 
 <div class="flex-1 bg-olf-lightgreen px-4 py-8">
 	<div class="mx-auto {data.isOwner ? 'max-w-6xl' : 'max-w-2xl'}">
-		<!-- Identity card -->
-		<section class="rounded-2xl bg-olf-eggshell p-4 shadow-md">
-			<div class="flex items-center gap-3.5">
-				<Avatar
-					size="md"
-					animal={profile.animal}
-					avatarSeed={profile.avatarSeed}
-					gender={profile.gender}
-				/>
-				<div class="min-w-0 flex-1">
-					<h1 class="font-supermercado-one text-xl font-bold wrap-break-word text-olf-darkbrown">
-						{profile.username}
-					</h1>
-					<p class="font-oswald text-sm text-olf-darkbrown/60">
-						{m.profile_hatched({ when: formatRelative(profile.createdAt) })}
-					</p>
+		<!-- Identity card — left column (identity + stats) with the award coins
+		     vertically centered against it on the right. -->
+		<section class="flex items-center gap-4 rounded-2xl bg-olf-eggshell p-4 shadow-md">
+			<div class="min-w-0 flex-1">
+				<div class="flex items-center gap-3.5">
+					<Avatar
+						size="md"
+						animal={profile.animal}
+						avatarSeed={profile.avatarSeed}
+						gender={profile.gender}
+					/>
+					<div class="min-w-0 flex-1">
+						<h1 class="font-supermercado-one text-xl font-bold wrap-break-word text-olf-darkbrown">
+							{profile.username}
+						</h1>
+						<p class="font-oswald text-sm text-olf-darkbrown/60">
+							{m.profile_hatched({ when: formatRelative(profile.createdAt) })}
+						</p>
+					</div>
+				</div>
+
+				<div class="mt-4 flex flex-wrap items-center gap-2 font-oswald text-sm">
+					{#if data.isOwner && data.coinBalance != null}
+						<span
+							class="flex items-center gap-1.5 rounded-full bg-olf-darkbrown px-3 py-1 text-white"
+						>
+							<img src={asset('egg05.webp')} alt="" class="h-4 w-4 shrink-0 object-contain" />
+							{m.profile_stat_coins({ count: data.coinBalance })}
+						</span>
+					{/if}
+					<span class="text-olf-darkbrown"
+						>{m.profile_stat_posts({ count: profile.postCount })}</span
+					>
+					<span class="text-olf-darkbrown"
+						>{m.profile_stat_comments({ count: profile.commentCount })}</span
+					>
+					{#if awardTotal != null}
+						<span class="text-olf-darkbrown">🎁 {m.profile_stat_awards({ count: awardTotal })}</span
+						>
+					{/if}
 				</div>
 			</div>
 
-			<div class="mt-4 flex flex-wrap items-center gap-2 font-oswald text-sm">
-				{#if data.isOwner && data.coinBalance != null}
-					<span
-						class="flex items-center gap-1.5 rounded-full bg-olf-darkbrown px-3 py-1 text-white"
-					>
-						<img src={asset('egg05.webp')} alt="" class="h-4 w-4 shrink-0 object-contain" />
-						{m.profile_stat_coins({ count: data.coinBalance })}
-					</span>
-				{/if}
-				<span class="text-olf-darkbrown">{m.profile_stat_posts({ count: profile.postCount })}</span>
-				<span class="text-olf-darkbrown"
-					>{m.profile_stat_comments({ count: profile.commentCount })}</span
-				>
-				{#if awardTotal != null}
-					<span class="text-olf-darkbrown">🎁 {m.profile_stat_awards({ count: awardTotal })}</span>
-				{/if}
-			</div>
+			<!-- Awards received — shimmering coins, centered against the card. Hidden
+			     on mobile (no room). -->
+			{#if awards.length}
+				<!-- Overlapping horizontal stack (like PostCard's award icons). Each
+				     coin sits ABOVE the one to its right (descending z-index) so every
+				     coin's bottom-right ×n badge stays visible. -->
+				<div class="hidden shrink-0 items-center justify-end -space-x-2 sm:flex">
+					{#each awards.slice(0, 5) as a, i (a.awardTypeId)}
+						<div class="relative" style="z-index: {awards.length - i}">
+							<AwardCoin assetKey={a.assetKey} name={a.name} size={66} count={a.count} />
+						</div>
+					{/each}
+				</div>
+			{/if}
 		</section>
 
 		{#if data.isOwner}
-			<!-- Magic-link-only accounts (admin pre-registered) get nudged to
-			     set a password; renders nothing for everyone else. -->
+			<!-- Unverified email → verify-and-earn banner (renders nothing once
+			     verified). Magic-link-only accounts also get the set-password nudge. -->
+			<VerifyEmailBanner />
 			<SetPasswordBanner />
 
 			<!-- Dashboard: shared side menu + section -->

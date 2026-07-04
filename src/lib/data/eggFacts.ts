@@ -17,7 +17,7 @@ export function eggStats(totalEggs: number): EggFact[] {
 	return [
 		{ icon: '💪', text: `${protein.toLocaleString()} g of protein` },
 		{ icon: '🔥', text: `${calories.toLocaleString()} kcal of farm sunshine` },
-		{ icon: '🐔', text: `${henYears} hen-years of clucking` },
+		{ icon: '🐔', text: `≈ one hen laying non-stop for ${henYears} years` },
 		{ icon: '🍳', text: `${omelettes.toLocaleString()} omelettes` },
 		{ icon: '🗼', text: `a ${tower}-tall egg tower` }
 	];
