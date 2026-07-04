@@ -1,17 +1,32 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
-	import { slide } from 'svelte/transition';
-	import { Plus, Minus, X, MessageCircle } from '@lucide/svelte';
+	import { slide, fade } from 'svelte/transition';
+	import { Plus, Minus, X, MessageCircle, Trophy, Users } from '@lucide/svelte';
 	import { whatsappUrlTo } from '$lib/config/contact';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import RollingNumber from '$lib/components/ui/RollingNumber.svelte';
 	import UserPicker from '$lib/components/admin/UserPicker.svelte';
+	import CustomerSelect from '$lib/components/admin/CustomerSelect.svelte';
 	import BoxPicker from '$lib/components/admin/BoxPicker.svelte';
+	import StatTile from '$lib/components/admin/charts/StatTile.svelte';
+	import EggUnitTile from '$lib/components/admin/charts/EggUnitTile.svelte';
+	import Sparkline from '$lib/components/admin/charts/Sparkline.svelte';
+	import SegmentBadge from '$lib/components/admin/charts/SegmentBadge.svelte';
+	import { moneyRM, adminUrlWith } from '$lib/components/admin/shared.svelte';
+	import { agoLabel, cadenceDays, segmentOf } from '$lib/utils/analytics';
 	import { eggStats } from '$lib/data/eggFacts';
 	import * as admin from '$lib/api/admin';
-	import type { AdminStats, AdminUserRow, Animal, Gender } from '@meteorclass/pigweed-contract';
+	import type {
+		AdminAnalytics,
+		AdminStats,
+		AdminUserRow,
+		Animal,
+		EggOrder,
+		Gender
+	} from '@meteorclass/pigweed-contract';
 	import type { AdminBox } from '$lib/components/admin/shared.svelte';
 
 	interface HomePanelProps {
@@ -203,17 +218,64 @@
 		}
 	}
 	const priceLabel = (p: number) => `RM${p.toFixed(2)}`;
+
+	// ─── Farm analytics: compact top customers + a vertical deep-dive ─
+	// Loaded client-side (same seam as the Analytics panel); the Home view gets
+	// an at-a-glance "who matters + who's this" without leaving the console.
+	const num = (n: number) => n.toLocaleString();
+	const monthLabel = (iso: string) =>
+		new Date(iso).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+
+	let analytics = $state<AdminAnalytics | null>(null);
+	let analyticsLoading = $state(true);
+	onMount(async () => {
+		const res = await admin.fetchAdminAnalytics();
+		if (res.ok) analytics = res.data;
+		analyticsLoading = false;
+	});
+
+	const topCustomers = $derived(
+		[...(analytics?.customers ?? [])].sort((a, b) => b.revenueCents - a.revenueCents).slice(0, 3)
+	);
+	// "See all" jumps to the full Analytics view (drops any lingering ?page).
+	const analyticsUrl = $derived(adminUrlWith({ view: 'analytics', page: undefined }));
+
+	// Deep-dive selection — independent of the calculator's "Add customer" flow.
+	let diveId = $state<string | null>(null);
+	let diveOrders = $state<EggOrder[] | null>(null);
+	let diveLoadingId = $state<string | null>(null);
+	const dive = $derived(analytics?.customers.find((c) => c.id === diveId) ?? null);
+	const diveSegment = $derived(dive ? segmentOf(dive) : null);
+	const divePickList = $derived(
+		[...(analytics?.customers ?? [])].sort((a, b) => a.username.localeCompare(b.username))
+	);
+	const diveSpark = $derived(
+		diveOrders
+			? [...diveOrders]
+					.sort((a, b) => new Date(a.orderedAt).getTime() - new Date(b.orderedAt).getTime())
+					.map((o) => o.eggs * o.unitPriceCents)
+			: []
+	);
+	async function selectDive(id: string | null) {
+		diveId = id;
+		diveOrders = null;
+		if (!id) return;
+		diveLoadingId = id;
+		const orders = await admin.fetchOrders(id);
+		if (diveId === id) diveOrders = orders;
+		diveLoadingId = null;
+	}
 </script>
 
 <section class="mt-8 flex flex-col items-start gap-4">
 	<h2 class="font-homemade-apple text-2xl text-olf-darkbrown">Home</h2>
 
-	<div class="flex w-full flex-col items-start gap-8 lg:flex-row lg:gap-16">
+	<div class="flex w-full flex-col items-start gap-8 lg:flex-row lg:items-stretch lg:gap-8">
 		<!-- EGG-O-MATIC — the sales console. Brass-edged espresso cockpit,
 		     DELIBERATELY not the green holo of the user-facing subscription
 		     card: this is a staff instrument, and it should look like one. -->
 		<div
-			class="w-full max-w-sm rounded-[1.4rem] p-0.75 shadow-xl"
+			class="w-full max-w-sm rounded-[1.4rem] p-0.75 shadow-xl lg:self-start"
 			style="background: linear-gradient(135deg, #b8923a 0%, #e9cf7a 28%, #8a6a2a 52%, #e9cf7a 76%, #96762e 100%);"
 		>
 			<div
@@ -498,8 +560,8 @@
 			</div>
 		</div>
 
-		<!-- Gauge + milestone (right column) -->
-		<div class="flex flex-col items-center gap-4">
+		<!-- Gauge + milestone + top customers (center column) -->
+		<div class="flex flex-col items-center gap-4 lg:self-start">
 			<!-- Unit swapper: eggs, or lifetime intake counted in a box denomination -->
 			{#if gaugeBoxes.length}
 				<div
@@ -578,6 +640,147 @@
 				<span class="font-bold text-olf-darkgreen tabular-nums">{eggMilestone - totalEggs}</span>
 				to {eggMilestone.toLocaleString()} 🥚
 			</p>
+
+			<!-- Top customers — top 3 + "See all" into the full Analytics view. -->
+			<div class="w-full max-w-xs rounded-2xl bg-olf-beige p-3.5 shadow-sm">
+				<div class="mb-2 flex items-center justify-between gap-2">
+					<h3
+						class="flex items-center gap-1.5 font-oswald text-xs font-bold tracking-wide text-olf-darkgreen/80 uppercase"
+					>
+						<Trophy size={14} class="text-olf-yolk" /> Top customers
+					</h3>
+					<a
+						href={analyticsUrl}
+						class="font-oswald text-xxs font-bold text-olf-moss underline-offset-2 hover:underline"
+					>
+						See all →
+					</a>
+				</div>
+				{#if analyticsLoading}
+					<div class="flex justify-center py-4 text-olf-darkgreen/40"><Spinner size={16} /></div>
+				{:else if topCustomers.length === 0}
+					<p class="py-3 text-center font-oswald text-xxs text-olf-darkgreen/50">No orders yet.</p>
+				{:else}
+					<ul class="flex flex-col gap-0.5">
+						{#each topCustomers as c, i (c.id)}
+							<li>
+								<button
+									type="button"
+									onclick={() => selectDive(c.id)}
+									class="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-left transition-colors hover:bg-olf-darkgreen/5 {diveId ===
+									c.id
+										? 'bg-olf-darkgreen/8 ring-1 ring-olf-yolk/40'
+										: ''}"
+								>
+									<span
+										class="w-4 shrink-0 font-oswald text-sm font-bold text-olf-darkgreen/40 tabular-nums"
+										>{i + 1}</span
+									>
+									<Avatar animal={c.animal} avatarSeed={c.avatarSeed} gender={c.gender} size="sm" />
+									<span
+										class="min-w-0 flex-1 truncate font-oswald text-sm font-bold text-olf-darkgreen"
+										>{c.username}</span
+									>
+									<span
+										class="shrink-0 font-oswald text-sm font-bold text-olf-darkgreen tabular-nums"
+										>{moneyRM(c.revenueCents)}</span
+									>
+								</button>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</div>
+		</div>
+
+		<!-- Customer deep-dive — sized to mirror the EGG-O-MATIC (max-w-sm, fills
+		     the column height). The one place we expand a card on purpose. -->
+		<div class="flex w-full max-w-sm flex-col rounded-2xl bg-olf-beige p-5 shadow-sm">
+			<h3
+				class="flex items-center gap-1.5 font-oswald text-sm font-bold tracking-wide text-olf-darkgreen/80 uppercase"
+			>
+				<Users size={15} class="text-olf-moss" /> Customer deep-dive
+			</h3>
+			<div class="mt-3">
+				<CustomerSelect options={divePickList} value={diveId} onchange={selectDive} />
+			</div>
+
+			<div class="mt-4 flex flex-1 flex-col">
+				{#if analyticsLoading}
+					<div class="flex flex-1 items-center justify-center text-olf-darkgreen/40">
+						<Spinner />
+					</div>
+				{:else if dive && diveSegment}
+					{@const cad = cadenceDays(dive)}
+					<div in:fade={{ duration: 150 }} class="flex flex-1 flex-col gap-4">
+						<!-- Identity: small avatar top-left, name + segment + "since" beside it. -->
+						<div class="flex items-center gap-3">
+							<Avatar
+								animal={dive.animal}
+								avatarSeed={dive.avatarSeed}
+								gender={dive.gender}
+								size="md"
+							/>
+							<div class="min-w-0">
+								<div class="flex flex-wrap items-center gap-2">
+									<span class="font-supermercado-one text-xl leading-tight text-olf-darkbrown"
+										>{dive.username}</span
+									>
+									<SegmentBadge segment={diveSegment} size="md" />
+								</div>
+								<span class="font-oswald text-sm font-bold text-olf-darkgreen"
+									>Customer since {monthLabel(dive.firstOrderAt)}</span
+								>
+							</div>
+						</div>
+
+						<!-- Order-value trend — a headline chart, not an afterthought. -->
+						<div class="flex flex-col gap-1 rounded-xl bg-olf-darkgreen/5 p-3">
+							<span
+								class="font-oswald text-xxs font-bold tracking-wide text-olf-darkgreen/50 uppercase"
+								>Order history</span
+							>
+							{#if diveLoadingId === dive.id}
+								<div class="flex h-16 items-center justify-center text-olf-darkgreen/40">
+									<Spinner size={18} />
+								</div>
+							{:else if diveSpark.length}
+								<Sparkline values={diveSpark} width={300} height={64} />
+							{:else}
+								<p class="py-4 text-center font-oswald text-xs text-olf-darkgreen/45">
+									No orders to chart yet.
+								</p>
+							{/if}
+						</div>
+
+						<div class="grid grid-cols-2 gap-2.5">
+							<StatTile label="Lifetime" value={moneyRM(dive.revenueCents)} hint="revenue" />
+							<EggUnitTile eggs={dive.eggs} {boxes} />
+							<StatTile label="Orders" value={num(dive.orders)} hint="all-time" />
+							<StatTile
+								label="Avg order"
+								value={moneyRM(dive.orders ? dive.revenueCents / dive.orders : 0)}
+								hint="per order"
+							/>
+							<StatTile label="Cadence" value={cad ? `~${cad}d` : '—'} hint="between orders" />
+							<StatTile
+								label="Last order"
+								value={agoLabel(dive.lastOrderAt)}
+								hint={diveSegment.blurb}
+							/>
+						</div>
+					</div>
+				{:else}
+					<div
+						class="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl bg-olf-darkgreen/5 px-4 py-12 text-center"
+					>
+						<Users size={30} class="text-olf-darkgreen/25" />
+						<p class="font-oswald text-sm text-olf-darkgreen/55">
+							Pick a customer — or tap one in Top customers — to see their story.
+						</p>
+					</div>
+				{/if}
+			</div>
 		</div>
 	</div>
 

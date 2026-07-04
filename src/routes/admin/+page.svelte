@@ -151,7 +151,7 @@
 		{:else if view === 'eggs'}
 			<EggsPanel users={data.users} boxes={data.boxes} onAddUser={openAddUser} />
 		{:else if view === 'analytics'}
-			<AnalyticsPanel />
+			<AnalyticsPanel boxes={data.boxes} />
 		{:else if view === 'boxes'}
 			<BoxesPanel boxes={data.boxes} />
 		{:else if view === 'tiers'}

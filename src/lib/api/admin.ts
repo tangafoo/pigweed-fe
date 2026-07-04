@@ -85,6 +85,8 @@ const EMPTY_ANALYTICS: AdminAnalytics = {
 	totals: { revenueCents: 0, eggs: 0, orders: 0, customers: 0 },
 	window: {
 		days: 30,
+		from: null,
+		to: null,
 		revenueCents: 0,
 		eggs: 0,
 		orders: 0,
@@ -95,8 +97,24 @@ const EMPTY_ANALYTICS: AdminAnalytics = {
 		prevActiveCustomers: 0
 	}
 };
-export const fetchAdminAnalytics = (fetchImpl?: typeof globalThis.fetch, cookie?: string) =>
-	getJson<AdminAnalytics>('/admin/analytics', EMPTY_ANALYTICS, fetchImpl, cookie);
+// Window is configurable: pass `{ windowDays }` for a rolling preset, or
+// `{ from, to }` (YYYY-MM-DD) for a custom range. No args → BE default (30d).
+export type AnalyticsParams = { windowDays?: number; from?: string; to?: string };
+export const fetchAdminAnalytics = (
+	params: AnalyticsParams = {},
+	fetchImpl?: typeof globalThis.fetch,
+	cookie?: string
+) => {
+	const qs = new URLSearchParams();
+	if (params.from && params.to) {
+		qs.set('from', params.from);
+		qs.set('to', params.to);
+	} else if (params.windowDays) {
+		qs.set('windowDays', String(params.windowDays));
+	}
+	const suffix = qs.toString() ? `?${qs}` : '';
+	return getJson<AdminAnalytics>(`/admin/analytics${suffix}`, EMPTY_ANALYTICS, fetchImpl, cookie);
+};
 
 // Pre-register a user from an email + send a magic link. Returns the assigned
 // identity (username + animal) so the modal can confirm what they were given.
