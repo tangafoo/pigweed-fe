@@ -12,7 +12,8 @@
 		Home,
 		Receipt,
 		Package,
-		TrendingUp
+		TrendingUp,
+		TreePine
 	} from '@lucide/svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import AddUserModal from '$lib/components/admin/AddUserModal.svelte';
@@ -22,6 +23,7 @@
 	import AnalyticsPanel from '$lib/components/admin/AnalyticsPanel.svelte';
 	import TiersPanel from '$lib/components/admin/TiersPanel.svelte';
 	import BenefitsPanel from '$lib/components/admin/BenefitsPanel.svelte';
+	import LogPanel from '$lib/components/admin/LogPanel.svelte';
 	import BoxesPanel from '$lib/components/admin/BoxesPanel.svelte';
 	import { adminUrlWith } from '$lib/components/admin/shared.svelte';
 	import { asset } from '$lib/config/assets';
@@ -45,7 +47,16 @@
 	// survives a refresh (and is shareable). Defaults to 'home'. Each section is
 	// its own panel component under lib/components/admin/; this page just owns
 	// the shell (nav + stat strip) and the shared add-user modal.
-	const VIEWS = ['home', 'eggs', 'users', 'analytics', 'boxes', 'tiers', 'benefits'] as const;
+	const VIEWS = [
+		'home',
+		'eggs',
+		'users',
+		'analytics',
+		'boxes',
+		'tiers',
+		'benefits',
+		'log'
+	] as const;
 	type View = (typeof VIEWS)[number];
 	const view = $derived(
 		(VIEWS.includes(page.url.searchParams.get('view') as View)
@@ -66,7 +77,8 @@
 		{ id: 'analytics', label: 'Analytics', icon: TrendingUp },
 		{ id: 'boxes', label: 'Boxes', icon: Package, group: 'Eggs', groupIcon: Package },
 		{ id: 'tiers', label: 'Tiers', icon: Layers, group: 'Subscription', groupIcon: Umbrella },
-		{ id: 'benefits', label: 'Benefits', icon: Gift }
+		{ id: 'benefits', label: 'Benefits', icon: Gift },
+		{ id: 'log', label: 'Log', icon: TreePine }
 	] as const;
 </script>
 
@@ -158,6 +170,8 @@
 			<TiersPanel plans={data.plans} benefits={data.benefits} />
 		{:else if view === 'benefits'}
 			<BenefitsPanel benefits={data.benefits} />
+		{:else if view === 'log'}
+			<LogPanel />
 		{/if}
 	</main>
 

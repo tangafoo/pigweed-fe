@@ -6,6 +6,8 @@ import type {
 	AdminEggLedgerResponse,
 	AdminEggBoxesResponse,
 	AdminAnalytics,
+	AdminSubscriptionDeliveriesResponse,
+	AdminRecordDeliveriesResult,
 	SubscriptionBenefit,
 	EggOrder
 } from '@meteorclass/pigweed-contract';
@@ -115,6 +117,37 @@ export const fetchAdminAnalytics = (
 	const suffix = qs.toString() ? `?${qs}` : '';
 	return getJson<AdminAnalytics>(`/admin/analytics${suffix}`, EMPTY_ANALYTICS, fetchImpl, cookie);
 };
+
+const EMPTY_DELIVERIES: AdminSubscriptionDeliveriesResponse = {
+	weekStart: '',
+	nextCronRunAt: '',
+	subscribers: []
+};
+// The Log panel's dataset: every ACTIVE subscriber + this week's due/recorded state.
+export const fetchSubscriptionDeliveries = (fetchImpl?: typeof globalThis.fetch, cookie?: string) =>
+	getJson<AdminSubscriptionDeliveriesResponse>(
+		'/admin/subscription-deliveries',
+		EMPTY_DELIVERIES,
+		fetchImpl,
+		cookie
+	);
+
+// Record this week's subscription egg orders for the checked subscribers,
+// ahead of the daily cron. Idempotent both ways — whoever runs first wins.
+export async function recordSubscriptionDeliveries(
+	userIds: string[]
+): Promise<AdminRecordDeliveriesResult | null> {
+	try {
+		const res = await api('/admin/subscription-deliveries/record', {
+			method: 'POST',
+			body: JSON.stringify({ userIds })
+		});
+		if (!res.ok) return null;
+		return (await res.json()) as AdminRecordDeliveriesResult;
+	} catch {
+		return null;
+	}
+}
 
 // Pre-register a user from an email + send a magic link. Returns the assigned
 // identity (username + animal) so the modal can confirm what they were given.

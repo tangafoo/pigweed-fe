@@ -22,7 +22,12 @@
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import EggOrderEntry from '$lib/components/admin/EggOrderEntry.svelte';
 	import UserPicker from '$lib/components/admin/UserPicker.svelte';
-	import { localYmd, moneyRM, orderDateLabel, SORT_SELECT } from '$lib/components/admin/shared.svelte';
+	import {
+		localYmd,
+		moneyRM,
+		orderDateLabel,
+		SORT_SELECT
+	} from '$lib/components/admin/shared.svelte';
 	import { toasts } from '$lib/realtime/toasts.svelte';
 	import * as admin from '$lib/api/admin';
 	import type {
