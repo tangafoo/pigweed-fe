@@ -60,6 +60,13 @@ export const orderDateLabel = (iso: string) =>
 		year: 'numeric'
 	});
 
+/** The local calendar day an ISO instant falls on, as "YYYY-MM-DD" (DatePicker's format). */
+export const localYmd = (iso: string) => {
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity -- transient formatting value, not reactive state
+	const d = new Date(iso);
+	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 export const moneyRM = (cents: number) =>
 	`RM${(cents / 100).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 

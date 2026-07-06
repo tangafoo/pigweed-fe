@@ -60,7 +60,9 @@
 			await admin.recordOrder(userId, {
 				eggs: d.eggs,
 				unitPriceCents,
-				orderedAt: d.date ? new Date(d.date).toISOString() : undefined
+				// Local midnight (matching the edit path) — a bare "YYYY-MM-DD" would
+				// parse as UTC midnight and land on a different farm-local day.
+				orderedAt: d.date ? new Date(d.date + 'T00:00:00').toISOString() : undefined
 			});
 		}
 		saving = false;

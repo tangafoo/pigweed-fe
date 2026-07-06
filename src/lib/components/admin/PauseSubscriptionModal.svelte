@@ -3,7 +3,7 @@
 	import { PauseCircle, CalendarClock, ArrowLeft } from '@lucide/svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import DatePicker from '$lib/components/ui/DatePicker.svelte';
-	import { orderDateLabel } from '$lib/components/admin/shared.svelte';
+	import { localYmd, orderDateLabel } from '$lib/components/admin/shared.svelte';
 
 	/**
 	 * Configure a subscription pause. Two paths, like the app's other
@@ -26,7 +26,7 @@
 		onCancel?: () => void;
 	} = $props();
 
-	const todayISO = () => new Date().toISOString().slice(0, 10);
+	const todayISO = () => localYmd(new Date().toISOString());
 
 	// 'root' = the two-choice confirm; 'date' = the expanded config.
 	let mode = $state<'root' | 'date'>('root');

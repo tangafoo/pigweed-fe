@@ -22,7 +22,7 @@
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import EggOrderEntry from '$lib/components/admin/EggOrderEntry.svelte';
 	import UserPicker from '$lib/components/admin/UserPicker.svelte';
-	import { moneyRM, orderDateLabel, SORT_SELECT } from '$lib/components/admin/shared.svelte';
+	import { localYmd, moneyRM, orderDateLabel, SORT_SELECT } from '$lib/components/admin/shared.svelte';
 	import { toasts } from '$lib/realtime/toasts.svelte';
 	import * as admin from '$lib/api/admin';
 	import type {
@@ -196,7 +196,10 @@
 		orderToEdit = o;
 		editEggsStr = String(o.eggs);
 		editPriceRMStr = (o.unitPriceCents / 100).toFixed(2);
-		editDate = o.orderedAt.slice(0, 10);
+		// Local calendar day, NOT orderedAt.slice(0, 10) — the UTC date can be one
+		// day behind the date the row displays, and saving that back drifts the
+		// order a day earlier on every edit.
+		editDate = localYmd(o.orderedAt);
 		editError = '';
 	}
 	$effect(() => {
@@ -240,10 +243,11 @@
 		const d = new Date(iso);
 		if (mode === 'month')
 			return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
-		// Mon-start ISO week, computed by timestamp math (no mutable Date).
-		const day = d.getUTCDay() || 7;
+		// Mon-start week on the LOCAL calendar (rows display local dates, so UTC
+		// week math would file late-evening orders under the previous week).
+		const day = d.getDay() || 7;
 		const weekStartMs =
-			Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) -
+			new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() -
 			(day - 1) * 24 * 60 * 60 * 1000;
 		return `Week of ${new Date(weekStartMs).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`;
 	}

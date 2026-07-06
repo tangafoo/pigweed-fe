@@ -34,6 +34,7 @@
 	import {
 		adminUrlWith,
 		createBusyRunner,
+		localYmd,
 		orderDateLabel,
 		type AdminPlan
 	} from '$lib/components/admin/shared.svelte';
@@ -165,7 +166,7 @@
 		expandedId = u.id;
 		expandTab = tab;
 		formPlanId = u.subscription?.plan.id ?? plans[0]?.id ?? '';
-		formStart = (u.subscription?.startedAt ?? new Date().toISOString()).slice(0, 10);
+		formStart = localYmd(u.subscription?.startedAt ?? new Date().toISOString());
 		formDay = u.subscription?.deliveryDay ?? 4;
 		if (ordersFor !== u.id) void loadOrders(u.id);
 	}
