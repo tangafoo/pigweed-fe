@@ -76,13 +76,21 @@
 	// One row per granter with a ×n badge (they may have gifted the same award
 	// more than once across different posts/comments). Rows arrive newest-first.
 	const granterGroups = $derived.by(() => {
-		const map = new Map<string, { granter: Granter['granter']; count: number; lastAt: string }>();
+		// Plain object index (not a Map) to satisfy svelte/prefer-svelte-reactivity;
+		// this is a transient computation, not reactive state.
+		type Group = { granter: Granter['granter']; count: number; lastAt: string };
+		const index: Record<string, Group> = {};
+		const groups: Group[] = [];
 		for (const g of granters) {
-			const ex = map.get(g.granter.id);
+			const ex = index[g.granter.id];
 			if (ex) ex.count += 1;
-			else map.set(g.granter.id, { granter: g.granter, count: 1, lastAt: g.createdAt });
+			else {
+				const row: Group = { granter: g.granter, count: 1, lastAt: g.createdAt };
+				index[g.granter.id] = row;
+				groups.push(row);
+			}
 		}
-		return [...map.values()];
+		return groups;
 	});
 
 	onMount(() => {
