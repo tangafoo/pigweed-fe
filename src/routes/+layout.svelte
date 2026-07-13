@@ -6,7 +6,7 @@
 	import OrderEggsModal from '$lib/components/home/OrderEggsModal.svelte';
 	import SubscriptionModal from '$lib/components/subscription/SubscriptionModal.svelte';
 	import UserMenu from '$lib/components/layout/UserMenu.svelte';
-	import { LOGO } from '$lib/config/assets';
+	import { asset, LOGO } from '$lib/config/assets';
 	import JsonLd from '$lib/components/seo/JsonLd.svelte';
 	import Toast from '$lib/components/ui/Toast.svelte';
 	import LoadingOverlay from '$lib/components/ui/LoadingOverlay.svelte';
@@ -23,7 +23,8 @@
 	// and an achievement event arriving in that window (exactly what the
 	// post→toast flow triggers) would be missed. Depending on the id means the
 	// stream only opens/closes on actual login/logout.
-	const userId = $derived((page.data as { session?: Session | null }).session?.user.id ?? null);
+	const sessionUser = $derived((page.data as { session?: Session | null }).session?.user ?? null);
+	const userId = $derived(sessionUser?.id ?? null);
 	$effect(() => {
 		if (!userId) return;
 		connectEvents();
@@ -63,6 +64,18 @@
 		</a>
 		<div class="ml-auto flex items-center gap-2">
 			<LocaleSwitcher />
+			{#if sessionUser}
+				<!-- Coin balance pill — same treatment as the one in LatestPostsStrip.
+				     invalidateAll() on SSE achievement events keeps it live (the
+				     session refetch carries the new balance). -->
+				<div
+					title="Egg coins"
+					class="flex items-center gap-1.5 rounded-full bg-olf-eggshell px-3 text-sm shadow-md"
+				>
+					<img src={asset('egg05.webp')} alt="" class="h-4 w-4 shrink-0 object-contain" />
+					<p>{sessionUser.coinBalance}</p>
+				</div>
+			{/if}
 			<UserMenu {userId} />
 		</div>
 	</div>
