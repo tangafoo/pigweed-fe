@@ -85,9 +85,11 @@
 <svelte:head><title>Admin · Our Little Farm</title></svelte:head>
 
 <div class="flex flex-1 bg-olf-lightgreen">
-	<!-- Sidebar — left rail on desktop, fixed bottom nav on mobile. -->
+	<!-- Sidebar — left rail on desktop, fixed bottom nav on mobile. Sticks just
+	     under the navbar and fills exactly the remaining viewport (--navbar-h is
+	     measured in the root layout), so the mt-auto chicken sits fully in view. -->
 	<aside
-		class="fixed inset-x-0 bottom-0 z-40 flex flex-row justify-around gap-1 bg-olf-moss px-2 py-2 text-olf-beige shadow-[0_-2px_10px_rgba(0,0,0,0.12)] sm:sticky sm:top-0 sm:h-dvh sm:w-52 sm:shrink-0 sm:flex-col sm:justify-start sm:gap-2 sm:self-start sm:overflow-y-auto sm:px-4 sm:py-6 sm:shadow-none"
+		class="fixed inset-x-0 bottom-0 z-40 flex flex-row justify-around gap-1 bg-olf-moss px-2 py-2 text-olf-beige shadow-[0_-2px_10px_rgba(0,0,0,0.12)] sm:sticky sm:top-[var(--navbar-h)] sm:h-[calc(100dvh-var(--navbar-h))] sm:w-52 sm:shrink-0 sm:flex-col sm:justify-start sm:gap-2 sm:self-start sm:overflow-y-auto sm:px-4 sm:py-6 sm:shadow-none"
 	>
 		<p class="hidden px-2 pb-4 font-homemade-apple text-3xl text-olf-eggshell sm:block">Admin</p>
 		{#each NAV as item (item.id)}

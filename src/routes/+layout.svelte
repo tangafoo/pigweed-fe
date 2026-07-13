@@ -16,6 +16,11 @@
 
 	let { children } = $props();
 
+	// Measured navbar height, published as --navbar-h so descendants (e.g. the
+	// admin sidebar) can size themselves to exactly 100dvh minus the sticky
+	// header — no hardcoded pixel guesses.
+	let navbarHeight = $state(0);
+
 	// Open the live notifications SSE stream while signed in (client-only —
 	// effects don't run during SSR). Key the effect on the user ID (a stable
 	// primitive), NOT the session object: every invalidateAll() yields a fresh
@@ -55,8 +60,9 @@
 <JsonLd data={websiteJsonLd} />
 <JsonLd data={organizationJsonLd} />
 
-<div class="flex min-h-dvh flex-col">
+<div class="flex min-h-dvh flex-col" style="--navbar-h: {navbarHeight}px">
 	<div
+		bind:clientHeight={navbarHeight}
 		class="sticky top-0 z-50 flex w-full items-center gap-3 bg-olf-beige px-2 py-2.5 shadow-sm lg:py-3"
 	>
 		<a href="/" aria-label="Our Little Farm" class="flex items-center">
