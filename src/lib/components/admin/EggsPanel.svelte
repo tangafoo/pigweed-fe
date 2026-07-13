@@ -25,6 +25,7 @@
 	import Pager from '$lib/components/admin/Pager.svelte';
 	import UserPicker from '$lib/components/admin/UserPicker.svelte';
 	import {
+		isFutureDay,
 		localYmd,
 		moneyRM,
 		orderDateLabel,
@@ -76,7 +77,38 @@
 		{ value: 'week', label: 'Week' },
 		{ value: 'month', label: 'Month' }
 	] as const;
+	// "Future" narrows to orders dated after today (the misclick-catcher —
+	// matches the blue FUTURE row pill).
+	const WHEN_OPTIONS = [
+		{ value: '', label: 'All' },
+		{ value: 'future', label: 'Future' }
+	] as const;
+	let ledgerWhen = $state<'' | 'future'>('');
 	let ledgerSearchTimer: ReturnType<typeof setTimeout>;
+
+	// Local tomorrow (Y-M-D) — the future filter's lower bound.
+	const tomorrowYmd = () => {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- transient "now", not reactive state
+		const d = new Date();
+		d.setDate(d.getDate() + 1);
+		return localYmd(d.toISOString());
+	};
+	// Shared query params (row fetch + CSV export). The future filter rides the
+	// existing `from` bound: from = max(picked From, tomorrow), so BE totals
+	// stay correct.
+	function ledgerParams() {
+		const from =
+			ledgerWhen === 'future'
+				? [ledgerFrom, tomorrowYmd()].filter(Boolean).sort().at(-1)
+				: ledgerFrom || undefined;
+		return {
+			from: from || undefined,
+			to: ledgerTo || undefined,
+			source: ledgerSource || undefined,
+			q: ledgerQ || undefined,
+			includeDeleted: ledgerShowDeleted
+		};
+	}
 
 	// Monotonic token: a reload started while a previous multi-page fetch is
 	// still in flight must win — stale batches are dropped, never rendered.
@@ -84,14 +116,7 @@
 	async function loadLedger() {
 		const seq = ++ledgerLoadSeq;
 		ledgerLoading = true;
-		const params = {
-			limit: LEDGER_FETCH_LIMIT,
-			from: ledgerFrom || undefined,
-			to: ledgerTo || undefined,
-			source: ledgerSource || undefined,
-			q: ledgerQ || undefined,
-			includeDeleted: ledgerShowDeleted
-		};
+		const params = { limit: LEDGER_FETCH_LIMIT, ...ledgerParams() };
 		const rows: AdminEggLedgerRow[] = [];
 		let page = 1;
 		let res = await admin.fetchEggLedger({ ...params, page });
@@ -128,6 +153,7 @@
 			ledgerTo ||
 			ledgerSource ||
 			ledgerQ ||
+			ledgerWhen ||
 			ledgerShowDeleted ||
 			ledgerGroupBy !== 'none'
 		)
@@ -138,6 +164,7 @@
 		ledgerTo = '';
 		ledgerSource = '';
 		ledgerQ = '';
+		ledgerWhen = '';
 		ledgerShowDeleted = false;
 		ledgerGroupBy = 'none';
 		selectedMonth = null;
@@ -161,13 +188,7 @@
 	let ledgerExporting = $state(false);
 	async function exportLedger() {
 		ledgerExporting = true;
-		await admin.exportEggLedgerCsv({
-			from: ledgerFrom || undefined,
-			to: ledgerTo || undefined,
-			source: ledgerSource || undefined,
-			q: ledgerQ || undefined,
-			includeDeleted: ledgerShowDeleted
-		});
+		await admin.exportEggLedgerCsv(ledgerParams());
 		ledgerExporting = false;
 	}
 
@@ -466,6 +487,17 @@
 				triggerClass="bg-white text-olf-darkgreen"
 			/>
 		</div>
+		<div class="flex flex-col gap-1">
+			<span class="font-oswald text-xxs font-bold tracking-wide text-olf-darkgreen/60 uppercase"
+				>When</span
+			>
+			<OptionPicker
+				options={WHEN_OPTIONS}
+				bind:value={ledgerWhen}
+				onchange={() => reloadLedger()}
+				triggerClass="bg-white text-olf-darkgreen"
+			/>
+		</div>
 		<div class="relative flex-1 sm:flex-none">
 			<Search
 				size={16}
@@ -504,6 +536,7 @@
 	<!-- Row snippet (shared by flat + grouped renders) -->
 	{#snippet ledgerRowMarkup(o: AdminEggLedgerRow)}
 		{@const dead = !!o.deletedAt}
+		{@const future = isFutureDay(o.orderedAt)}
 		<div
 			class="grid grid-cols-[6.5rem_3.5rem_minmax(8rem,1fr)_4.5rem_3.5rem_5.5rem_4.5rem] items-center gap-2 px-4 py-2 text-olf-darkgreen transition-colors hover:bg-olf-darkgreen/5 {dead
 				? 'opacity-50'
@@ -523,12 +556,24 @@
 				<span class="truncate font-oswald text-sm font-bold {dead ? 'line-through' : ''}"
 					>{o.username}</span
 				>
+				{#if future}
+					<!-- Dated after today — usually a date-picker month misclick. First
+					     pill carries ml-auto; a subscription pill then sits beside it. -->
+					<span
+						title="Dated in the future — check the order date"
+						class="ml-auto shrink-0 rounded-full bg-olf-blue px-2.5 py-1 font-oswald text-xs font-bold tracking-wide text-olf-eggshell uppercase"
+					>
+						future
+					</span>
+				{/if}
 				{#if o.source === 'SUBSCRIPTION'}
 					<!-- Manual rows stay unmarked (the default); only sub-fired rows get the
 					     pill — same pill as the Users panel's "subscribed". -->
 					<span
 						title="Recorded by subscription"
-						class="ml-auto shrink-0 rounded-full bg-olf-darkgreen px-2.5 py-1 font-oswald text-xs font-bold tracking-wide text-olf-eggshell uppercase"
+						class="{future
+							? ''
+							: 'ml-auto'} shrink-0 rounded-full bg-olf-darkgreen px-2.5 py-1 font-oswald text-xs font-bold tracking-wide text-olf-eggshell uppercase"
 					>
 						subscription
 					</span>
@@ -657,7 +702,7 @@
 							<span class="font-oswald text-xs text-olf-darkgreen/70 tabular-nums"
 								>{c.orders} orders · {c.eggs} 🥚</span
 							>
-							<span class="font-caveat text-lg text-olf-darkgreen tabular-nums"
+							<span class="font-caveat text-3xl text-olf-darkgreen tabular-nums"
 								>{moneyRM(c.revenueCents)}</span
 							>
 						</button>
