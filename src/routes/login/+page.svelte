@@ -166,7 +166,9 @@
 		</label>
 
 		{#if error}
-			<p class="mb-4 rounded-lg bg-red-700 px-3 py-2 font-oswald text-sm text-white">{error}</p>
+			<p class="mb-4 w-fit rounded-lg bg-red-700 px-3 py-2 font-oswald text-sm text-white">
+				{error}
+			</p>
 		{/if}
 
 		<button
@@ -178,23 +180,17 @@
 			{submitting ? m.login_submitting() : m.login_submit()}
 		</button>
 
-		<div class="my-4 flex items-center gap-3 font-oswald text-xs text-olf-darkbrown/60">
-			<span class="h-px flex-1 bg-olf-darkbrown/20"></span>
-			{m.login_passkey_divider()}
-			<span class="h-px flex-1 bg-olf-darkbrown/20"></span>
-		</div>
-
 		<button
 			type="button"
 			onclick={signInWithPasskey}
 			disabled={passkeyBusy}
-			class="flex w-full items-center justify-center gap-2 rounded-full border-2 border-olf-darkbrown bg-olf-beige px-4 py-2 font-oswald text-lg font-bold text-olf-darkbrown disabled:opacity-50"
+			class="mt-3 flex w-full items-center justify-center gap-2 rounded-full border-2 border-olf-darkbrown bg-olf-beige px-4 py-2 font-oswald text-lg font-bold text-olf-darkbrown disabled:opacity-50"
 		>
 			<FingerprintPattern size={20} />
 			{passkeyBusy ? m.passkey_add_in_progress() : m.passkey_signin_button()}
 		</button>
 
-		<div class="my-4 flex items-center gap-3 font-oswald text-xs text-olf-darkbrown/60">
+		<div class="my-4 flex items-center gap-3 font-oswald text-sm text-olf-darkbrown/70">
 			<span class="h-px flex-1 bg-olf-darkbrown/20"></span>
 			{m.login_magic_divider()}
 			<span class="h-px flex-1 bg-olf-darkbrown/20"></span>
