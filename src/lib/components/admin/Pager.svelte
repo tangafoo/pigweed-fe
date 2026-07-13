@@ -9,6 +9,12 @@
 	<button
 		type="button"
 		disabled={page <= 1}
+		onclick={() => (page = 1)}
+		class="underline disabled:opacity-40">« First</button
+	>
+	<button
+		type="button"
+		disabled={page <= 1}
 		onclick={() => (page -= 1)}
 		class="underline disabled:opacity-40">← Prev</button
 	>

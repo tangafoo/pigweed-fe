@@ -86,9 +86,9 @@
 		{ id: 'users', label: 'Users', icon: UsersIcon },
 		{ id: 'analytics', label: 'Analytics', icon: TrendingUp },
 		{ id: 'boxes', label: 'Boxes', icon: Package, group: 'Eggs', groupIcon: Package },
-		{ id: 'tiers', label: 'Tiers', icon: Layers, group: 'Subscription', groupIcon: Umbrella },
-		{ id: 'benefits', label: 'Benefits', icon: Gift },
-		{ id: 'log', label: 'Log', icon: TreePine }
+		{ id: 'log', label: 'Log', icon: TreePine, group: 'Subscription', groupIcon: Umbrella },
+		{ id: 'tiers', label: 'Tiers', icon: Layers },
+		{ id: 'benefits', label: 'Benefits', icon: Gift }
 	] as const;
 </script>
 

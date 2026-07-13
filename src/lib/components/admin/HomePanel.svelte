@@ -693,9 +693,11 @@
 			</div>
 		</div>
 
-		<!-- Customer deep-dive — sized to mirror the EGG-O-MATIC (max-w-sm, fills
-		     the column height). The one place we expand a card on purpose. -->
-		<div class="flex w-full max-w-sm flex-col rounded-2xl bg-olf-beige p-5 shadow-sm">
+		<!-- Customer deep-dive — sized to mirror the EGG-O-MATIC (max-w-sm), but
+		     self-start so an expanding row-mate (the calculator's customer list)
+		     never stretches it (standing rule: expanding cards don't stretch
+		     row-mates). -->
+		<div class="flex w-full max-w-sm flex-col self-start rounded-2xl bg-olf-beige p-5 shadow-sm">
 			<h3
 				class="flex items-center gap-1.5 font-oswald text-sm font-bold tracking-wide text-olf-darkgreen/80 uppercase"
 			>
@@ -754,19 +756,31 @@
 						</div>
 
 						<div class="grid grid-cols-2 gap-2.5">
-							<StatTile label="Lifetime" value={moneyRM(dive.revenueCents)} hint="revenue" />
-							<EggUnitTile eggs={dive.eggs} {boxes} />
-							<StatTile label="Orders" value={num(dive.orders)} hint="all-time" />
+							<StatTile
+								label="Lifetime"
+								value={moneyRM(dive.revenueCents)}
+								hint="revenue"
+								tone="eggshell"
+							/>
+							<EggUnitTile eggs={dive.eggs} {boxes} tone="eggshell" />
+							<StatTile label="Orders" value={num(dive.orders)} hint="all-time" tone="eggshell" />
 							<StatTile
 								label="Avg order"
 								value={moneyRM(dive.orders ? dive.revenueCents / dive.orders : 0)}
 								hint="per order"
+								tone="eggshell"
 							/>
-							<StatTile label="Cadence" value={cad ? `~${cad}d` : '—'} hint="between orders" />
+							<StatTile
+								label="Cadence"
+								value={cad ? `~${cad}d` : '—'}
+								hint="between orders"
+								tone="eggshell"
+							/>
 							<StatTile
 								label="Last order"
 								value={agoLabel(dive.lastOrderAt)}
 								hint={diveSegment.blurb}
+								tone="eggshell"
 							/>
 						</div>
 					</div>
