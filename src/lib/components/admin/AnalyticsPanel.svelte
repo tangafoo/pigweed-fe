@@ -85,10 +85,8 @@
 	const num = (n: number) => n.toLocaleString();
 	const axisMoney = (cents: number) => `RM${compactNumber(Math.round(cents / 100))}`;
 	const weekLabel = (iso: string) =>
-		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- transient formatting
 		new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 	const monthLabel = (iso: string) =>
-		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- transient formatting
 		new Date(iso).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
 	const dayLabel = (iso: string) =>
 		new Date(iso).toLocaleDateString(undefined, {
