@@ -168,8 +168,6 @@
 					users={data.users}
 					plans={data.plans}
 					boxes={data.boxes}
-					total={data.total}
-					pageNum={data.page}
 					orderedOn={data.orderedOn}
 					onAddUser={openAddUser}
 				/>

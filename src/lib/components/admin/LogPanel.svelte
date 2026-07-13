@@ -6,7 +6,8 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import OptionPicker from '$lib/components/ui/OptionPicker.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
-	import { orderDateLabel } from '$lib/components/admin/shared.svelte';
+	import Pager from '$lib/components/admin/Pager.svelte';
+	import { orderDateLabel, PAGE_SIZE_OPTIONS } from '$lib/components/admin/shared.svelte';
 	import { toasts } from '$lib/realtime/toasts.svelte';
 	import * as admin from '$lib/api/admin';
 	import type {
@@ -51,8 +52,6 @@
 	}
 
 	// ─── Client-side paging (same pattern as the eggs ledger) ───────
-	const PAGE_SIZES = [10, 25, 50, 100];
-	const PAGE_SIZE_OPTIONS = PAGE_SIZES.map((n) => ({ value: n, label: String(n) }));
 	let pageSize = $state(10);
 	let clientPage = $state(1);
 	const rows = $derived(data?.subscribers ?? []);
@@ -245,7 +244,7 @@
 			</div>
 
 			<!-- Page-size + pager (same UX as the eggs ledger). -->
-			{#if rows.length > PAGE_SIZES[0]}
+			{#if rows.length > PAGE_SIZE_OPTIONS[0].value}
 				<div class="flex flex-wrap items-center justify-between gap-3">
 					<label class="flex items-center gap-1.5 font-oswald text-xs text-olf-darkgreen/70">
 						Show
@@ -257,27 +256,7 @@
 						/>
 					</label>
 					{#if rows.length > pageSize}
-						<div class="flex items-center gap-4 font-oswald text-sm text-olf-darkgreen">
-							<button
-								type="button"
-								disabled={clientPage <= 1}
-								onclick={() => (clientPage -= 1)}
-								class="underline disabled:opacity-40">← Prev</button
-							>
-							<span class="tabular-nums">Page {clientPage} of {clientPages}</span>
-							<button
-								type="button"
-								disabled={clientPage >= clientPages}
-								onclick={() => (clientPage += 1)}
-								class="underline disabled:opacity-40">Next →</button
-							>
-							<button
-								type="button"
-								disabled={clientPage >= clientPages}
-								onclick={() => (clientPage = clientPages)}
-								class="underline disabled:opacity-40">Last »</button
-							>
-						</div>
+						<Pager bind:page={clientPage} pages={clientPages} />
 					{/if}
 				</div>
 			{/if}

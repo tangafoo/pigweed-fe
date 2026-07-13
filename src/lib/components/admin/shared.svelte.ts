@@ -69,3 +69,6 @@ export const localYmd = (iso: string) => {
 
 export const moneyRM = (cents: number) =>
 	`RM${(cents / 100).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** Rows-per-page choices for the admin tables' client-side pagers. */
+export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100].map((n) => ({ value: n, label: String(n) }));

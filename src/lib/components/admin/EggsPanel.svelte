@@ -22,8 +22,14 @@
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import OptionPicker from '$lib/components/ui/OptionPicker.svelte';
 	import EggOrderEntry from '$lib/components/admin/EggOrderEntry.svelte';
+	import Pager from '$lib/components/admin/Pager.svelte';
 	import UserPicker from '$lib/components/admin/UserPicker.svelte';
-	import { localYmd, moneyRM, orderDateLabel } from '$lib/components/admin/shared.svelte';
+	import {
+		localYmd,
+		moneyRM,
+		orderDateLabel,
+		PAGE_SIZE_OPTIONS
+	} from '$lib/components/admin/shared.svelte';
 	import { toasts } from '$lib/realtime/toasts.svelte';
 	import * as admin from '$lib/api/admin';
 	import type {
@@ -248,7 +254,6 @@
 	// otherwise (the week view renders group headers around the paged rows).
 	// The page resets explicitly wherever the row set or order changes:
 	// loadLedger(), toggleLedgerSort(), pickMonth(), and the page-size select.
-	const EGG_PAGE_SIZE_OPTIONS = [10, 25, 50, 100].map((n) => ({ value: n, label: String(n) }));
 	let eggPageSize = $state(10);
 	let eggClientPage = $state(1);
 	const baseRows = $derived(
@@ -695,7 +700,7 @@
 			<label class="flex items-center gap-1.5 font-oswald text-xs text-olf-darkgreen/70">
 				Show
 				<OptionPicker
-					options={EGG_PAGE_SIZE_OPTIONS}
+					options={PAGE_SIZE_OPTIONS}
 					bind:value={eggPageSize}
 					onchange={() => (eggClientPage = 1)}
 					triggerClass="bg-white text-olf-darkgreen"
@@ -707,27 +712,7 @@
 	<!-- The single pager — client-side over the visible set (flat, week-grouped,
 	     or the drilled-down month). Hidden while the month picker is up. -->
 	{#if !monthPickerShowing && baseRows.length > eggPageSize}
-		<div class="flex items-center justify-center gap-4 font-oswald text-sm text-olf-darkgreen">
-			<button
-				type="button"
-				disabled={eggClientPage <= 1}
-				onclick={() => (eggClientPage -= 1)}
-				class="underline disabled:opacity-40">← Prev</button
-			>
-			<span class="tabular-nums">Page {eggClientPage} of {eggClientPages}</span>
-			<button
-				type="button"
-				disabled={eggClientPage >= eggClientPages}
-				onclick={() => (eggClientPage += 1)}
-				class="underline disabled:opacity-40">Next →</button
-			>
-			<button
-				type="button"
-				disabled={eggClientPage >= eggClientPages}
-				onclick={() => (eggClientPage = eggClientPages)}
-				class="underline disabled:opacity-40">Last »</button
-			>
-		</div>
+		<Pager bind:page={eggClientPage} pages={eggClientPages} />
 	{/if}
 </section>
 

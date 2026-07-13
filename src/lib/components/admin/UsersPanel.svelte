@@ -32,11 +32,13 @@
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import EggOrderEntry from '$lib/components/admin/EggOrderEntry.svelte';
 	import PauseSubscriptionModal from '$lib/components/admin/PauseSubscriptionModal.svelte';
+	import Pager from '$lib/components/admin/Pager.svelte';
 	import {
 		adminUrlWith,
 		createBusyRunner,
 		localYmd,
 		orderDateLabel,
+		PAGE_SIZE_OPTIONS,
 		type AdminPlan
 	} from '$lib/components/admin/shared.svelte';
 	import * as admin from '$lib/api/admin';
@@ -48,13 +50,11 @@
 		plans: AdminPlan[];
 		/** Box denominations for the per-user egg composer. */
 		boxes: AdminBox[];
-		total: number;
-		pageNum: number;
 		orderedOn: string;
 		/** Opens the shared AddUserModal (owned by the page). */
 		onAddUser: () => void;
 	}
-	let { users, plans, boxes, total, pageNum, orderedOn, onAddUser }: UsersPanelProps = $props();
+	let { users, plans, boxes, orderedOn, onAddUser }: UsersPanelProps = $props();
 
 	const runner = createBusyRunner();
 	const busy = $derived(runner.busy);
@@ -311,6 +311,7 @@
 	let userSortField = $state<SortField>('date');
 	let userSortDir = $state<'asc' | 'desc'>('desc');
 	function toggleUserSort(f: SortField) {
+		clientPage = 1;
 		if (userSortField === f) userSortDir = userSortDir === 'asc' ? 'desc' : 'asc';
 		else {
 			userSortField = f;
@@ -365,21 +366,13 @@
 	const MD_COLS = 'md:grid-cols-[4rem_minmax(0,1fr)_3rem_3rem_4.5rem_5rem_8rem_4.5rem]';
 	const ROW_GRID = `grid grid-cols-[3rem_minmax(0,1fr)_auto_auto] items-center gap-2 ${MD_COLS} md:gap-3`;
 	const joinedShort = (iso: string) =>
-		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- transient formatting
 		new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 
-	// Client-side paging over the loaded/filtered set — default 10 rows.
-	const PAGE_SIZE_OPTIONS = [10, 25, 50].map((n) => ({ value: n, label: String(n) }));
+	// Client-side paging over the loaded/filtered set — default 10 rows. The
+	// page resets explicitly wherever the row set or order changes: the search
+	// input, toggleUserSort(), and the page-size picker.
 	let pageSize = $state(10);
 	let clientPage = $state(1);
-	// Any filter/sort/size change resets to the first page.
-	$effect(() => {
-		searchQ;
-		userSortField;
-		userSortDir;
-		pageSize;
-		clientPage = 1;
-	});
 	const clientPages = $derived(Math.max(1, Math.ceil(sortedRegular.length / pageSize)));
 	const pagedRegular = $derived(
 		sortedRegular.slice((clientPage - 1) * pageSize, clientPage * pageSize)
@@ -981,6 +974,7 @@
 					/>
 					<input
 						bind:value={searchQ}
+						oninput={() => (clientPage = 1)}
 						placeholder="search name / email"
 						aria-label="Search users"
 						class="w-full rounded-lg border border-olf-darkgreen/20 bg-white py-1.5 pr-3 pl-8 font-oswald text-sm text-olf-darkgreen sm:w-56"
@@ -1019,6 +1013,7 @@
 			<OptionPicker
 				options={PAGE_SIZE_OPTIONS}
 				bind:value={pageSize}
+				onchange={() => (clientPage = 1)}
 				triggerClass="bg-white text-olf-darkgreen"
 			/>
 			per page
@@ -1026,27 +1021,7 @@
 	{/if}
 
 	{#if usersOpen && sortedRegular.length > pageSize}
-		<div class="flex items-center justify-center gap-4 font-oswald text-sm text-olf-darkgreen">
-			<button
-				type="button"
-				disabled={clientPage <= 1}
-				onclick={() => (clientPage -= 1)}
-				class="underline disabled:opacity-40">← Prev</button
-			>
-			<span class="tabular-nums">Page {clientPage} of {clientPages}</span>
-			<button
-				type="button"
-				disabled={clientPage >= clientPages}
-				onclick={() => (clientPage += 1)}
-				class="underline disabled:opacity-40">Next →</button
-			>
-			<button
-				type="button"
-				disabled={clientPage >= clientPages}
-				onclick={() => (clientPage = clientPages)}
-				class="underline disabled:opacity-40">Last »</button
-			>
-		</div>
+		<Pager bind:page={clientPage} pages={clientPages} />
 	{/if}
 </section>
 
