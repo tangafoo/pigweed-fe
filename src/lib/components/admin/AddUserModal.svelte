@@ -3,6 +3,7 @@
 	import { fade } from 'svelte/transition';
 	import { sineIn } from 'svelte/easing';
 	import Button from '$lib/components/ui/Button.svelte';
+	import OptionPicker from '$lib/components/ui/OptionPicker.svelte';
 	import EggOrderEntry from '$lib/components/admin/EggOrderEntry.svelte';
 	import * as admin from '$lib/api/admin';
 	import type { RegisterUserResult } from '$lib/api/admin';
@@ -17,6 +18,12 @@
 		oncreated
 	}: { open?: boolean; boxes?: AdminBox[]; oncreated?: () => void } = $props();
 
+	const GENDER_OPTIONS = [
+		{ value: 'UNDISCLOSED', label: 'Undisclosed' },
+		{ value: 'FEMALE', label: 'Female' },
+		{ value: 'MALE', label: 'Male' },
+		{ value: 'NONBINARY', label: 'Nonbinary' }
+	];
 	let email = $state('');
 	let username = $state('');
 	let animal = $state('');
@@ -217,15 +224,11 @@
 				class="flex flex-col gap-1 font-oswald text-xs font-bold tracking-wide text-olf-darkgreen/80 uppercase"
 			>
 				Gender
-				<select
+				<OptionPicker
+					options={GENDER_OPTIONS}
 					bind:value={gender}
-					class="rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1.5 text-sm normal-case"
-				>
-					<option value="UNDISCLOSED">Undisclosed</option>
-					<option value="FEMALE">Female</option>
-					<option value="MALE">Male</option>
-					<option value="NONBINARY">Nonbinary</option>
-				</select>
+					triggerClass="w-full justify-between border border-olf-darkgreen/20 bg-white text-olf-darkgreen normal-case"
+				/>
 			</label>
 
 			{#if error}<p class="font-oswald text-xs text-olf-darkbrown">{error}</p>{/if}

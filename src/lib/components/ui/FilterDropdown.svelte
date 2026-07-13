@@ -24,7 +24,28 @@
 	let root = $state<HTMLElement>();
 	const close = () => (open = false);
 
+	// The open panel is position:FIXED at the trigger's screen coords, not
+	// absolute — fixed boxes ignore ancestor overflow, so the panel can never
+	// be clipped by (or add scroll to) a <dialog> or any scroll container.
+	// (z-index alone can't fix that: nothing stacks its way out of an
+	// ancestor's overflow clip.) Flips upward when the viewport room below the
+	// trigger can't fit the panel. Coords are computed once per open.
+	const PANEL_ROOM = 260; // ≈ max-h-60 + margin
+	let panelStyle = $state('');
+	function toggle() {
+		if (!open && root) {
+			const r = root.getBoundingClientRect();
+			const openUp = window.innerHeight - r.bottom < PANEL_ROOM && r.top > PANEL_ROOM;
+			panelStyle =
+				`position:fixed;left:${r.left}px;min-width:${Math.max(r.width, 176)}px;` +
+				(openUp ? `bottom:${window.innerHeight - r.top + 4}px` : `top:${r.bottom + 4}px`);
+		}
+		open = !open;
+	}
+
 	// Close on outside-click / Escape while open (matches LocaleSwitcher).
+	// Also close on any outside scroll or resize: the fixed panel would
+	// otherwise drift away from its trigger.
 	$effect(() => {
 		if (!open) return;
 		const onClick = (e: MouseEvent) => {
@@ -33,11 +54,20 @@
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key === 'Escape') open = false;
 		};
+		const onScroll = (e: Event) => {
+			// Scrolling the option list itself shouldn't dismiss it.
+			if (root && e.target instanceof Node && root.contains(e.target)) return;
+			open = false;
+		};
 		document.addEventListener('click', onClick);
 		document.addEventListener('keydown', onKey);
+		window.addEventListener('scroll', onScroll, true);
+		window.addEventListener('resize', onScroll);
 		return () => {
 			document.removeEventListener('click', onClick);
 			document.removeEventListener('keydown', onKey);
+			window.removeEventListener('scroll', onScroll, true);
+			window.removeEventListener('resize', onScroll);
 		};
 	});
 </script>
@@ -45,7 +75,7 @@
 <div class="relative" bind:this={root}>
 	<button
 		type="button"
-		onclick={() => (open = !open)}
+		onclick={toggle}
 		aria-haspopup="listbox"
 		aria-expanded={open}
 		class="flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 font-oswald text-sm font-bold transition-colors duration-200 {triggerClass}"
@@ -63,7 +93,8 @@
 		<ul
 			role="listbox"
 			transition:slide={{ duration: 150 }}
-			class="absolute left-0 z-50 mt-1 min-w-[11rem] overflow-hidden rounded-xl border border-olf-darkgreen/20 bg-olf-beige p-1 shadow-lg"
+			style={panelStyle}
+			class="z-50 max-h-60 overflow-y-auto rounded-xl border border-olf-darkgreen/20 bg-olf-beige p-1 shadow-lg"
 		>
 			{@render children(close)}
 		</ul>

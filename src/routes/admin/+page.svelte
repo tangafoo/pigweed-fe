@@ -69,6 +69,16 @@
 	let addUserOpen = $state(false);
 	const openAddUser = () => (addUserOpen = true);
 
+	// Re-clicking the ACTIVE nav item resets its panel to defaults: the URL
+	// (usually) doesn't change, so bumping this key forces a remount — panel
+	// state (filters, sort, page) is per-mount, and mounting refetches. The
+	// goto still runs to strip any lingering params (e.g. ?page=).
+	let panelResetKey = $state(0);
+	function navTo(id: View) {
+		if (id === view) panelResetKey += 1;
+		void goto(adminUrlWith({ view: id, page: undefined }), { noScroll: true });
+	}
+
 	// `group` opens a labelled section above the item (Eggs / Subscription).
 	const NAV = [
 		{ id: 'home', label: 'Home', icon: Home },
@@ -76,18 +86,20 @@
 		{ id: 'users', label: 'Users', icon: UsersIcon },
 		{ id: 'analytics', label: 'Analytics', icon: TrendingUp },
 		{ id: 'boxes', label: 'Boxes', icon: Package, group: 'Eggs', groupIcon: Package },
-		{ id: 'tiers', label: 'Tiers', icon: Layers, group: 'Subscription', groupIcon: Umbrella },
-		{ id: 'benefits', label: 'Benefits', icon: Gift },
-		{ id: 'log', label: 'Log', icon: TreePine }
+		{ id: 'log', label: 'Log', icon: TreePine, group: 'Subscription', groupIcon: Umbrella },
+		{ id: 'tiers', label: 'Tiers', icon: Layers },
+		{ id: 'benefits', label: 'Benefits', icon: Gift }
 	] as const;
 </script>
 
 <svelte:head><title>Admin · Our Little Farm</title></svelte:head>
 
 <div class="flex flex-1 bg-olf-lightgreen">
-	<!-- Sidebar — left rail on desktop, fixed bottom nav on mobile. -->
+	<!-- Sidebar — left rail on desktop, fixed bottom nav on mobile. Sticks just
+	     under the navbar and fills exactly the remaining viewport (--navbar-h is
+	     measured in the root layout), so the mt-auto chicken sits fully in view. -->
 	<aside
-		class="fixed inset-x-0 bottom-0 z-40 flex flex-row justify-around gap-1 bg-olf-moss px-2 py-2 text-olf-beige shadow-[0_-2px_10px_rgba(0,0,0,0.12)] sm:sticky sm:top-0 sm:h-dvh sm:w-52 sm:shrink-0 sm:flex-col sm:justify-start sm:gap-2 sm:self-start sm:overflow-y-auto sm:px-4 sm:py-6 sm:shadow-none"
+		class="fixed inset-x-0 bottom-0 z-40 flex flex-row justify-around gap-1 bg-olf-moss px-2 py-2 text-olf-beige shadow-[0_-2px_10px_rgba(0,0,0,0.12)] sm:sticky sm:top-[var(--navbar-h)] sm:h-[calc(100dvh-var(--navbar-h))] sm:w-52 sm:shrink-0 sm:flex-col sm:justify-start sm:gap-2 sm:self-start sm:overflow-y-auto sm:px-4 sm:py-6 sm:shadow-none"
 	>
 		<p class="hidden px-2 pb-4 font-homemade-apple text-3xl text-olf-eggshell sm:block">Admin</p>
 		{#each NAV as item (item.id)}
@@ -105,7 +117,7 @@
 				</div>
 			{/if}
 			<Button
-				onclick={() => goto(adminUrlWith({ view: item.id, page: undefined }), { noScroll: true })}
+				onclick={() => navTo(item.id)}
 				class="flex items-center justify-center gap-3 rounded-xl px-3 py-2.5 font-oswald text-sm font-bold tracking-wide transition-colors sm:justify-start {view ===
 				item.id
 					? 'bg-olf-beige text-olf-darkgreen'
@@ -148,31 +160,31 @@
 			{/each}
 		</div>
 
-		{#if view === 'home'}
-			<HomePanel stats={data.stats} users={data.users} boxes={data.boxes} />
-		{:else if view === 'users'}
-			<UsersPanel
-				users={data.users}
-				plans={data.plans}
-				boxes={data.boxes}
-				total={data.total}
-				pageNum={data.page}
-				orderedOn={data.orderedOn}
-				onAddUser={openAddUser}
-			/>
-		{:else if view === 'eggs'}
-			<EggsPanel users={data.users} boxes={data.boxes} onAddUser={openAddUser} />
-		{:else if view === 'analytics'}
-			<AnalyticsPanel boxes={data.boxes} />
-		{:else if view === 'boxes'}
-			<BoxesPanel boxes={data.boxes} />
-		{:else if view === 'tiers'}
-			<TiersPanel plans={data.plans} benefits={data.benefits} />
-		{:else if view === 'benefits'}
-			<BenefitsPanel benefits={data.benefits} />
-		{:else if view === 'log'}
-			<LogPanel />
-		{/if}
+		{#key panelResetKey}
+			{#if view === 'home'}
+				<HomePanel stats={data.stats} users={data.users} boxes={data.boxes} />
+			{:else if view === 'users'}
+				<UsersPanel
+					users={data.users}
+					plans={data.plans}
+					boxes={data.boxes}
+					orderedOn={data.orderedOn}
+					onAddUser={openAddUser}
+				/>
+			{:else if view === 'eggs'}
+				<EggsPanel users={data.users} boxes={data.boxes} onAddUser={openAddUser} />
+			{:else if view === 'analytics'}
+				<AnalyticsPanel boxes={data.boxes} />
+			{:else if view === 'boxes'}
+				<BoxesPanel boxes={data.boxes} />
+			{:else if view === 'tiers'}
+				<TiersPanel plans={data.plans} benefits={data.benefits} />
+			{:else if view === 'benefits'}
+				<BenefitsPanel benefits={data.benefits} />
+			{:else if view === 'log'}
+				<LogPanel />
+			{/if}
+		{/key}
 	</main>
 
 	<!-- Add user modal (pre-register by email + magic link); reused across panels -->

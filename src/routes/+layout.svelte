@@ -16,6 +16,40 @@
 
 	let { children } = $props();
 
+	// Measured navbar height, published as --navbar-h so descendants (e.g. the
+	// admin sidebar) can size themselves to exactly 100dvh minus the sticky
+	// header — no hardcoded pixel guesses.
+	let navbarHeight = $state(0);
+
+	// Admin-only navbar chicken: one greets right away on entering the admin,
+	// then a random one of the four hand-drawn chickens pops up inside the
+	// header (clipped by it) every 5 minutes — looks left, looks right, ducks
+	// back down. One cycle per pop — the element unmounts on animationend and
+	// the interval re-arms it.
+	const PEEK_CHICKENS = [
+		'henkerchief.webp',
+		'hen with chicks.webp',
+		'chicken-drawing-white.webp',
+		'chicken-drawing-brown.webp'
+	];
+	const PEEK_EVERY_MS = 5 * 60_000;
+	let peekChicken = $state('');
+	let peeking = $state(false);
+	const isAdminRoute = $derived(page.url.pathname.startsWith('/admin'));
+	$effect(() => {
+		if (!isAdminRoute) return;
+		const pop = () => {
+			peekChicken = PEEK_CHICKENS[Math.floor(Math.random() * PEEK_CHICKENS.length)];
+			peeking = true;
+		};
+		pop(); // greet on entry
+		const timer = setInterval(pop, PEEK_EVERY_MS);
+		return () => {
+			clearInterval(timer);
+			peeking = false;
+		};
+	});
+
 	// Open the live notifications SSE stream while signed in (client-only —
 	// effects don't run during SSR). Key the effect on the user ID (a stable
 	// primitive), NOT the session object: every invalidateAll() yields a fresh
@@ -55,10 +89,24 @@
 <JsonLd data={websiteJsonLd} />
 <JsonLd data={organizationJsonLd} />
 
-<div class="flex min-h-dvh flex-col">
+<div class="flex min-h-dvh flex-col" style="--navbar-h: {navbarHeight}px">
 	<div
+		bind:clientHeight={navbarHeight}
 		class="sticky top-0 z-50 flex w-full items-center gap-3 bg-olf-beige px-2 py-2.5 shadow-sm lg:py-3"
 	>
+		{#if isAdminRoute && peeking}
+			<!-- Clip box spanning the whole navbar — the chicken rises into it and
+			     everything below the bar's bottom edge stays hidden. -->
+			<div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+				<img
+					src={asset(peekChicken)}
+					alt=""
+					draggable="false"
+					onanimationend={() => (peeking = false)}
+					class="admin-peek-chicken absolute bottom-0 left-1/2 h-24 w-auto select-none"
+				/>
+			</div>
+		{/if}
 		<a href="/" aria-label="Our Little Farm" class="flex items-center">
 			<img src={LOGO} alt="Our Little Farm" class="h-5.5 w-auto rounded-md lg:h-7" />
 		</a>
@@ -90,3 +138,45 @@
 <SubscriptionModal />
 <Toast />
 <LoadingOverlay />
+
+<style>
+	/* Admin navbar chicken: rise from below the bar, tilt left, tilt right,
+	   duck back down. translateX(-50%) centers (left-1/2 anchor) and must ride
+	   every frame since keyframes replace the whole transform. */
+	.admin-peek-chicken {
+		transform: translate(-50%, 100%);
+		transform-origin: 50% 90%;
+		/* One cycle per pop; `both` holds the hidden end state until unmount. */
+		animation: admin-peek 4.5s ease-in-out 1 both;
+	}
+	/* Rise → hold facing one way → quick scaleX flip (reads as turning to look
+	   the other way) → hold → flip back → duck down. */
+	@keyframes admin-peek {
+		0% {
+			transform: translate(-50%, 100%) scaleX(1);
+		}
+		12% {
+			transform: translate(-50%, 35%) scaleX(1);
+		}
+		38% {
+			transform: translate(-50%, 35%) scaleX(1);
+		}
+		46% {
+			transform: translate(-50%, 35%) scaleX(-1);
+		}
+		76% {
+			transform: translate(-50%, 35%) scaleX(-1);
+		}
+		84% {
+			transform: translate(-50%, 35%) scaleX(1);
+		}
+		100% {
+			transform: translate(-50%, 100%) scaleX(1);
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.admin-peek-chicken {
+			animation: none;
+		}
+	}
+</style>

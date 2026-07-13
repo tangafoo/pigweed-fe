@@ -33,6 +33,7 @@
 	let priceRMStr = $state('2.00');
 	const priceRM = $derived(parseFloat(priceRMStr) || 0);
 	let saving = $state(false);
+	let saveError = $state('');
 
 	const validDrafts = $derived(drafts.filter((d) => d.eggs > 0).length);
 
@@ -51,23 +52,39 @@
 	}
 	// A box chip adds its eggs to the row (compose an order from boxes).
 	const addBox = (i: number, eggs: number) => (drafts[i].eggs += eggs);
+	// Every recordOrder result is CHECKED: a failed row stays in the list (so
+	// nothing silently vanishes — the form only resets and reports saved when
+	// every row landed), and the error is shown for a retry.
 	async function save() {
 		if (saving || validDrafts === 0) return;
 		saving = true;
+		saveError = '';
 		const unitPriceCents = Math.max(1, Math.round((priceRM || 0) * 100));
-		const rows = drafts.filter((x) => x.eggs > 0);
-		for (const d of rows) {
-			await admin.recordOrder(userId, {
-				eggs: d.eggs,
-				unitPriceCents,
-				// Local midnight (matching the edit path) — a bare "YYYY-MM-DD" would
-				// parse as UTC midnight and land on a different farm-local day.
-				orderedAt: d.date ? new Date(d.date + 'T00:00:00').toISOString() : undefined
-			});
+		let saved = 0;
+		try {
+			const failed: OrderDraft[] = [];
+			for (const d of drafts) {
+				if (d.eggs <= 0) continue;
+				const ok = await admin.recordOrder(userId, {
+					eggs: d.eggs,
+					unitPriceCents,
+					// Local midnight (matching the edit path) — a bare "YYYY-MM-DD" would
+					// parse as UTC midnight and land on a different farm-local day.
+					orderedAt: d.date ? new Date(d.date + 'T00:00:00').toISOString() : undefined
+				});
+				if (ok) saved += 1;
+				else failed.push(d);
+			}
+			if (failed.length) {
+				drafts = failed;
+				saveError = `${failed.length} record${failed.length === 1 ? '' : 's'} did not save — still listed below, try again.${saved ? ` (${saved} saved.)` : ''}`;
+				return;
+			}
+			reset();
+			onsaved?.(saved);
+		} finally {
+			saving = false;
 		}
-		saving = false;
-		reset();
-		onsaved?.(rows.length);
 	}
 </script>
 
@@ -107,7 +124,9 @@
 		<span>Date</span>
 	</div>
 
-	{#each drafts as d, i (i)}
+	<!-- Keyed by the draft object (not index): rows get removed/kept on partial
+	     save, and index keys would re-associate inputs with the wrong row. -->
+	{#each drafts as d, i (d)}
 		<div class="flex flex-col gap-1.5">
 			<div class="flex flex-wrap items-center gap-2">
 				<input
@@ -161,6 +180,10 @@
 			{/if}
 		</div>
 	{/each}
+
+	{#if saveError}
+		<p class="rounded-lg bg-red-700 px-3 py-2 font-oswald text-xs text-white">{saveError}</p>
+	{/if}
 
 	<div class="flex flex-wrap items-center gap-2">
 		<button

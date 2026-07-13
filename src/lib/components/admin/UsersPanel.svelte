@@ -28,14 +28,18 @@
 	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import DatePicker from '$lib/components/ui/DatePicker.svelte';
+	import OptionPicker from '$lib/components/ui/OptionPicker.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import EggOrderEntry from '$lib/components/admin/EggOrderEntry.svelte';
 	import PauseSubscriptionModal from '$lib/components/admin/PauseSubscriptionModal.svelte';
+	import Pager from '$lib/components/admin/Pager.svelte';
 	import {
 		adminUrlWith,
 		createBusyRunner,
+		isFutureDay,
 		localYmd,
 		orderDateLabel,
+		PAGE_SIZE_OPTIONS,
 		type AdminPlan
 	} from '$lib/components/admin/shared.svelte';
 	import * as admin from '$lib/api/admin';
@@ -47,13 +51,11 @@
 		plans: AdminPlan[];
 		/** Box denominations for the per-user egg composer. */
 		boxes: AdminBox[];
-		total: number;
-		pageNum: number;
 		orderedOn: string;
 		/** Opens the shared AddUserModal (owned by the page). */
 		onAddUser: () => void;
 	}
-	let { users, plans, boxes, total, pageNum, orderedOn, onAddUser }: UsersPanelProps = $props();
+	let { users, plans, boxes, orderedOn, onAddUser }: UsersPanelProps = $props();
 
 	const runner = createBusyRunner();
 	const busy = $derived(runner.busy);
@@ -72,7 +74,7 @@
 	// Localized weekday name (0=Sun). 2024-01-07 is a Sunday.
 	const dayName = (d: number) =>
 		new Date(2024, 0, 7 + d).toLocaleDateString(undefined, { weekday: 'long' });
-	const DAYS = [0, 1, 2, 3, 4, 5, 6];
+	const DAY_OPTIONS = [0, 1, 2, 3, 4, 5, 6].map((d) => ({ value: d, label: dayName(d) }));
 
 	// ─── Per-user expand card — tabs: details + eggs ledger + subscription ──
 	let expandedId = $state<string | null>(null);
@@ -130,10 +132,20 @@
 		}
 	}
 
-	// Subscription form (Subscription tab).
+	// Subscription form (Subscription tab). Price is per subscriber (tier =
+	// eggs + cadence only): blank = keep current / farm default RM2/egg.
 	let formPlanId = $state('');
 	let formStart = $state('');
 	let formDay = $state(4);
+	let formPriceStr = $state('');
+	const planOptions = $derived(plans.map((p) => ({ value: p.id, label: p.name })));
+	// Parsed price in cents, or undefined when blank/invalid (= omit from the call).
+	const formPriceCents = $derived.by(() => {
+		const rm = parseFloat(formPriceStr);
+		if (!Number.isFinite(rm) || rm <= 0) return undefined;
+		const cents = Math.round(rm * 100);
+		return cents > 0 ? cents : undefined;
+	});
 
 	// Egg ledger (Eggs tab).
 	let orders = $state<EggOrder[]>([]);
@@ -168,6 +180,10 @@
 		formPlanId = u.subscription?.plan.id ?? plans[0]?.id ?? '';
 		formStart = localYmd(u.subscription?.startedAt ?? new Date().toISOString());
 		formDay = u.subscription?.deliveryDay ?? 4;
+		formPriceStr =
+			u.subscription?.unitPriceCents != null
+				? (u.subscription.unitPriceCents / 100).toFixed(2)
+				: '';
 		if (ordersFor !== u.id) void loadOrders(u.id);
 	}
 	// Clicking anywhere on the row toggles the Details tab — but not when the
@@ -309,6 +325,7 @@
 	let userSortField = $state<SortField>('date');
 	let userSortDir = $state<'asc' | 'desc'>('desc');
 	function toggleUserSort(f: SortField) {
+		clientPage = 1;
 		if (userSortField === f) userSortDir = userSortDir === 'asc' ? 'desc' : 'asc';
 		else {
 			userSortField = f;
@@ -363,21 +380,13 @@
 	const MD_COLS = 'md:grid-cols-[4rem_minmax(0,1fr)_3rem_3rem_4.5rem_5rem_8rem_4.5rem]';
 	const ROW_GRID = `grid grid-cols-[3rem_minmax(0,1fr)_auto_auto] items-center gap-2 ${MD_COLS} md:gap-3`;
 	const joinedShort = (iso: string) =>
-		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- transient formatting
 		new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 
-	// Client-side paging over the loaded/filtered set — default 10 rows.
-	const PAGE_SIZES = [10, 25, 50];
+	// Client-side paging over the loaded/filtered set — default 10 rows. The
+	// page resets explicitly wherever the row set or order changes: the search
+	// input, toggleUserSort(), and the page-size picker.
 	let pageSize = $state(10);
 	let clientPage = $state(1);
-	// Any filter/sort/size change resets to the first page.
-	$effect(() => {
-		searchQ;
-		userSortField;
-		userSortDir;
-		pageSize;
-		clientPage = 1;
-	});
 	const clientPages = $derived(Math.max(1, Math.ceil(sortedRegular.length / pageSize)));
 	const pagedRegular = $derived(
 		sortedRegular.slice((clientPage - 1) * pageSize, clientPage * pageSize)
@@ -416,9 +425,9 @@
 		<button
 			type="button"
 			onclick={() => toggleUserSort(field)}
-			class="flex cursor-pointer items-center gap-0.5 tracking-widest uppercase transition-colors hover:text-olf-darkgreen {userSortField ===
+			class="flex cursor-pointer items-center gap-0.5 tracking-widest uppercase transition-colors hover:text-olf-eggshell {userSortField ===
 			field
-				? 'text-olf-darkgreen'
+				? 'text-olf-eggshell'
 				: ''} {extra}"
 		>
 			<span>{label}</span>
@@ -436,7 +445,7 @@
 	<!-- Table header row — same grid columns as the rows (md+ only). -->
 	{#snippet usersHeader()}
 		<div
-			class="hidden {MD_COLS} border-b border-olf-darkgreen/10 bg-olf-darkgreen/5 px-3 py-2 font-oswald text-xxs font-bold text-olf-darkgreen/50 md:grid md:items-center md:gap-3"
+			class="hidden {MD_COLS} bg-olf-darkgreen px-3 py-2 font-oswald text-xxs font-bold text-olf-eggshell/70 md:grid md:items-center md:gap-3"
 		>
 			<span></span>
 			{@render sortTh('Customer', 'customer')}
@@ -470,7 +479,7 @@
 					: ''}"
 			>
 				<!-- 1 · batch-select + avatar -->
-				<span class="flex shrink-0 items-center gap-1.5">
+				<span class="flex shrink-0 items-center gap-3">
 					<input
 						type="checkbox"
 						checked={selectedIds.has(u.id)}
@@ -800,6 +809,15 @@
 											>
 												{o.source === 'SUBSCRIPTION' ? 'sub' : 'manual'}
 											</span>
+											{#if isFutureDay(o.orderedAt)}
+												<!-- Dated after today — usually a date-picker month misclick. -->
+												<span
+													title="Dated in the future — check the order date"
+													class="rounded-full bg-olf-blue px-2 py-0.5 text-xxs font-bold tracking-wider text-olf-eggshell uppercase"
+												>
+													future
+												</span>
+											{/if}
 											<button
 												type="button"
 												onclick={() =>
@@ -825,14 +843,11 @@
 								class="flex w-full flex-col gap-1 font-oswald text-xs tracking-wide text-olf-darkgreen/70 uppercase sm:w-52"
 							>
 								Tier
-								<select
+								<OptionPicker
+									options={planOptions}
 									bind:value={formPlanId}
-									class="w-full rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1.5 text-sm normal-case"
-								>
-									{#each plans as p (p.id)}
-										<option value={p.id}>{p.name}</option>
-									{/each}
-								</select>
+									triggerClass="w-full justify-between border border-olf-darkgreen/20 bg-white text-olf-darkgreen normal-case"
+								/>
 							</label>
 							<div
 								class="flex w-full flex-col gap-1 font-oswald text-xs tracking-wide text-olf-darkgreen/70 uppercase sm:w-52"
@@ -844,12 +859,26 @@
 								class="flex w-full flex-col gap-1 font-oswald text-xs tracking-wide text-olf-darkgreen/70 uppercase sm:w-52"
 							>
 								Delivery day
-								<select
+								<OptionPicker
+									options={DAY_OPTIONS}
 									bind:value={formDay}
-									class="w-full rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1.5 text-sm normal-case"
-								>
-									{#each DAYS as d (d)}<option value={d}>{dayName(d)}</option>{/each}
-								</select>
+									triggerClass="w-full justify-between border border-olf-darkgreen/20 bg-white text-olf-darkgreen normal-case"
+								/>
+							</label>
+							<label
+								class="flex w-full flex-col gap-1 font-oswald text-xs tracking-wide text-olf-darkgreen/70 uppercase sm:w-32"
+							>
+								Price / egg
+								<span class="flex items-center gap-1 font-bold normal-case">
+									RM
+									<input
+										type="text"
+										inputmode="decimal"
+										bind:value={formPriceStr}
+										placeholder="2.00"
+										class="w-full min-w-0 rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1.5 text-right text-sm tabular-nums"
+									/>
+								</span>
 							</label>
 							<Button
 								disabled={busy || !formPlanId}
@@ -857,7 +886,8 @@
 									run(() =>
 										admin.subscribeUserTier(u.id, formPlanId, {
 											startedAt: formStart ? new Date(formStart).toISOString() : undefined,
-											deliveryDay: formDay
+											deliveryDay: formDay,
+											unitPriceCents: formPriceCents
 										})
 									)}
 								class="flex items-center gap-1.5 rounded-md bg-olf-darkbrown px-4 py-2 font-oswald text-xs font-bold tracking-wide text-olf-eggshell uppercase disabled:opacity-50"
@@ -983,6 +1013,7 @@
 					/>
 					<input
 						bind:value={searchQ}
+						oninput={() => (clientPage = 1)}
 						placeholder="search name / email"
 						aria-label="Search users"
 						class="w-full rounded-lg border border-olf-darkgreen/20 bg-white py-1.5 pr-3 pl-8 font-oswald text-sm text-olf-darkgreen sm:w-56"
@@ -1014,44 +1045,22 @@
 		{/if}
 	</div>
 
-	<!-- Rows-per-page (below the table). appearance-none + our own chevron so the
-	     native arrow never overlaps the number. -->
+	<!-- Rows-per-page (below the table). -->
 	{#if usersOpen && mounted}
 		<label class="flex items-center gap-1.5 self-start font-oswald text-xs text-olf-darkgreen/70">
 			Show
-			<span class="relative">
-				<select
-					bind:value={pageSize}
-					aria-label="Rows per page"
-					class="cursor-pointer appearance-none rounded-lg border border-olf-darkgreen/20 bg-white py-1.5 pr-8 pl-3 font-oswald text-sm text-olf-darkgreen"
-				>
-					{#each PAGE_SIZES as n (n)}<option value={n}>{n}</option>{/each}
-				</select>
-				<ChevronDown
-					size={14}
-					class="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-olf-darkgreen/50"
-				/>
-			</span>
+			<OptionPicker
+				options={PAGE_SIZE_OPTIONS}
+				bind:value={pageSize}
+				onchange={() => (clientPage = 1)}
+				triggerClass="bg-white text-olf-darkgreen"
+			/>
 			per page
 		</label>
 	{/if}
 
 	{#if usersOpen && sortedRegular.length > pageSize}
-		<div class="flex items-center justify-center gap-4 font-oswald text-sm text-olf-darkgreen">
-			<button
-				type="button"
-				disabled={clientPage <= 1}
-				onclick={() => (clientPage -= 1)}
-				class="underline disabled:opacity-40">← Prev</button
-			>
-			<span class="tabular-nums">Page {clientPage} of {clientPages}</span>
-			<button
-				type="button"
-				disabled={clientPage >= clientPages}
-				onclick={() => (clientPage += 1)}
-				class="underline disabled:opacity-40">Next →</button
-			>
-		</div>
+		<Pager bind:page={clientPage} pages={clientPages} />
 	{/if}
 </section>
 

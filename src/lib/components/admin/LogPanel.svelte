@@ -2,11 +2,13 @@
 	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { SvelteSet } from 'svelte/reactivity';
-	import { TreePine, Timer } from '@lucide/svelte';
+	import { Pencil, X } from '@lucide/svelte';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import OptionPicker from '$lib/components/ui/OptionPicker.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
-	import { orderDateLabel } from '$lib/components/admin/shared.svelte';
+	import Pager from '$lib/components/admin/Pager.svelte';
+	import { moneyRM, orderDateLabel, PAGE_SIZE_OPTIONS } from '$lib/components/admin/shared.svelte';
 	import { toasts } from '$lib/realtime/toasts.svelte';
 	import * as admin from '$lib/api/admin';
 	import type {
@@ -38,21 +40,6 @@
 
 	const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-	// ─── Countdown to the next automatic cron run ───────────────────
-	let nowMs = $state(Date.now());
-	onMount(() => {
-		const tick = setInterval(() => (nowMs = Date.now()), 30_000);
-		return () => clearInterval(tick);
-	});
-	const countdown = $derived.by(() => {
-		if (!data?.nextCronRunAt) return '';
-		const ms = new Date(data.nextCronRunAt).getTime() - nowMs;
-		if (ms <= 60_000) return 'any minute now';
-		const h = Math.floor(ms / 3_600_000);
-		const m = Math.floor((ms % 3_600_000) / 60_000);
-		return h > 0 ? `in ${h}h ${m}m` : `in ${m}m`;
-	});
-
 	// ─── Selection ──────────────────────────────────────────────────
 	// Already-recorded rows can't be re-selected (recording them is a no-op
 	// anyway); not-due rows CAN be checked but the BE skips them and says so.
@@ -66,7 +53,6 @@
 	}
 
 	// ─── Client-side paging (same pattern as the eggs ledger) ───────
-	const PAGE_SIZES = [10, 25, 50, 100];
 	let pageSize = $state(10);
 	let clientPage = $state(1);
 	const rows = $derived(data?.subscribers ?? []);
@@ -95,21 +81,68 @@
 		await invalidateAll();
 	}
 
+	// Unlogged states only — a recorded week renders as the "logged" pill.
 	function statusLabel(s: AdminSubscriptionDeliveryRow): string {
-		if (s.recordedThisWeek && s.recordedAt) return `Logged ${orderDateLabel(s.recordedAt)}`;
 		if (s.dueThisWeek) return `Due ${WEEKDAYS[s.deliveryDay]}`;
 		return 'Not due this week';
+	}
+
+	// ─── Per-subscriber pricing modal ────────────────────────────────
+	// Tier = eggs + cadence; the PRICE is per subscriber (null = the farm
+	// default RM2/egg). Changing it applies from the NEXT log — recorded
+	// orders keep the price they were captured at.
+	const DEFAULT_PRICE_CENTS = 200;
+	let priceFor = $state<AdminSubscriptionDeliveryRow | null>(null);
+	let priceStr = $state('');
+	let priceSaving = $state(false);
+	let priceError = $state('');
+	let priceDialog = $state<HTMLDialogElement>();
+	function openPrice(s: AdminSubscriptionDeliveryRow) {
+		priceFor = s;
+		priceStr = ((s.unitPriceCents ?? DEFAULT_PRICE_CENTS) / 100).toFixed(2);
+		priceError = '';
+	}
+	$effect(() => {
+		if (!priceDialog) return;
+		if (priceFor && !priceDialog.open) priceDialog.showModal();
+		else if (!priceFor && priceDialog.open) priceDialog.close();
+	});
+	const priceRM = $derived(parseFloat(priceStr));
+	const priceCents = $derived(Number.isFinite(priceRM) ? Math.round(priceRM * 100) : 0);
+	const priceWeeklyCents = $derived(priceFor ? priceCents * priceFor.plan.eggsPerDelivery : 0);
+	// Save a custom price, or null to reset to the farm default.
+	async function applyPrice(cents: number | null) {
+		if (!priceFor || priceSaving) return;
+		if (cents !== null && cents <= 0) {
+			priceError = 'Price must be greater than 0.';
+			return;
+		}
+		priceSaving = true;
+		priceError = '';
+		const ok = await admin.updateSubscriptionPrice(priceFor.userId, cents);
+		priceSaving = false;
+		if (!ok) {
+			priceError = 'Could not save — try again.';
+			return;
+		}
+		const name = priceFor.username;
+		priceFor = null;
+		toasts.push({
+			title:
+				cents === null ? `${name} is back on the default price.` : `${name}'s egg price updated!`
+		});
+		await load();
+		await invalidateAll();
 	}
 </script>
 
 <section class="mt-8 flex flex-col gap-4">
 	<div class="flex flex-wrap items-end justify-between gap-3">
 		<div class="flex items-center gap-2">
-			<TreePine size={22} class="text-olf-darkbrown" />
-			<h2 class="font-homemade-apple text-2xl text-olf-darkbrown">Subscription log</h2>
+			<h2 class="font-homemade-apple text-2xl text-olf-darkbrown">Subscriptions</h2>
 		</div>
 		{#if data?.weekStart}
-			<span class="font-oswald text-sm text-olf-darkgreen/60"
+			<span class="font-oswald text-lg font-bold text-olf-darkgreen/70"
 				>Week of {orderDateLabel(data.weekStart)}</span
 			>
 		{/if}
@@ -126,9 +159,11 @@
 			<!-- The console: one big round button, laser-tag style. Title above,
 			     armed-count below, the plain-words description under the housing. -->
 			<div
-				class="flex flex-col items-center gap-2 rounded-2xl bg-olf-darkgreen px-4 pt-5 pb-4 text-olf-eggshell"
+				class="flex flex-col items-center gap-2 rounded-2xl bg-olf-darkgreen px-4 py-5 text-olf-eggshell shadow-xl"
 			>
-				<span class="font-supermercado-one text-xl tracking-wide">Record this week</span>
+				<span class="text-center font-oswald font-light tracking-wide">
+					Record {checked.size} subscriptions<br /> this week
+				</span>
 
 				<!-- Bezel housing + glow ring behind the button when it's armed. -->
 				<div
@@ -136,20 +171,20 @@
 				>
 					{#if checked.size > 0 && !recording}
 						<span
-							class="absolute inset-0 animate-pulse rounded-full shadow-[0_0_28px_8px_rgba(210,60,40,0.45)]"
+							class="absolute inset-0 animate-pulse rounded-full shadow-[0_0_28px_8px_rgba(204,214,127,0.5)]"
 						></span>
 					{/if}
 					<Button
 						disabled={recording || checked.size === 0}
 						onclick={recordNow}
 						aria-label="Record this week's subscription orders"
-						class="relative flex size-36 cursor-pointer items-center justify-center rounded-full bg-olf-red bg-[radial-gradient(circle_at_50%_28%,rgba(255,255,255,0.4),rgba(255,255,255,0)_62%)] font-supermercado-one text-4xl tracking-widest text-olf-eggshell uppercase shadow-[0_7px_0_0_rgba(0,0,0,0.45)] transition-all hover:-translate-y-0.5 hover:shadow-[0_9px_0_0_rgba(0,0,0,0.45)] active:translate-y-1.5 active:shadow-[0_1px_0_0_rgba(0,0,0,0.45)] disabled:translate-y-0 disabled:opacity-40 disabled:shadow-[0_4px_0_0_rgba(0,0,0,0.35)]"
+						class="relative flex size-36 cursor-pointer items-center justify-center rounded-full bg-olf-lightgreen bg-[radial-gradient(circle_at_50%_28%,rgba(255,255,255,0.4),rgba(255,255,255,0)_62%)] font-oswald text-4xl font-bold tracking-widest text-olf-darkgreen uppercase shadow-[0_7px_0_0_rgba(0,0,0,0.45)] transition-all hover:-translate-y-0.5 hover:shadow-[0_9px_0_0_rgba(0,0,0,0.45)] active:translate-y-1.5 active:shadow-[0_1px_0_0_rgba(0,0,0,0.45)] disabled:translate-y-0 disabled:opacity-40 disabled:shadow-[0_4px_0_0_rgba(0,0,0,0.35)]"
 					>
 						LOG
 					</Button>
 				</div>
 
-				<span class="font-oswald text-xs font-bold tracking-widest uppercase opacity-80">
+				<span class="font-oswald text-lg font-semibold tracking-widest uppercase opacity-80">
 					{#if checked.size > 0}
 						{checked.size} subscriber{checked.size === 1 ? '' : 's'} armed
 					{:else}
@@ -158,34 +193,16 @@
 				</span>
 			</div>
 			<p class="px-1 font-oswald text-xs leading-relaxed text-olf-darkgreen/70">
-				Logs this week's egg order for every checked subscriber, at their tier's amount. Anyone
-				already logged — by you or by the auto-run — is skipped, so it never double-records.
+				Override the auto-run.
 			</p>
-
-			<div class="flex flex-col gap-3 rounded-2xl bg-olf-darkgreen px-4 py-4 text-olf-eggshell">
-				<div class="flex items-center gap-3">
-					<span
-						class="flex size-9 shrink-0 items-center justify-center rounded-full bg-olf-lightgreen text-olf-darkgreen"
-					>
-						<Timer size={18} />
-					</span>
-					<span class="font-oswald text-sm font-bold">
-						Auto-log runs {countdown || '…'}
-					</span>
-				</div>
-				<span class="font-oswald text-xs opacity-75">
-					The daily job records each subscriber on their delivery day — anyone you log here is
-					skipped by it.
-				</span>
-			</div>
 		</div>
 
 		<!-- Right: subscribers table + pager -->
 		<div class="flex min-w-0 flex-1 flex-col gap-4">
 			<div class="overflow-x-auto rounded-2xl bg-olf-beige shadow">
-				<div class="min-w-[38rem]">
+				<div class="min-w-[44rem]">
 					<div
-						class="grid grid-cols-[2.5rem_minmax(9rem,1fr)_minmax(6rem,8rem)_4.5rem_4rem_minmax(9rem,11rem)] items-center gap-2 border-b border-olf-darkgreen/10 bg-olf-darkgreen/5 px-4 py-2.5 font-oswald text-xxs font-bold tracking-widest text-olf-darkgreen/50 uppercase"
+						class="grid grid-cols-[2.5rem_minmax(9rem,1fr)_minmax(6rem,8rem)_4.5rem_4rem_5.5rem_minmax(9rem,11rem)] items-center gap-2 border-b border-olf-darkgreen/10 bg-olf-darkgreen/5 px-4 py-2.5 font-oswald text-xxs font-bold tracking-widest text-olf-darkgreen/50 uppercase"
 					>
 						<span class="flex justify-center">
 							<input
@@ -201,6 +218,7 @@
 						<span>Tier</span>
 						<span class="text-center">Delivery</span>
 						<span class="text-center">Eggs</span>
+						<span class="text-center">Price</span>
 						<span>This week</span>
 					</div>
 
@@ -218,7 +236,7 @@
 						<div class="divide-y divide-olf-darkgreen/10">
 							{#each pagedRows as s (s.userId)}
 								<div
-									class="grid grid-cols-[2.5rem_minmax(9rem,1fr)_minmax(6rem,8rem)_4.5rem_4rem_minmax(9rem,11rem)] items-center gap-2 px-4 py-2 text-olf-darkgreen transition-colors hover:bg-olf-darkgreen/5"
+									class="grid grid-cols-[2.5rem_minmax(9rem,1fr)_minmax(6rem,8rem)_4.5rem_4rem_5.5rem_minmax(9rem,11rem)] items-center gap-2 px-4 py-2 text-olf-darkgreen transition-colors hover:bg-olf-darkgreen/5"
 								>
 									<span class="flex justify-center">
 										<input
@@ -247,10 +265,16 @@
 										/>
 										<span class="truncate font-oswald text-sm font-bold">{s.username}</span>
 									</a>
-									<span class="truncate font-oswald text-sm">
-										{s.plan.name}
+									<span class="flex min-w-0 items-center gap-1.5 font-oswald text-sm">
+										<span class="truncate">{s.plan.name}</span>
 										{#if s.plan.cadenceWeeks > 1}
-											<span class="text-olf-darkgreen/50">· every {s.plan.cadenceWeeks} wks</span>
+											<!-- Cadence flair — darkbrown pill so non-weekly subs jump out. -->
+											<span
+												class="shrink-0 rounded-full bg-olf-darkbrown px-2 py-0.5 font-oswald text-xxs font-bold tracking-wide text-olf-eggshell uppercase"
+												>{s.plan.cadenceWeeks === 2
+													? 'biweekly'
+													: `every ${s.plan.cadenceWeeks} wks`}</span
+											>
 										{/if}
 									</span>
 									<span class="text-center font-oswald text-sm"
@@ -259,14 +283,48 @@
 									<span class="text-center font-oswald text-sm font-bold tabular-nums"
 										>{s.plan.eggsPerDelivery}</span
 									>
-									<span
-										class="font-oswald text-sm font-bold {s.recordedThisWeek
-											? 'text-olf-moss'
-											: s.dueThisWeek
-												? 'text-olf-darkbrown'
-												: 'text-olf-darkgreen/40'}"
-									>
-										{statusLabel(s)}
+									<!-- Per-subscriber price: custom = bold, default = faded. Click to change. -->
+									<span class="flex justify-center">
+										<button
+											type="button"
+											onclick={() => openPrice(s)}
+											title={s.unitPriceCents == null
+												? 'Farm default (RM2/egg) — click to set a custom price'
+												: 'Custom price — click to change'}
+											class="group flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 transition-colors hover:bg-olf-darkgreen/10"
+										>
+											<span
+												class="font-oswald text-sm tabular-nums {s.unitPriceCents == null
+													? 'text-olf-darkgreen/50'
+													: 'font-bold'}">{moneyRM(s.unitPriceCents ?? DEFAULT_PRICE_CENTS)}</span
+											>
+											<Pencil
+												size={12}
+												class="shrink-0 text-olf-darkgreen/40 group-hover:text-olf-darkgreen"
+											/>
+										</button>
+									</span>
+									<span class="flex flex-wrap items-center gap-1.5">
+										{#if s.recordedThisWeek}
+											<!-- Same pill language as the Users panel / eggs ledger. -->
+											<span
+												class="rounded-full bg-olf-moss px-2.5 py-1 font-oswald text-xs font-bold tracking-wide text-olf-eggshell uppercase"
+												>logged</span
+											>
+											{#if s.recordedAt}
+												<span class="font-oswald text-xs text-olf-darkgreen/60 tabular-nums"
+													>{orderDateLabel(s.recordedAt)}</span
+												>
+											{/if}
+										{:else}
+											<span
+												class="font-oswald text-sm font-medium {s.dueThisWeek
+													? 'text-olf-darkbrown'
+													: 'text-olf-darkgreen/40'}"
+											>
+												{statusLabel(s)}
+											</span>
+										{/if}
 									</span>
 								</div>
 							{/each}
@@ -275,36 +333,127 @@
 				</div>
 			</div>
 
+			<!-- Change sub pricing (per-subscriber; tier stays eggs + cadence). -->
+			<dialog
+				bind:this={priceDialog}
+				onclose={() => (priceFor = null)}
+				onclick={(e) => {
+					if (e.target === priceDialog) priceFor = null;
+				}}
+				class="m-auto w-[min(24rem,calc(100vw-2rem))] rounded-xl bg-olf-beige text-olf-darkgreen backdrop:bg-olf-darkgreen/60"
+			>
+				{#if priceFor}
+					<div class="flex flex-col gap-4 p-6">
+						<div class="flex items-start justify-between gap-4">
+							<h2 class="font-homemade-apple text-xl">Change sub pricing</h2>
+							<button
+								type="button"
+								aria-label="Close"
+								onclick={() => (priceFor = null)}
+								class="shrink-0 text-olf-darkgreen/60 hover:text-olf-darkgreen"
+							>
+								<X size={22} />
+							</button>
+						</div>
+
+						<div class="flex items-center gap-2 font-oswald text-sm text-olf-darkgreen/70">
+							<Avatar
+								animal={priceFor.animal}
+								avatarSeed={priceFor.avatarSeed}
+								gender={priceFor.gender}
+								size="sm"
+							/>
+							<span
+								><b class="text-olf-darkgreen">{priceFor.username}</b> · {priceFor.plan.name}</span
+							>
+						</div>
+
+						<label class="flex w-40 flex-col gap-1">
+							<span
+								class="font-oswald text-xs font-bold tracking-wide text-olf-darkgreen/70 uppercase"
+								>Price / egg</span
+							>
+							<span class="flex items-center gap-1 font-oswald font-bold text-olf-darkgreen">
+								RM
+								<input
+									type="text"
+									inputmode="decimal"
+									bind:value={priceStr}
+									class="w-full min-w-0 rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1.5 text-right tabular-nums"
+								/>
+							</span>
+						</label>
+
+						{#if priceWeeklyCents > 0}
+							<!-- Pastel total bar — same treatment as the Order-eggs modal. -->
+							<div
+								class="flex items-center justify-between gap-3 rounded-xl bg-olf-lightgreen px-4 py-3 text-olf-darkgreen"
+							>
+								<span class="font-oswald text-xs tracking-wide uppercase opacity-80">
+									{priceFor.plan.eggsPerDelivery} eggs × {moneyRM(priceCents)}
+								</span>
+								<span class="flex items-baseline gap-1">
+									<span class="font-oswald text-xl font-bold tabular-nums"
+										>{moneyRM(priceWeeklyCents)}</span
+									>
+									<span class="font-oswald text-xs opacity-70">/ delivery</span>
+								</span>
+							</div>
+						{/if}
+
+						<p class="font-oswald text-xs leading-relaxed text-olf-darkgreen/60">
+							Applies from the next log, this week's included. Already-logged orders keep their
+							price.
+						</p>
+
+						{#if priceError}
+							<p class="rounded-lg bg-red-700 px-3 py-2 font-oswald text-xs text-white">
+								{priceError}
+							</p>
+						{/if}
+
+						<div class="flex flex-wrap items-center gap-2">
+							<Button
+								disabled={priceSaving}
+								onclick={() => applyPrice(priceCents)}
+								class="flex items-center gap-1.5 rounded-md bg-olf-darkgreen px-4 py-1.5 font-oswald text-xs font-bold text-white disabled:opacity-50"
+							>
+								Save
+							</Button>
+							{#if priceFor.unitPriceCents != null}
+								<Button
+									disabled={priceSaving}
+									onclick={() => applyPrice(null)}
+									class="rounded-md border-2 border-olf-darkgreen/30 px-3 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen disabled:opacity-50"
+								>
+									Reset to default ({moneyRM(DEFAULT_PRICE_CENTS)})
+								</Button>
+							{/if}
+							<Button
+								disabled={priceSaving}
+								onclick={() => (priceFor = null)}
+								class="rounded-md px-3 py-1.5 font-oswald text-xs font-bold text-olf-darkgreen/70 hover:text-olf-darkgreen"
+								>Cancel</Button
+							>
+						</div>
+					</div>
+				{/if}
+			</dialog>
+
 			<!-- Page-size + pager (same UX as the eggs ledger). -->
-			{#if rows.length > PAGE_SIZES[0]}
+			{#if rows.length > PAGE_SIZE_OPTIONS[0].value}
 				<div class="flex flex-wrap items-center justify-between gap-3">
 					<label class="flex items-center gap-1.5 font-oswald text-xs text-olf-darkgreen/70">
 						Show
-						<select
+						<OptionPicker
+							options={PAGE_SIZE_OPTIONS}
 							bind:value={pageSize}
 							onchange={() => (clientPage = 1)}
-							aria-label="Rows per page"
-							class="cursor-pointer rounded-lg border border-olf-darkgreen/20 bg-white px-2 py-1.5 font-oswald text-sm text-olf-darkgreen"
-						>
-							{#each PAGE_SIZES as n (n)}<option value={n}>{n}</option>{/each}
-						</select>
+							triggerClass="bg-white text-olf-darkgreen"
+						/>
 					</label>
 					{#if rows.length > pageSize}
-						<div class="flex items-center gap-4 font-oswald text-sm text-olf-darkgreen">
-							<button
-								type="button"
-								disabled={clientPage <= 1}
-								onclick={() => (clientPage -= 1)}
-								class="underline disabled:opacity-40">← Prev</button
-							>
-							<span class="tabular-nums">Page {clientPage} of {clientPages}</span>
-							<button
-								type="button"
-								disabled={clientPage >= clientPages}
-								onclick={() => (clientPage += 1)}
-								class="underline disabled:opacity-40">Next →</button
-							>
-						</div>
+						<Pager bind:page={clientPage} pages={clientPages} />
 					{/if}
 				</div>
 			{/if}

@@ -48,6 +48,7 @@
 	// The computed resume date (start + length), for the "Resumes …" hint.
 	const resumeISO = $derived.by(() => {
 		if (lengthDays == null || !startDate) return null;
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- transient date math inside a derived, not reactive state
 		const d = new Date(startDate + 'T00:00:00');
 		d.setDate(d.getDate() + lengthDays);
 		return d.toISOString();

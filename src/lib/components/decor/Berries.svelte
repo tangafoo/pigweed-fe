@@ -4,7 +4,7 @@
 	// The little coral berry clusters from the reference — a few stems
 	// converging to a bunch of berries. Colour via CSS vars so they can be
 	// recoloured per instance.
-	interface BerriesProps extends SVGAttributes<SVGSVGElement> {}
+	type BerriesProps = SVGAttributes<SVGSVGElement>;
 	let { ...rest }: BerriesProps = $props();
 </script>
 

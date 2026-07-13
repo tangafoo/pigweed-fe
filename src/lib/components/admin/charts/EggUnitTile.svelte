@@ -7,7 +7,16 @@
 	// the box size. Mirrors the Home gauge's unit swapper. `boxes` is the EggBox
 	// catalog; we use the active ones, smallest→largest. Falls back to a plain
 	// (non-interactive) eggs tile when no boxes exist.
-	let { eggs, boxes }: { eggs: number; boxes: EggBox[] } = $props();
+	let {
+		eggs,
+		boxes,
+		tone = 'beige'
+	}: {
+		eggs: number;
+		boxes: EggBox[];
+		/** Tile background — 'eggshell' when the tile sits on a beige card. */
+		tone?: 'beige' | 'eggshell';
+	} = $props();
 
 	const activeBoxes = $derived([...boxes].filter((b) => b.active).sort((a, b) => a.eggs - b.eggs));
 	let boxId = $state<string | null>(null); // null = raw eggs
@@ -30,8 +39,10 @@
 	onclick={cycle}
 	disabled={activeBoxes.length === 0}
 	title={activeBoxes.length ? 'Tap to switch unit (eggs / boxes)' : undefined}
-	class="flex flex-col gap-0.5 rounded-xl bg-olf-beige px-3.5 py-3 text-left shadow-sm {activeBoxes.length
-		? 'cursor-pointer transition-colors hover:bg-olf-eggshell'
+	class="flex flex-col gap-0.5 rounded-xl px-3.5 py-3 text-left shadow-sm {tone === 'eggshell'
+		? 'bg-olf-eggshell'
+		: 'bg-olf-beige'} {activeBoxes.length
+		? `cursor-pointer transition-colors ${tone === 'eggshell' ? 'hover:bg-olf-beige' : 'hover:bg-olf-eggshell'}`
 		: ''}"
 >
 	<span

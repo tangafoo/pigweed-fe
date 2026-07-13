@@ -82,7 +82,7 @@
 						? 'egg-shake'
 						: ''}"
 				>
-					{#each Array(eggIcons(p.eggsPerDelivery)) as _, i (i)}
+					{#each [...Array(eggIcons(p.eggsPerDelivery)).keys()] as i (i)}
 						<span style="animation-delay: {i * 45}ms">🥚</span>
 					{/each}
 				</div>

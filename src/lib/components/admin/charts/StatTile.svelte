@@ -10,17 +10,20 @@
 		value,
 		delta = undefined,
 		goodUp = true,
-		hint
+		hint,
+		tone = 'beige'
 	}: {
 		label: string;
 		value: string;
 		delta?: number | null;
 		goodUp?: boolean;
 		hint?: string;
+		/** Tile background — 'eggshell' when the tile sits on a beige card. */
+		tone?: 'beige' | 'eggshell';
 	} = $props();
 
 	// Direction × whether-up-is-good → colour. Zero/undefined = neutral muted.
-	const tone = $derived(
+	const deltaTone = $derived(
 		delta == null || Math.round(delta * 100) === 0
 			? 'neutral'
 			: delta > 0 === goodUp
@@ -29,22 +32,26 @@
 	);
 </script>
 
-<div class="flex flex-col gap-0.5 rounded-xl bg-olf-beige px-3.5 py-3 shadow-sm">
+<div
+	class="flex flex-col gap-0.5 rounded-xl px-3.5 py-3 shadow-sm {tone === 'eggshell'
+		? 'bg-olf-eggshell'
+		: 'bg-olf-beige'}"
+>
 	<span class="font-oswald text-xxs tracking-wide text-olf-darkgreen/60 uppercase">{label}</span>
 	<span class="font-oswald text-2xl leading-none font-bold text-olf-darkgreen">{value}</span>
 	{#if delta !== undefined}
 		<span
-			class="mt-0.5 flex items-center gap-1 font-oswald text-xs font-bold tabular-nums {tone ===
+			class="mt-0.5 flex items-center gap-1 font-oswald text-xs font-bold tabular-nums {deltaTone ===
 			'good'
 				? 'text-olf-moss'
-				: tone === 'bad'
+				: deltaTone === 'bad'
 					? 'text-olf-red'
 					: 'text-olf-darkgreen/45'}"
 		>
-			{#if tone === 'good'}<TrendingUp
+			{#if deltaTone === 'good'}<TrendingUp
 					size={12}
 					class="shrink-0"
-				/>{:else if tone === 'bad'}<TrendingDown size={12} class="shrink-0" />{/if}
+				/>{:else if deltaTone === 'bad'}<TrendingDown size={12} class="shrink-0" />{/if}
 			{pctLabel(delta ?? null)}
 			<span class="font-normal text-olf-darkgreen/40">{hint ?? 'vs prev'}</span>
 		</span>

@@ -70,6 +70,11 @@ export const localYmd = (iso: string) => {
 export const moneyRM = (cents: number) =>
 	`RM${(cents / 100).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-/** Shared styling for the compact sort/filter <select>s. */
-export const SORT_SELECT =
-	'cursor-pointer rounded-lg border border-olf-darkgreen/20 bg-white px-2 py-1 font-oswald text-xs text-olf-darkgreen';
+/** Rows-per-page choices for the admin tables' client-side pagers. */
+export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100].map((n) => ({ value: n, label: String(n) }));
+
+/** True when the instant lands on a LOCAL calendar day after today — flags
+ *  future-dated egg orders (usually a date-picker month misclick). */
+export const isFutureDay = (iso: string) =>
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity -- transient "now", not reactive state
+	localYmd(iso) > localYmd(new Date().toISOString());

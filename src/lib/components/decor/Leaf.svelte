@@ -18,6 +18,7 @@
 	}
 	let { variant = 'broad', ...rest }: LeafProps = $props();
 
+	// eslint-disable-next-line no-useless-assignment -- module-level counter; the NEXT instance reads the incremented value
 	const clip = `leaf-clip-${uid++}`;
 
 	const VIEWBOX = {

@@ -5,6 +5,7 @@
 	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import DatePicker from '$lib/components/ui/DatePicker.svelte';
+	import OptionPicker from '$lib/components/ui/OptionPicker.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import StatTile from '$lib/components/admin/charts/StatTile.svelte';
 	import EggUnitTile from '$lib/components/admin/charts/EggUnitTile.svelte';
@@ -37,22 +38,66 @@
 	let loading = $state(true);
 	let error = $state(false);
 
-	// ─── Configurable window (presets + custom from–to) ─────────────
-	// The window drives the KPI deltas (last N days vs the prior N days). Presets
-	// are common rolling spans; "Custom" opens two date pickers for an arbitrary
-	// range. Changing it refetches (charts stay visible via `windowLoading`).
-	const PRESETS = [7, 30, 90] as const;
-	// The active selection. "all" shows lifetime totals (no prior period to
-	// compare, so no deltas) and needs no refetch — `data.totals` is always in
-	// the payload. Presets/custom drive the windowed KPIs + deltas.
-	type WindowSel = { kind: 'preset'; days: number } | { kind: 'all' } | { kind: 'custom' };
-	let windowSel = $state<WindowSel>({ kind: 'preset', days: 30 });
-	const isPreset = (d: number) => windowSel.kind === 'preset' && windowSel.days === d;
-	let customOpen = $state(false);
+	// ─── Month window (the panel's primary mode) ────────────────────
+	// The admin thinks in calendar months, so the filter is a month picker:
+	// KPIs cover the picked farm-local month, deltas compare vs the PREVIOUS
+	// calendar month (BE `?month=`). "All time" shows lifetime totals (no prior
+	// period, so no deltas) and needs no refetch — `data.totals` is always in
+	// the payload. Defaults to the current month.
+	const pad2 = (n: number) => String(n).padStart(2, '0');
+	const currentYm = () => {
+		const d = new Date();
+		return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+	};
+	const prevYm = (ym: string) => {
+		const [y, m] = ym.split('-').map(Number);
+		return m === 1 ? `${y - 1}-12` : `${y}-${pad2(m - 1)}`;
+	};
+	const ymLabel = (ym: string) =>
+		new Date(ym + '-01T00:00:00').toLocaleDateString(undefined, {
+			month: 'long',
+			year: 'numeric'
+		});
+	let monthSel = $state<string>(currentYm()); // 'all' | 'custom' | 'YYYY-MM'
+	let windowLoading = $state(false);
+
+	// Custom from–to range (for everything a month can't express). Picking
+	// "Custom range…" reveals the date pickers; Apply fetches. The comparison
+	// is the same-length span immediately before the range.
 	let customFrom = $state('');
 	let customTo = $state('');
-	let windowLoading = $state(false);
 	const customValid = $derived(!!customFrom && !!customTo && customFrom <= customTo);
+	function applyCustom() {
+		if (!customValid) return;
+		void loadAnalytics({ from: customFrom, to: customTo });
+	}
+
+	// Every month from the farm's first order through the current one, newest
+	// first, behind an "All time" entry.
+	const monthOptions = $derived.by(() => {
+		const months: { value: string; label: string }[] = [];
+		const first = data?.firstOrderAt ? new Date(data.firstOrderAt) : new Date();
+		let y = first.getFullYear();
+		let m = first.getMonth() + 1;
+		const nowD = new Date();
+		const endY = nowD.getFullYear();
+		const endM = nowD.getMonth() + 1;
+		while (y < endY || (y === endY && m <= endM)) {
+			const v = `${y}-${pad2(m)}`;
+			months.push({ value: v, label: ymLabel(v) });
+			m += 1;
+			if (m > 12) {
+				m = 1;
+				y += 1;
+			}
+		}
+		months.reverse();
+		return [
+			{ value: 'all', label: 'All time' },
+			{ value: 'custom', label: 'Custom range…' },
+			...months
+		];
+	});
 
 	async function loadAnalytics(params: admin.AnalyticsParams, initial = false) {
 		if (initial) loading = true;
@@ -64,31 +109,21 @@
 		else windowLoading = false;
 	}
 
-	onMount(() => loadAnalytics({ windowDays: 30 }, true));
+	onMount(() => loadAnalytics({ month: currentYm() }, true));
 
-	function pickPreset(days: number) {
-		windowSel = { kind: 'preset', days };
-		customOpen = false;
-		void loadAnalytics({ windowDays: days });
-	}
-	function pickAllTime() {
-		windowSel = { kind: 'all' };
-		customOpen = false; // uses `data.totals` already loaded — no refetch
-	}
-	function applyCustom() {
-		if (!customValid) return;
-		windowSel = { kind: 'custom' };
-		void loadAnalytics({ from: customFrom, to: customTo });
+	function pickMonth(value: string | number) {
+		// 'all' uses the already-loaded lifetime totals — no refetch needed;
+		// 'custom' just reveals the pickers (Apply fetches).
+		if (value === 'all' || value === 'custom') return;
+		void loadAnalytics({ month: String(value) });
 	}
 
 	// ─── Formatters ─────────────────────────────────────────────────
 	const num = (n: number) => n.toLocaleString();
 	const axisMoney = (cents: number) => `RM${compactNumber(Math.round(cents / 100))}`;
 	const weekLabel = (iso: string) =>
-		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- transient formatting
 		new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 	const monthLabel = (iso: string) =>
-		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- transient formatting
 		new Date(iso).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
 	const dayLabel = (iso: string) =>
 		new Date(iso).toLocaleDateString(undefined, {
@@ -96,14 +131,25 @@
 			month: 'short',
 			year: 'numeric'
 		});
-	// Caption under the header: what the KPI deltas are comparing right now.
+	// Caption under the header: what the KPI deltas are comparing right now —
+	// the window's explicit first–last day range (echoed by the BE); months
+	// compare vs the previous calendar month, custom vs the prior same-length
+	// span.
 	const windowCaption = $derived.by(() => {
-		if (windowSel.kind === 'all') return 'Lifetime totals · no comparison';
+		if (monthSel === 'all') return 'Lifetime totals · no comparison';
 		const w = data?.window;
-		if (!w) return '';
-		if (w.from && w.to) return `${dayLabel(w.from)} – ${dayLabel(w.to)} · vs prior ${w.days}d`;
-		return `Last ${w.days} days · vs prior ${w.days} days`;
+		const range = w?.from && w?.to ? `${dayLabel(w.from)} – ${dayLabel(w.to)}` : '';
+		if (monthSel === 'custom') return range ? `${range} · vs prior ${w?.days}d` : 'Pick a range';
+		return `${range || ymLabel(monthSel)} · vs ${ymLabel(prevYm(monthSel))}`;
 	});
+	// Short tag for the KPI labels — "Revenue · Jul" / "Revenue · 14d".
+	const kpiTag = $derived(
+		monthSel === 'custom'
+			? `${data?.window.days ?? 0}d`
+			: monthSel === 'all'
+				? ''
+				: new Date(monthSel + '-01T00:00:00').toLocaleDateString(undefined, { month: 'short' })
+	);
 
 	// ─── Trend chart (metric toggle) ────────────────────────────────
 	type Metric = 'revenue' | 'eggs' | 'orders';
@@ -122,13 +168,13 @@
 	const trendFormat = $derived(metric === 'revenue' ? moneyRM : num);
 	const trendAxis = $derived(metric === 'revenue' ? axisMoney : compactNumber);
 
-	// ─── KPI row (last 30d vs prior 30d) ────────────────────────────
+	// ─── KPI row (picked month vs the previous month) ───────────────
 	const kpis = $derived.by<{ label: string; value: string; delta?: number | null }[]>(() => {
 		if (!data) return [];
 		const aov = (rev: number, ord: number) => (ord > 0 ? rev / ord : 0);
 		const perEgg = (rev: number, eggs: number) => (eggs > 0 ? rev / eggs : 0);
 		// All-time: lifetime totals, no deltas (nothing prior to compare against).
-		if (windowSel.kind === 'all') {
+		if (monthSel === 'all') {
 			const t = data.totals;
 			return [
 				{ label: 'Revenue · all-time', value: moneyRM(t.revenueCents) },
@@ -142,18 +188,18 @@
 		const w = data.window;
 		return [
 			{
-				label: `Revenue · ${w.days}d`,
+				label: `Revenue · ${kpiTag}`,
 				value: moneyRM(w.revenueCents),
 				delta: pctDelta(w.revenueCents, w.prevRevenueCents)
 			},
-			{ label: `Eggs · ${w.days}d`, value: num(w.eggs), delta: pctDelta(w.eggs, w.prevEggs) },
+			{ label: `Eggs · ${kpiTag}`, value: num(w.eggs), delta: pctDelta(w.eggs, w.prevEggs) },
 			{
-				label: `Orders · ${w.days}d`,
+				label: `Orders · ${kpiTag}`,
 				value: num(w.orders),
 				delta: pctDelta(w.orders, w.prevOrders)
 			},
 			{
-				label: `Active · ${w.days}d`,
+				label: `Active · ${kpiTag}`,
 				value: num(w.activeCustomers),
 				delta: pctDelta(w.activeCustomers, w.prevActiveCustomers)
 			},
@@ -240,51 +286,21 @@
 			No egg orders logged yet — once you record some, the charts light up here. 🥚
 		</p>
 	{:else}
-		<!-- Window control: preset spans + a custom from–to range. Drives the KPIs. -->
+		<!-- Window control: the month picker (defaults to the current month),
+		     with a custom from–to range behind "Custom range…". -->
 		<div class="flex flex-col gap-2">
-			<div class="flex flex-wrap items-center gap-2">
-				<div
-					class="flex gap-1 rounded-full bg-olf-darkgreen/10 p-0.5 font-oswald text-xs font-bold"
-				>
-					{#each PRESETS as d (d)}
-						<button
-							type="button"
-							onclick={() => pickPreset(d)}
-							aria-pressed={isPreset(d)}
-							class="cursor-pointer rounded-full px-3 py-1 transition-colors {isPreset(d)
-								? 'bg-olf-darkgreen text-olf-eggshell'
-								: 'text-olf-darkgreen/70 hover:bg-olf-darkgreen/10'}"
-						>
-							{d}d
-						</button>
-					{/each}
-					<button
-						type="button"
-						onclick={pickAllTime}
-						aria-pressed={windowSel.kind === 'all'}
-						class="cursor-pointer rounded-full px-3 py-1 transition-colors {windowSel.kind === 'all'
-							? 'bg-olf-darkgreen text-olf-eggshell'
-							: 'text-olf-darkgreen/70 hover:bg-olf-darkgreen/10'}"
-					>
-						All time
-					</button>
-					<button
-						type="button"
-						onclick={() => (customOpen = !customOpen)}
-						aria-pressed={windowSel.kind === 'custom'}
-						class="cursor-pointer rounded-full px-3 py-1 transition-colors {windowSel.kind ===
-							'custom' || customOpen
-							? 'bg-olf-darkgreen text-olf-eggshell'
-							: 'text-olf-darkgreen/70 hover:bg-olf-darkgreen/10'}"
-					>
-						Custom
-					</button>
-				</div>
+			<div class="flex flex-wrap items-center gap-3">
+				<OptionPicker
+					options={monthOptions}
+					bind:value={monthSel}
+					onchange={pickMonth}
+					triggerClass="bg-white text-olf-darkgreen"
+				/>
 				{#if windowLoading}<Spinner size={14} />{/if}
 				<span class="font-oswald text-xs text-olf-darkgreen/55">{windowCaption}</span>
 			</div>
 
-			{#if customOpen}
+			{#if monthSel === 'custom'}
 				<div class="flex flex-wrap items-end gap-2" transition:slide={{ duration: 150 }}>
 					<div class="flex flex-col gap-1">
 						<span
@@ -403,19 +419,36 @@
 						</div>
 
 						<div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-							<StatTile label="Lifetime" value={moneyRM(selected.revenueCents)} hint="revenue" />
-							<EggUnitTile eggs={selected.eggs} {boxes} />
-							<StatTile label="Orders" value={num(selected.orders)} hint="all-time" />
+							<StatTile
+								label="Lifetime"
+								value={moneyRM(selected.revenueCents)}
+								hint="revenue"
+								tone="eggshell"
+							/>
+							<EggUnitTile eggs={selected.eggs} {boxes} tone="eggshell" />
+							<StatTile
+								label="Orders"
+								value={num(selected.orders)}
+								hint="all-time"
+								tone="eggshell"
+							/>
 							<StatTile
 								label="Avg order"
 								value={moneyRM(selected.orders ? selected.revenueCents / selected.orders : 0)}
 								hint="per order"
+								tone="eggshell"
 							/>
-							<StatTile label="Cadence" value={cad ? `~${cad}d` : '—'} hint="between orders" />
+							<StatTile
+								label="Cadence"
+								value={cad ? `~${cad}d` : '—'}
+								hint="between orders"
+								tone="eggshell"
+							/>
 							<StatTile
 								label="Last order"
 								value={agoLabel(selected.lastOrderAt)}
 								hint={selectedSegment.blurb}
+								tone="eggshell"
 							/>
 						</div>
 					</div>

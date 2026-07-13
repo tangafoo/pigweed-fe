@@ -145,7 +145,6 @@
 
 		<!-- transparent hit layer (decorative — the series data is exposed via the
 		     svg's role/aria-label and the tooltip) -->
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<rect
 			x={PAD.l}
 			y={PAD.t}
