@@ -36,6 +36,7 @@
 	import {
 		adminUrlWith,
 		createBusyRunner,
+		isFutureDay,
 		localYmd,
 		orderDateLabel,
 		PAGE_SIZE_OPTIONS,
@@ -131,11 +132,20 @@
 		}
 	}
 
-	// Subscription form (Subscription tab).
+	// Subscription form (Subscription tab). Price is per subscriber (tier =
+	// eggs + cadence only): blank = keep current / farm default RM2/egg.
 	let formPlanId = $state('');
 	let formStart = $state('');
 	let formDay = $state(4);
+	let formPriceStr = $state('');
 	const planOptions = $derived(plans.map((p) => ({ value: p.id, label: p.name })));
+	// Parsed price in cents, or undefined when blank/invalid (= omit from the call).
+	const formPriceCents = $derived.by(() => {
+		const rm = parseFloat(formPriceStr);
+		if (!Number.isFinite(rm) || rm <= 0) return undefined;
+		const cents = Math.round(rm * 100);
+		return cents > 0 ? cents : undefined;
+	});
 
 	// Egg ledger (Eggs tab).
 	let orders = $state<EggOrder[]>([]);
@@ -170,6 +180,10 @@
 		formPlanId = u.subscription?.plan.id ?? plans[0]?.id ?? '';
 		formStart = localYmd(u.subscription?.startedAt ?? new Date().toISOString());
 		formDay = u.subscription?.deliveryDay ?? 4;
+		formPriceStr =
+			u.subscription?.unitPriceCents != null
+				? (u.subscription.unitPriceCents / 100).toFixed(2)
+				: '';
 		if (ordersFor !== u.id) void loadOrders(u.id);
 	}
 	// Clicking anywhere on the row toggles the Details tab — but not when the
@@ -411,9 +425,9 @@
 		<button
 			type="button"
 			onclick={() => toggleUserSort(field)}
-			class="flex cursor-pointer items-center gap-0.5 tracking-widest uppercase transition-colors hover:text-olf-darkgreen {userSortField ===
+			class="flex cursor-pointer items-center gap-0.5 tracking-widest uppercase transition-colors hover:text-olf-eggshell {userSortField ===
 			field
-				? 'text-olf-darkgreen'
+				? 'text-olf-eggshell'
 				: ''} {extra}"
 		>
 			<span>{label}</span>
@@ -431,7 +445,7 @@
 	<!-- Table header row — same grid columns as the rows (md+ only). -->
 	{#snippet usersHeader()}
 		<div
-			class="hidden {MD_COLS} border-b border-olf-darkgreen/10 bg-olf-darkgreen/5 px-3 py-2 font-oswald text-xxs font-bold text-olf-darkgreen/50 md:grid md:items-center md:gap-3"
+			class="hidden {MD_COLS} bg-olf-darkgreen px-3 py-2 font-oswald text-xxs font-bold text-olf-eggshell/70 md:grid md:items-center md:gap-3"
 		>
 			<span></span>
 			{@render sortTh('Customer', 'customer')}
@@ -465,7 +479,7 @@
 					: ''}"
 			>
 				<!-- 1 · batch-select + avatar -->
-				<span class="flex shrink-0 items-center gap-1.5">
+				<span class="flex shrink-0 items-center gap-3">
 					<input
 						type="checkbox"
 						checked={selectedIds.has(u.id)}
@@ -795,6 +809,15 @@
 											>
 												{o.source === 'SUBSCRIPTION' ? 'sub' : 'manual'}
 											</span>
+											{#if isFutureDay(o.orderedAt)}
+												<!-- Dated after today — usually a date-picker month misclick. -->
+												<span
+													title="Dated in the future — check the order date"
+													class="rounded-full bg-olf-blue px-2 py-0.5 text-xxs font-bold tracking-wider text-olf-eggshell uppercase"
+												>
+													future
+												</span>
+											{/if}
 											<button
 												type="button"
 												onclick={() =>
@@ -842,13 +865,29 @@
 									triggerClass="w-full justify-between border border-olf-darkgreen/20 bg-white text-olf-darkgreen normal-case"
 								/>
 							</label>
+							<label
+								class="flex w-full flex-col gap-1 font-oswald text-xs tracking-wide text-olf-darkgreen/70 uppercase sm:w-32"
+							>
+								Price / egg
+								<span class="flex items-center gap-1 font-bold normal-case">
+									RM
+									<input
+										type="text"
+										inputmode="decimal"
+										bind:value={formPriceStr}
+										placeholder="2.00"
+										class="w-full min-w-0 rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1.5 text-right text-sm tabular-nums"
+									/>
+								</span>
+							</label>
 							<Button
 								disabled={busy || !formPlanId}
 								onclick={() =>
 									run(() =>
 										admin.subscribeUserTier(u.id, formPlanId, {
 											startedAt: formStart ? new Date(formStart).toISOString() : undefined,
-											deliveryDay: formDay
+											deliveryDay: formDay,
+											unitPriceCents: formPriceCents
 										})
 									)}
 								class="flex items-center gap-1.5 rounded-md bg-olf-darkbrown px-4 py-2 font-oswald text-xs font-bold tracking-wide text-olf-eggshell uppercase disabled:opacity-50"

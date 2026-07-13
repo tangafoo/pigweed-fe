@@ -82,6 +82,7 @@ export const fetchAdminBoxes = (fetchImpl?: typeof globalThis.fetch, cookie?: st
 
 const EMPTY_ANALYTICS: AdminAnalytics = {
 	generatedAt: '',
+	firstOrderAt: null,
 	weekly: [],
 	customers: [],
 	totals: { revenueCents: 0, eggs: 0, orders: 0, customers: 0 },
@@ -99,16 +100,25 @@ const EMPTY_ANALYTICS: AdminAnalytics = {
 		prevActiveCustomers: 0
 	}
 };
-// Window is configurable: pass `{ windowDays }` for a rolling preset, or
-// `{ from, to }` (YYYY-MM-DD) for a custom range. No args → BE default (30d).
-export type AnalyticsParams = { windowDays?: number; from?: string; to?: string };
+// Window is configurable: pass `{ month }` (YYYY-MM, the panel's primary
+// mode — compared vs the previous calendar month), `{ windowDays }` for a
+// rolling preset, or `{ from, to }` (YYYY-MM-DD) for a custom range. No args
+// → BE default (30d).
+export type AnalyticsParams = {
+	month?: string;
+	windowDays?: number;
+	from?: string;
+	to?: string;
+};
 export const fetchAdminAnalytics = (
 	params: AnalyticsParams = {},
 	fetchImpl?: typeof globalThis.fetch,
 	cookie?: string
 ) => {
 	const qs = new URLSearchParams();
-	if (params.from && params.to) {
+	if (params.month) {
+		qs.set('month', params.month);
+	} else if (params.from && params.to) {
 		qs.set('from', params.from);
 		qs.set('to', params.to);
 	} else if (params.windowDays) {
@@ -197,8 +207,13 @@ async function send(path: string, method: string, body?: unknown): Promise<boole
 export const subscribeUserTier = (
 	userId: string,
 	planId: string,
-	opts: { startedAt?: string; deliveryDay?: number } = {}
+	opts: { startedAt?: string; deliveryDay?: number; unitPriceCents?: number } = {}
 ) => send(`/admin/users/${userId}/subscribe`, 'POST', { planId, ...opts });
+
+// Per-subscriber egg price (cents); null resets to the farm default RM2/egg.
+// Applies from the next log — recorded orders keep their captured price.
+export const updateSubscriptionPrice = (userId: string, unitPriceCents: number | null) =>
+	send(`/admin/users/${userId}/subscription`, 'PATCH', { unitPriceCents });
 
 export const unsubscribeUser = (userId: string) =>
 	send(`/admin/users/${userId}/unsubscribe`, 'POST');

@@ -156,7 +156,8 @@
 						</div>
 						<p class="font-oswald text-xs opacity-60">
 							Price: RM{planEggs * 2}
-							{planCadence === 1 ? 'weekly' : 'biweekly'} · RM2 per egg
+							{planCadence === 1 ? 'weekly' : 'biweekly'} · RM2/egg default (per-subscriber price set
+							in Log)
 						</p>
 						<div class="flex gap-2">
 							<Button
@@ -300,7 +301,7 @@
 		</div>
 		<p class="font-oswald text-xs opacity-60">
 			Price: RM{newPlanEggs * 2}
-			{newPlanCadence === 1 ? 'weekly' : 'biweekly'} · RM2 per egg
+			{newPlanCadence === 1 ? 'weekly' : 'biweekly'} · RM2/egg default (per-subscriber price set in Log)
 		</p>
 		<div class="flex justify-end gap-2">
 			<Button
