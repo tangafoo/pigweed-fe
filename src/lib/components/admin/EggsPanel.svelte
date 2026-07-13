@@ -20,14 +20,10 @@
 	import DatePicker from '$lib/components/ui/DatePicker.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
+	import OptionPicker from '$lib/components/ui/OptionPicker.svelte';
 	import EggOrderEntry from '$lib/components/admin/EggOrderEntry.svelte';
 	import UserPicker from '$lib/components/admin/UserPicker.svelte';
-	import {
-		localYmd,
-		moneyRM,
-		orderDateLabel,
-		SORT_SELECT
-	} from '$lib/components/admin/shared.svelte';
+	import { localYmd, moneyRM, orderDateLabel } from '$lib/components/admin/shared.svelte';
 	import { toasts } from '$lib/realtime/toasts.svelte';
 	import * as admin from '$lib/api/admin';
 	import type {
@@ -48,41 +44,70 @@
 
 	// ─── Global egg ledger (accounting view) ────────────────────────
 	// Loaded client-side on demand (not in the SvelteKit `load`); refetched
-	// whenever a filter changes. Totals come from the BE over the WHOLE filtered
-	// set, so they're correct even when the rows are paginated.
-	const LEDGER_LIMIT = 100;
+	// whenever a filter changes. The WHOLE filtered set is fetched (looping the
+	// BE's 200-per-call cap) so sorting, week/month grouping, and the single
+	// client-side pager all operate over every matching row — no second
+	// server-page pager. The BE already scans the full filtered set for totals,
+	// so this costs it nothing extra; revisit if the ledger ever hits ~5k rows.
+	const LEDGER_FETCH_LIMIT = 200;
+	const LEDGER_MAX_PAGES = 25;
 	let ledgerRows = $state<AdminEggLedgerRow[]>([]);
 	let ledgerTotals = $state<AdminEggLedgerTotals>({ eggs: 0, revenueCents: 0, orderCount: 0 });
-	let ledgerTotal = $state(0);
 	let ledgerLoading = $state(false);
-	let ledgerPage = $state(1);
 	let ledgerFrom = $state('');
 	let ledgerTo = $state('');
-	let ledgerSource = $state(''); // '' | 'MANUAL' | 'SUBSCRIPTION'
+	let ledgerSource = $state<'' | 'MANUAL' | 'SUBSCRIPTION'>('');
 	let ledgerQ = $state('');
 	let ledgerShowDeleted = $state(false);
 	let ledgerGroupBy = $state<'none' | 'week' | 'month'>('none');
+	const SOURCE_OPTIONS = [
+		{ value: '', label: 'All' },
+		{ value: 'MANUAL', label: 'Manual' },
+		{ value: 'SUBSCRIPTION', label: 'Subscription' }
+	] as const;
+	const GROUP_OPTIONS = [
+		{ value: 'none', label: 'None' },
+		{ value: 'week', label: 'Week' },
+		{ value: 'month', label: 'Month' }
+	] as const;
 	let ledgerSearchTimer: ReturnType<typeof setTimeout>;
 
+	// Monotonic token: a reload started while a previous multi-page fetch is
+	// still in flight must win — stale batches are dropped, never rendered.
+	let ledgerLoadSeq = 0;
 	async function loadLedger() {
+		const seq = ++ledgerLoadSeq;
 		ledgerLoading = true;
-		const res = await admin.fetchEggLedger({
-			page: ledgerPage,
-			limit: LEDGER_LIMIT,
+		const params = {
+			limit: LEDGER_FETCH_LIMIT,
 			from: ledgerFrom || undefined,
 			to: ledgerTo || undefined,
 			source: ledgerSource || undefined,
 			q: ledgerQ || undefined,
 			includeDeleted: ledgerShowDeleted
-		});
-		ledgerRows = res.data.rows;
+		};
+		const rows: AdminEggLedgerRow[] = [];
+		let page = 1;
+		let res = await admin.fetchEggLedger({ ...params, page });
+		rows.push(...res.data.rows);
+		while (
+			rows.length < res.data.total &&
+			res.data.rows.length > 0 &&
+			page < LEDGER_MAX_PAGES &&
+			seq === ledgerLoadSeq
+		) {
+			page += 1;
+			res = await admin.fetchEggLedger({ ...params, page });
+			rows.push(...res.data.rows);
+		}
+		if (seq !== ledgerLoadSeq) return;
+		ledgerRows = rows;
 		ledgerTotals = res.data.totals;
-		ledgerTotal = res.data.total;
+		eggClientPage = 1;
 		ledgerLoading = false;
 	}
-	// Reset to page 1 and reload (used by every filter control).
+	// Reload from scratch (used by every filter control).
 	function reloadLedger() {
-		ledgerPage = 1;
 		void loadLedger();
 	}
 	function ledgerSearchInput() {
@@ -121,10 +146,8 @@
 	const avgOrderEggs = $derived(
 		ledgerTotals.orderCount ? Math.round(ledgerTotals.eggs / ledgerTotals.orderCount) : 0
 	);
-	const ledgerPages = $derived(Math.max(1, Math.ceil(ledgerTotal / LEDGER_LIMIT)));
-
-	// Click-to-sort the loaded ledger page by any column. Client-side over the
-	// loaded rows (the page is small); clicking the active field flips direction.
+	// Click-to-sort the ledger by any column. Client-side over the whole
+	// filtered set (all rows are loaded); clicking the active field flips direction.
 	type LedgerSortField = 'date' | 'customer' | 'eggs' | 'boxes' | 'unit' | 'total';
 	let ledgerSortField = $state<LedgerSortField>('date');
 	let ledgerSortDir = $state<'asc' | 'desc'>('desc');
@@ -134,6 +157,7 @@
 			ledgerSortField = f;
 			ledgerSortDir = f === 'customer' ? 'asc' : 'desc';
 		}
+		eggClientPage = 1;
 	}
 	const sortValue = (o: AdminEggLedgerRow, f: LedgerSortField): number | string => {
 		switch (f) {
@@ -159,18 +183,13 @@
 		});
 	});
 
-	// Client-side page-size (default 10) over the loaded flat rows. (The grouped
-	// week/month view shows everything — it's a summary, not a browse list.)
-	const EGG_PAGE_SIZES = [10, 25, 50, 100];
+	// Client-side page-size (default 10) over the flat rows — the ONLY pager.
+	// (The grouped week/month view shows everything — it's a summary, not a
+	// browse list.) The page resets explicitly wherever the row set or order
+	// changes: loadLedger(), toggleLedgerSort(), and the page-size select.
+	const EGG_PAGE_SIZE_OPTIONS = [10, 25, 50, 100].map((n) => ({ value: n, label: String(n) }));
 	let eggPageSize = $state(10);
 	let eggClientPage = $state(1);
-	$effect(() => {
-		ledgerSortField;
-		ledgerSortDir;
-		eggPageSize;
-		ledgerRows;
-		eggClientPage = 1;
-	});
 	const eggClientPages = $derived(Math.max(1, Math.ceil(sortedLedgerRows.length / eggPageSize)));
 	const pagedLedgerRows = $derived(
 		sortedLedgerRows.slice((eggClientPage - 1) * eggPageSize, eggClientPage * eggPageSize)
@@ -242,8 +261,8 @@
 		await invalidateAll();
 	}
 
-	// Period grouping (week / month) with per-group subtotals — computed over the
-	// loaded page. Subtotals exclude soft-deleted rows.
+	// Period grouping (week / month) with per-group subtotals — computed over
+	// the whole filtered set. Subtotals exclude soft-deleted rows.
 	function periodKey(iso: string, mode: 'week' | 'month'): string {
 		const d = new Date(iso);
 		if (mode === 'month')
@@ -348,21 +367,22 @@
 			<span class="font-oswald text-xxs font-bold tracking-wide text-olf-darkgreen/60 uppercase"
 				>Source</span
 			>
-			<select bind:value={ledgerSource} onchange={() => reloadLedger()} class={SORT_SELECT}>
-				<option value="">All</option>
-				<option value="MANUAL">Manual</option>
-				<option value="SUBSCRIPTION">Subscription</option>
-			</select>
+			<OptionPicker
+				options={SOURCE_OPTIONS}
+				bind:value={ledgerSource}
+				onchange={() => reloadLedger()}
+				triggerClass="bg-white text-olf-darkgreen"
+			/>
 		</div>
 		<div class="flex flex-col gap-1">
 			<span class="font-oswald text-xxs font-bold tracking-wide text-olf-darkgreen/60 uppercase"
 				>Group by</span
 			>
-			<select bind:value={ledgerGroupBy} class={SORT_SELECT}>
-				<option value="none">None</option>
-				<option value="week">Week</option>
-				<option value="month">Month</option>
-			</select>
+			<OptionPicker
+				options={GROUP_OPTIONS}
+				bind:value={ledgerGroupBy}
+				triggerClass="bg-white text-olf-darkgreen"
+			/>
 		</div>
 		<div class="relative flex-1">
 			<Search
@@ -410,6 +430,16 @@
 				<span class="truncate font-oswald text-sm font-bold {dead ? 'line-through' : ''}"
 					>{o.username}</span
 				>
+				{#if o.source === 'SUBSCRIPTION'}
+					<!-- Manual rows stay unmarked (the default); only sub-fired rows get the
+					     pill — same pill as the Users panel's "subscribed". -->
+					<span
+						title="Recorded by subscription"
+						class="ml-auto shrink-0 rounded-full bg-olf-darkgreen px-2.5 py-1 font-oswald text-xs font-bold tracking-wide text-olf-eggshell uppercase"
+					>
+						subscription
+					</span>
+				{/if}
 			</a>
 			<span class="text-right font-oswald text-xs text-olf-darkgreen/70 tabular-nums"
 				>{moneyRM(o.unitPriceCents)}</span
@@ -534,18 +564,17 @@
 		{#if !ledgerGroups}
 			<label class="flex items-center gap-1.5 font-oswald text-xs text-olf-darkgreen/70">
 				Show
-				<select
+				<OptionPicker
+					options={EGG_PAGE_SIZE_OPTIONS}
 					bind:value={eggPageSize}
-					aria-label="Rows per page"
-					class="cursor-pointer rounded-lg border border-olf-darkgreen/20 bg-white px-2 py-1.5 font-oswald text-sm text-olf-darkgreen"
-				>
-					{#each EGG_PAGE_SIZES as n (n)}<option value={n}>{n}</option>{/each}
-				</select>
+					onchange={() => (eggClientPage = 1)}
+					triggerClass="bg-white text-olf-darkgreen"
+				/>
 			</label>
 		{/if}
 	</div>
 
-	<!-- Client-side paging over the loaded flat rows (hidden when grouped). -->
+	<!-- The single pager — client-side over the full filtered set (hidden when grouped). -->
 	{#if !ledgerGroups && sortedLedgerRows.length > eggPageSize}
 		<div class="flex items-center justify-center gap-4 font-oswald text-sm text-olf-darkgreen">
 			<button
@@ -561,29 +590,11 @@
 				onclick={() => (eggClientPage += 1)}
 				class="underline disabled:opacity-40">Next →</button
 			>
-		</div>
-	{/if}
-
-	{#if ledgerTotal > LEDGER_LIMIT}
-		<div class="flex items-center justify-center gap-4 font-oswald text-sm text-olf-darkgreen">
 			<button
 				type="button"
-				disabled={ledgerPage <= 1}
-				onclick={() => {
-					ledgerPage -= 1;
-					void loadLedger();
-				}}
-				class="underline disabled:opacity-40">← Prev</button
-			>
-			<span>Page {ledgerPage} of {ledgerPages}</span>
-			<button
-				type="button"
-				disabled={ledgerPage >= ledgerPages}
-				onclick={() => {
-					ledgerPage += 1;
-					void loadLedger();
-				}}
-				class="underline disabled:opacity-40">Next →</button
+				disabled={eggClientPage >= eggClientPages}
+				onclick={() => (eggClientPage = eggClientPages)}
+				class="underline disabled:opacity-40">Last »</button
 			>
 		</div>
 	{/if}
