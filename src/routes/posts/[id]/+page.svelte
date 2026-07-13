@@ -118,6 +118,7 @@
 					{post}
 					liveCommentCount={comments?.length}
 					expandImage
+					fullBody
 					canManage={isAuthor}
 					onEdit={() => (editing = true)}
 					onDelete={() => {

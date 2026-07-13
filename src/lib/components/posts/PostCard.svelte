@@ -46,6 +46,11 @@
 		/** Start with the image expanded (full height) — used on the detail page. */
 		expandImage?: boolean;
 		/**
+		 * Render the whole body untruncated — the detail page. Elsewhere the body
+		 * clamps: 7 lines in the feed, a single truncated line on compact cards.
+		 */
+		fullBody?: boolean;
+		/**
 		 * Viewer's current location, when known (feed "Near me"). Drives the
 		 * "~N km away" suffix on the origin line. Omitted → no distance shown.
 		 */
@@ -63,6 +68,7 @@
 		compact = false,
 		liveCommentCount,
 		expandImage = false,
+		fullBody = false,
 		viewerLocation = null,
 		canManage = false,
 		onEdit,
@@ -344,7 +350,7 @@
 			</div>
 		</div>
 
-		<div class="flex items-center gap-1.5">
+		<div class="flex items-start gap-1.5">
 			<!-- Plain text: the content-block stretched link owns navigation;
 			     underlines when the text block (the `group`) is hovered. -->
 			<p
@@ -353,28 +359,37 @@
 				{post.title}
 			</p>
 
-			<p class="text-xxs">{post.category ? CATEGORY_EMOJI[post.category] : '🌳'}</p>
-			<!-- Category tag (when no thumbnail carried it) -->
-			{#if post.category}
-				<span
-					class="rounded-lg px-1.5 py-0.5 text-xxs font-normal tracking-wider uppercase {CATEGORY_COLOR[
-						post.category
-					]}"
-				>
-					{categoryLabel(post.category)}
-				</span>
-			{/if}
+			<!-- Emoji + category tag pin to the title's FIRST line (h-6 = one
+			     text-base line-height), instead of floating at the vertical
+			     middle when the title wraps to two lines. -->
+			<span class="flex h-6 shrink-0 items-center gap-1.5">
+				<p class="text-xxs">{post.category ? CATEGORY_EMOJI[post.category] : '🌳'}</p>
+				<!-- Category tag (when no thumbnail carried it) -->
+				{#if post.category}
+					<span
+						class="rounded-lg px-1.5 py-0.5 text-xxs font-normal tracking-wider uppercase {CATEGORY_COLOR[
+							post.category
+						]}"
+					>
+						{categoryLabel(post.category)}
+					</span>
+				{/if}
+			</span>
 		</div>
 
 		{#if post.body}
-			{#if !compact}
+			<!-- Three body tiers: compact card = one truncated line, feed card =
+			     7-line clamp (the detail page has the rest), detail = everything. -->
+			{#if compact}
+				<p class="truncate font-oswald text-[0.95rem] tracking-wide text-olf-darkbrown/90">
+					{post.body}
+				</p>
+			{:else if fullBody}
 				<p class="font-oswald text-[0.95rem] tracking-wide text-olf-darkbrown/90">
 					{post.body}
 				</p>
 			{:else}
-				<p
-					class="line-clamp-3 truncate font-oswald text-[0.95rem] tracking-wide text-olf-darkbrown/90"
-				>
+				<p class="line-clamp-7 font-oswald text-[0.95rem] tracking-wide text-olf-darkbrown/90">
 					{post.body}
 				</p>
 			{/if}
