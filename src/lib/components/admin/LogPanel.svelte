@@ -2,9 +2,9 @@
 	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { SvelteSet } from 'svelte/reactivity';
-	import { TreePine, Timer } from '@lucide/svelte';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import OptionPicker from '$lib/components/ui/OptionPicker.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import { orderDateLabel } from '$lib/components/admin/shared.svelte';
 	import { toasts } from '$lib/realtime/toasts.svelte';
@@ -38,21 +38,6 @@
 
 	const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-	// ─── Countdown to the next automatic cron run ───────────────────
-	let nowMs = $state(Date.now());
-	onMount(() => {
-		const tick = setInterval(() => (nowMs = Date.now()), 30_000);
-		return () => clearInterval(tick);
-	});
-	const countdown = $derived.by(() => {
-		if (!data?.nextCronRunAt) return '';
-		const ms = new Date(data.nextCronRunAt).getTime() - nowMs;
-		if (ms <= 60_000) return 'any minute now';
-		const h = Math.floor(ms / 3_600_000);
-		const m = Math.floor((ms % 3_600_000) / 60_000);
-		return h > 0 ? `in ${h}h ${m}m` : `in ${m}m`;
-	});
-
 	// ─── Selection ──────────────────────────────────────────────────
 	// Already-recorded rows can't be re-selected (recording them is a no-op
 	// anyway); not-due rows CAN be checked but the BE skips them and says so.
@@ -67,6 +52,7 @@
 
 	// ─── Client-side paging (same pattern as the eggs ledger) ───────
 	const PAGE_SIZES = [10, 25, 50, 100];
+	const PAGE_SIZE_OPTIONS = PAGE_SIZES.map((n) => ({ value: n, label: String(n) }));
 	let pageSize = $state(10);
 	let clientPage = $state(1);
 	const rows = $derived(data?.subscribers ?? []);
@@ -105,8 +91,7 @@
 <section class="mt-8 flex flex-col gap-4">
 	<div class="flex flex-wrap items-end justify-between gap-3">
 		<div class="flex items-center gap-2">
-			<TreePine size={22} class="text-olf-darkbrown" />
-			<h2 class="font-homemade-apple text-2xl text-olf-darkbrown">Subscription log</h2>
+			<h2 class="font-homemade-apple text-2xl text-olf-darkbrown">Subscriptions</h2>
 		</div>
 		{#if data?.weekStart}
 			<span class="font-oswald text-sm text-olf-darkgreen/60"
@@ -126,9 +111,11 @@
 			<!-- The console: one big round button, laser-tag style. Title above,
 			     armed-count below, the plain-words description under the housing. -->
 			<div
-				class="flex flex-col items-center gap-2 rounded-2xl bg-olf-darkgreen px-4 pt-5 pb-4 text-olf-eggshell"
+				class="flex flex-col items-center gap-2 rounded-2xl bg-olf-darkgreen px-4 py-5 text-olf-eggshell shadow-xl"
 			>
-				<span class="font-supermercado-one text-xl tracking-wide">Record this week</span>
+				<span class="text-center font-oswald font-light tracking-wide">
+					Record {checked.size} subscriptions<br /> this week
+				</span>
 
 				<!-- Bezel housing + glow ring behind the button when it's armed. -->
 				<div
@@ -143,13 +130,13 @@
 						disabled={recording || checked.size === 0}
 						onclick={recordNow}
 						aria-label="Record this week's subscription orders"
-						class="relative flex size-36 cursor-pointer items-center justify-center rounded-full bg-olf-red bg-[radial-gradient(circle_at_50%_28%,rgba(255,255,255,0.4),rgba(255,255,255,0)_62%)] font-supermercado-one text-4xl tracking-widest text-olf-eggshell uppercase shadow-[0_7px_0_0_rgba(0,0,0,0.45)] transition-all hover:-translate-y-0.5 hover:shadow-[0_9px_0_0_rgba(0,0,0,0.45)] active:translate-y-1.5 active:shadow-[0_1px_0_0_rgba(0,0,0,0.45)] disabled:translate-y-0 disabled:opacity-40 disabled:shadow-[0_4px_0_0_rgba(0,0,0,0.35)]"
+						class="relative flex size-36 cursor-pointer items-center justify-center rounded-full bg-olf-lightgreen bg-[radial-gradient(circle_at_50%_28%,rgba(255,255,255,0.4),rgba(255,255,255,0)_62%)] font-oswald text-4xl font-bold tracking-widest text-olf-darkgreen uppercase shadow-[0_7px_0_0_rgba(0,0,0,0.45)] transition-all hover:-translate-y-0.5 hover:shadow-[0_9px_0_0_rgba(0,0,0,0.45)] active:translate-y-1.5 active:shadow-[0_1px_0_0_rgba(0,0,0,0.45)] disabled:translate-y-0 disabled:opacity-40 disabled:shadow-[0_4px_0_0_rgba(0,0,0,0.35)]"
 					>
 						LOG
 					</Button>
 				</div>
 
-				<span class="font-oswald text-xs font-bold tracking-widest uppercase opacity-80">
+				<span class="font-oswald text-lg font-semibold tracking-widest uppercase opacity-80">
 					{#if checked.size > 0}
 						{checked.size} subscriber{checked.size === 1 ? '' : 's'} armed
 					{:else}
@@ -158,26 +145,8 @@
 				</span>
 			</div>
 			<p class="px-1 font-oswald text-xs leading-relaxed text-olf-darkgreen/70">
-				Logs this week's egg order for every checked subscriber, at their tier's amount. Anyone
-				already logged — by you or by the auto-run — is skipped, so it never double-records.
+				Override the auto-run.
 			</p>
-
-			<div class="flex flex-col gap-3 rounded-2xl bg-olf-darkgreen px-4 py-4 text-olf-eggshell">
-				<div class="flex items-center gap-3">
-					<span
-						class="flex size-9 shrink-0 items-center justify-center rounded-full bg-olf-lightgreen text-olf-darkgreen"
-					>
-						<Timer size={18} />
-					</span>
-					<span class="font-oswald text-sm font-bold">
-						Auto-log runs {countdown || '…'}
-					</span>
-				</div>
-				<span class="font-oswald text-xs opacity-75">
-					The daily job records each subscriber on their delivery day — anyone you log here is
-					skipped by it.
-				</span>
-			</div>
 		</div>
 
 		<!-- Right: subscribers table + pager -->
@@ -280,14 +249,12 @@
 				<div class="flex flex-wrap items-center justify-between gap-3">
 					<label class="flex items-center gap-1.5 font-oswald text-xs text-olf-darkgreen/70">
 						Show
-						<select
+						<OptionPicker
+							options={PAGE_SIZE_OPTIONS}
 							bind:value={pageSize}
 							onchange={() => (clientPage = 1)}
-							aria-label="Rows per page"
-							class="cursor-pointer rounded-lg border border-olf-darkgreen/20 bg-white px-2 py-1.5 font-oswald text-sm text-olf-darkgreen"
-						>
-							{#each PAGE_SIZES as n (n)}<option value={n}>{n}</option>{/each}
-						</select>
+							triggerClass="bg-white text-olf-darkgreen"
+						/>
 					</label>
 					{#if rows.length > pageSize}
 						<div class="flex items-center gap-4 font-oswald text-sm text-olf-darkgreen">
@@ -303,6 +270,12 @@
 								disabled={clientPage >= clientPages}
 								onclick={() => (clientPage += 1)}
 								class="underline disabled:opacity-40">Next →</button
+							>
+							<button
+								type="button"
+								disabled={clientPage >= clientPages}
+								onclick={() => (clientPage = clientPages)}
+								class="underline disabled:opacity-40">Last »</button
 							>
 						</div>
 					{/if}

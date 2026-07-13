@@ -69,7 +69,3 @@ export const localYmd = (iso: string) => {
 
 export const moneyRM = (cents: number) =>
 	`RM${(cents / 100).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-/** Shared styling for the compact sort/filter <select>s. */
-export const SORT_SELECT =
-	'cursor-pointer rounded-lg border border-olf-darkgreen/20 bg-white px-2 py-1 font-oswald text-xs text-olf-darkgreen';

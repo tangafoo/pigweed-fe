@@ -28,6 +28,7 @@
 	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import DatePicker from '$lib/components/ui/DatePicker.svelte';
+	import OptionPicker from '$lib/components/ui/OptionPicker.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import EggOrderEntry from '$lib/components/admin/EggOrderEntry.svelte';
 	import PauseSubscriptionModal from '$lib/components/admin/PauseSubscriptionModal.svelte';
@@ -72,7 +73,7 @@
 	// Localized weekday name (0=Sun). 2024-01-07 is a Sunday.
 	const dayName = (d: number) =>
 		new Date(2024, 0, 7 + d).toLocaleDateString(undefined, { weekday: 'long' });
-	const DAYS = [0, 1, 2, 3, 4, 5, 6];
+	const DAY_OPTIONS = [0, 1, 2, 3, 4, 5, 6].map((d) => ({ value: d, label: dayName(d) }));
 
 	// ─── Per-user expand card — tabs: details + eggs ledger + subscription ──
 	let expandedId = $state<string | null>(null);
@@ -134,6 +135,7 @@
 	let formPlanId = $state('');
 	let formStart = $state('');
 	let formDay = $state(4);
+	const planOptions = $derived(plans.map((p) => ({ value: p.id, label: p.name })));
 
 	// Egg ledger (Eggs tab).
 	let orders = $state<EggOrder[]>([]);
@@ -367,7 +369,7 @@
 		new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 
 	// Client-side paging over the loaded/filtered set — default 10 rows.
-	const PAGE_SIZES = [10, 25, 50];
+	const PAGE_SIZE_OPTIONS = [10, 25, 50].map((n) => ({ value: n, label: String(n) }));
 	let pageSize = $state(10);
 	let clientPage = $state(1);
 	// Any filter/sort/size change resets to the first page.
@@ -825,14 +827,11 @@
 								class="flex w-full flex-col gap-1 font-oswald text-xs tracking-wide text-olf-darkgreen/70 uppercase sm:w-52"
 							>
 								Tier
-								<select
+								<OptionPicker
+									options={planOptions}
 									bind:value={formPlanId}
-									class="w-full rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1.5 text-sm normal-case"
-								>
-									{#each plans as p (p.id)}
-										<option value={p.id}>{p.name}</option>
-									{/each}
-								</select>
+									triggerClass="w-full justify-between border border-olf-darkgreen/20 bg-white text-olf-darkgreen normal-case"
+								/>
 							</label>
 							<div
 								class="flex w-full flex-col gap-1 font-oswald text-xs tracking-wide text-olf-darkgreen/70 uppercase sm:w-52"
@@ -844,12 +843,11 @@
 								class="flex w-full flex-col gap-1 font-oswald text-xs tracking-wide text-olf-darkgreen/70 uppercase sm:w-52"
 							>
 								Delivery day
-								<select
+								<OptionPicker
+									options={DAY_OPTIONS}
 									bind:value={formDay}
-									class="w-full rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1.5 text-sm normal-case"
-								>
-									{#each DAYS as d (d)}<option value={d}>{dayName(d)}</option>{/each}
-								</select>
+									triggerClass="w-full justify-between border border-olf-darkgreen/20 bg-white text-olf-darkgreen normal-case"
+								/>
 							</label>
 							<Button
 								disabled={busy || !formPlanId}
@@ -1014,24 +1012,15 @@
 		{/if}
 	</div>
 
-	<!-- Rows-per-page (below the table). appearance-none + our own chevron so the
-	     native arrow never overlaps the number. -->
+	<!-- Rows-per-page (below the table). -->
 	{#if usersOpen && mounted}
 		<label class="flex items-center gap-1.5 self-start font-oswald text-xs text-olf-darkgreen/70">
 			Show
-			<span class="relative">
-				<select
-					bind:value={pageSize}
-					aria-label="Rows per page"
-					class="cursor-pointer appearance-none rounded-lg border border-olf-darkgreen/20 bg-white py-1.5 pr-8 pl-3 font-oswald text-sm text-olf-darkgreen"
-				>
-					{#each PAGE_SIZES as n (n)}<option value={n}>{n}</option>{/each}
-				</select>
-				<ChevronDown
-					size={14}
-					class="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-olf-darkgreen/50"
-				/>
-			</span>
+			<OptionPicker
+				options={PAGE_SIZE_OPTIONS}
+				bind:value={pageSize}
+				triggerClass="bg-white text-olf-darkgreen"
+			/>
 			per page
 		</label>
 	{/if}
@@ -1050,6 +1039,12 @@
 				disabled={clientPage >= clientPages}
 				onclick={() => (clientPage += 1)}
 				class="underline disabled:opacity-40">Next →</button
+			>
+			<button
+				type="button"
+				disabled={clientPage >= clientPages}
+				onclick={() => (clientPage = clientPages)}
+				class="underline disabled:opacity-40">Last »</button
 			>
 		</div>
 	{/if}

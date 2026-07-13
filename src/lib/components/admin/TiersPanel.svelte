@@ -3,6 +3,7 @@
 	import { slide } from 'svelte/transition';
 	import { Plus, Save, X, Pencil, Gift, ChevronDown, ChevronRight } from '@lucide/svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import OptionPicker from '$lib/components/ui/OptionPicker.svelte';
 	import {
 		adminUrlWith,
 		createBusyRunner,
@@ -45,6 +46,10 @@
 
 	// ─── Tier metadata edit (name / eggs / cadence) ─────────────────
 	const PRICE_PER_EGG_CENTS = 200; // RM2 / egg
+	const CADENCE_OPTIONS = [
+		{ value: 1, label: 'Weekly' },
+		{ value: 2, label: 'Biweekly' }
+	];
 	let editingPlanId = $state<string | null>(null);
 	let planName = $state('');
 	let planEggs = $state(0);
@@ -142,13 +147,11 @@
 								class="flex flex-1 flex-col gap-1 font-oswald text-xs tracking-wide text-olf-darkgreen/70 uppercase"
 							>
 								Cadence
-								<select
+								<OptionPicker
+									options={CADENCE_OPTIONS}
 									bind:value={planCadence}
-									class="w-full rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1.5 text-sm normal-case"
-								>
-									<option value={1}>Weekly</option>
-									<option value={2}>Biweekly</option>
-								</select>
+									triggerClass="w-full justify-between border border-olf-darkgreen/20 bg-white text-olf-darkgreen normal-case"
+								/>
 							</label>
 						</div>
 						<p class="font-oswald text-xs opacity-60">
@@ -288,13 +291,11 @@
 				class="flex flex-1 flex-col gap-1 font-oswald text-xs tracking-wide text-olf-darkgreen/70 uppercase"
 			>
 				Cadence
-				<select
+				<OptionPicker
+					options={CADENCE_OPTIONS}
 					bind:value={newPlanCadence}
-					class="w-full rounded-md border border-olf-darkgreen/20 bg-white px-2 py-1.5 text-sm normal-case"
-				>
-					<option value={1}>Weekly</option>
-					<option value={2}>Biweekly</option>
-				</select>
+					triggerClass="w-full justify-between border border-olf-darkgreen/20 bg-white text-olf-darkgreen normal-case"
+				/>
 			</label>
 		</div>
 		<p class="font-oswald text-xs opacity-60">
