@@ -114,6 +114,29 @@
 		clearTimeout(ledgerSearchTimer);
 		ledgerSearchTimer = setTimeout(reloadLedger, 250);
 	}
+	// One-click back to the default ledger view; the button only shows while
+	// something is off-default.
+	const filtersDirty = $derived(
+		!!(
+			ledgerFrom ||
+			ledgerTo ||
+			ledgerSource ||
+			ledgerQ ||
+			ledgerShowDeleted ||
+			ledgerGroupBy !== 'none'
+		)
+	);
+	function clearFilters() {
+		clearTimeout(ledgerSearchTimer);
+		ledgerFrom = '';
+		ledgerTo = '';
+		ledgerSource = '';
+		ledgerQ = '';
+		ledgerShowDeleted = false;
+		ledgerGroupBy = 'none';
+		selectedMonth = null;
+		reloadLedger();
+	}
 	// The panel only mounts when the Eggs view is opened — load right away.
 	onMount(() => void loadLedger());
 
@@ -183,16 +206,59 @@
 		});
 	});
 
-	// Client-side page-size (default 10) over the flat rows — the ONLY pager.
-	// (The grouped week/month view shows everything — it's a summary, not a
-	// browse list.) The page resets explicitly wherever the row set or order
-	// changes: loadLedger(), toggleLedgerSort(), and the page-size select.
+	// ─── Month drill-down (Group by → Month) ────────────────────────
+	// Month mode is a two-step view: first a picker of every month present in
+	// the filtered set (as cards with subtotals), then the picked month's rows
+	// as a normal table. `selectedMonth` holds the periodKey (e.g. "July 2026").
+	let selectedMonth = $state<string | null>(null);
+	type MonthCard = { key: string; orders: number; eggs: number; revenueCents: number };
+	const monthCards = $derived.by<MonthCard[] | null>(() => {
+		if (ledgerGroupBy !== 'month') return null;
+		const cards: MonthCard[] = [];
+		const index: Record<string, MonthCard> = {};
+		for (const r of sortedLedgerRows) {
+			const k = periodKey(r.orderedAt, 'month');
+			let c = index[k];
+			if (!c) {
+				c = { key: k, orders: 0, eggs: 0, revenueCents: 0 };
+				index[k] = c;
+				cards.push(c);
+			}
+			// Subtotals skip soft-deleted rows (same rule as everywhere else).
+			if (!r.deletedAt) {
+				c.orders += 1;
+				c.eggs += r.eggs;
+				c.revenueCents += lineTotal(r);
+			}
+		}
+		return cards;
+	});
+	// Falls back to the picker if the picked month vanished (filters changed).
+	const activeMonth = $derived(
+		selectedMonth && monthCards?.some((c) => c.key === selectedMonth) ? selectedMonth : null
+	);
+	const monthPickerShowing = $derived(!!monthCards && !activeMonth);
+	function pickMonth(key: string | null) {
+		selectedMonth = key;
+		eggClientPage = 1;
+	}
+
+	// Client-side page-size (default 10) — the ONLY pager. It pages the visible
+	// set: the picked month's rows in month mode, the whole filtered set
+	// otherwise (the week view renders group headers around the paged rows).
+	// The page resets explicitly wherever the row set or order changes:
+	// loadLedger(), toggleLedgerSort(), pickMonth(), and the page-size select.
 	const EGG_PAGE_SIZE_OPTIONS = [10, 25, 50, 100].map((n) => ({ value: n, label: String(n) }));
 	let eggPageSize = $state(10);
 	let eggClientPage = $state(1);
-	const eggClientPages = $derived(Math.max(1, Math.ceil(sortedLedgerRows.length / eggPageSize)));
+	const baseRows = $derived(
+		activeMonth
+			? sortedLedgerRows.filter((r) => periodKey(r.orderedAt, 'month') === activeMonth)
+			: sortedLedgerRows
+	);
+	const eggClientPages = $derived(Math.max(1, Math.ceil(baseRows.length / eggPageSize)));
 	const pagedLedgerRows = $derived(
-		sortedLedgerRows.slice((eggClientPage - 1) * eggPageSize, eggClientPage * eggPageSize)
+		baseRows.slice((eggClientPage - 1) * eggPageSize, eggClientPage * eggPageSize)
 	);
 
 	// Delete-record confirmation (soft delete is recoverable, but confirm anyway).
@@ -276,25 +342,35 @@
 		return `Week of ${new Date(weekStartMs).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`;
 	}
 	type LedgerGroup = { key: string; rows: AdminEggLedgerRow[]; eggs: number; revenueCents: number };
+	// WEEK grouping only (month mode is the drill-down picker above). Pages
+	// like the flat view: only the current page's rows render, but every group
+	// header carries its FULL period subtotal (from the whole filtered set), so
+	// a week straddling a page break still reads true. Plain object indexes
+	// (not Maps) to satisfy svelte/prefer-svelte-reactivity; these are
+	// transient computations, not reactive state.
 	const ledgerGroups = $derived.by<LedgerGroup[] | null>(() => {
-		if (ledgerGroupBy === 'none') return null;
-		// Plain object index (not a Map) to satisfy svelte/prefer-svelte-reactivity;
-		// this is a transient computation, not reactive state.
+		if (ledgerGroupBy !== 'week') return null;
+		const totals: Record<string, { eggs: number; revenueCents: number }> = {};
+		for (const r of sortedLedgerRows) {
+			const k = periodKey(r.orderedAt, ledgerGroupBy);
+			const t = (totals[k] ??= { eggs: 0, revenueCents: 0 });
+			if (!r.deletedAt) {
+				t.eggs += r.eggs;
+				t.revenueCents += lineTotal(r);
+			}
+		}
 		const groups: LedgerGroup[] = [];
 		const index: Record<string, LedgerGroup> = {};
-		for (const r of sortedLedgerRows) {
+		for (const r of pagedLedgerRows) {
 			const k = periodKey(r.orderedAt, ledgerGroupBy);
 			let g = index[k];
 			if (!g) {
-				g = { key: k, rows: [], eggs: 0, revenueCents: 0 };
+				const t = totals[k] ?? { eggs: 0, revenueCents: 0 };
+				g = { key: k, rows: [], eggs: t.eggs, revenueCents: t.revenueCents };
 				index[k] = g;
 				groups.push(g);
 			}
 			g.rows.push(r);
-			if (!r.deletedAt) {
-				g.eggs += r.eggs;
-				g.revenueCents += lineTotal(r);
-			}
 		}
 		return groups;
 	});
@@ -381,10 +457,11 @@
 			<OptionPicker
 				options={GROUP_OPTIONS}
 				bind:value={ledgerGroupBy}
+				onchange={() => pickMonth(null)}
 				triggerClass="bg-white text-olf-darkgreen"
 			/>
 		</div>
-		<div class="relative flex-1">
+		<div class="relative flex-1 sm:flex-none">
 			<Search
 				size={16}
 				class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-olf-darkgreen/50"
@@ -397,12 +474,23 @@
 				class="w-full rounded-lg border border-olf-darkgreen/20 bg-white py-1.5 pr-3 pl-8 font-oswald text-sm text-olf-darkgreen sm:w-56"
 			/>
 		</div>
+		{#if filtersDirty}
+			<!-- Sits right beside the search box; py matches the input height so it
+			     centers on the same line. -->
+			<button
+				type="button"
+				onclick={clearFilters}
+				class="flex cursor-pointer items-center gap-1 self-end py-1.5 font-oswald text-sm font-bold text-olf-darkgreen/60 underline transition-colors hover:text-olf-darkgreen"
+			>
+				<X size={15} class="shrink-0" /> Clear
+			</button>
+		{/if}
 		<Button
 			onclick={() => {
 				addOrderUser = null;
 				addOrderOpen = true;
 			}}
-			class="flex cursor-pointer items-center gap-1.5 rounded-md bg-olf-darkbrown px-3 py-1.5 font-oswald text-xs font-bold text-olf-eggshell"
+			class="ml-auto flex cursor-pointer items-center gap-1.5 rounded-md bg-olf-darkbrown px-3 py-1.5 font-oswald text-xs font-bold text-olf-eggshell"
 		>
 			<Plus size={14} /> Add egg order
 		</Button>
@@ -416,9 +504,9 @@
 				? 'opacity-50'
 				: ''}"
 		>
-			<span class="font-oswald text-xs tabular-nums {dead ? 'line-through' : ''}"
-				>{orderDateLabel(o.orderedAt)}</span
-			>
+			<span class="font-oswald text-xs tabular-nums {dead ? 'line-through' : ''}">
+				{orderDateLabel(o.orderedAt)}
+			</span>
 			<span class="font-oswald text-sm font-bold tabular-nums">{o.eggs}</span>
 			<a
 				href="/users/{o.userId}"
@@ -495,9 +583,9 @@
 				<button
 					type="button"
 					onclick={() => toggleLedgerSort(field)}
-					class="flex cursor-pointer items-center gap-0.5 tracking-widest uppercase transition-colors hover:text-olf-darkgreen {right
+					class="flex cursor-pointer items-center gap-0.5 tracking-widest uppercase transition-colors hover:text-olf-eggshell {right
 						? 'justify-end'
-						: ''} {ledgerSortField === field ? 'text-olf-darkgreen' : ''}"
+						: ''} {ledgerSortField === field ? 'text-olf-eggshell' : ''}"
 				>
 					<span>{label}</span>
 					{#if ledgerSortField === field}
@@ -510,17 +598,40 @@
 					{/if}
 				</button>
 			{/snippet}
-			<div
-				class="grid grid-cols-[6.5rem_3.5rem_minmax(8rem,1fr)_4.5rem_3.5rem_5.5rem_4.5rem] items-center gap-2 border-b border-olf-darkgreen/10 bg-olf-darkgreen/5 px-4 py-2.5 font-oswald text-xxs font-bold tracking-widest text-olf-darkgreen/50 uppercase"
-			>
-				{@render sortTh('Date', 'date')}
-				{@render sortTh('Eggs', 'eggs')}
-				{@render sortTh('Customer', 'customer')}
-				{@render sortTh('Price', 'unit', true)}
-				{@render sortTh('Boxes', 'boxes', true)}
-				{@render sortTh('Total', 'total', true)}
-				<span class="sr-only">Actions</span>
-			</div>
+			{#if activeMonth}
+				<!-- Drilled into one month: back to the picker on the left, the month's
+				     totals front-and-center (the headline of this view). -->
+				{@const card = monthCards?.find((c) => c.key === activeMonth)}
+				<div
+					class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-olf-darkgreen/10 bg-olf-darkgreen/8 px-4 py-2.5 font-oswald text-olf-darkgreen"
+				>
+					<button
+						type="button"
+						onclick={() => pickMonth(null)}
+						class="cursor-pointer justify-self-start text-xs font-bold underline"
+						>← All months</button
+					>
+					<span class="flex items-center gap-4 text-sm font-bold tabular-nums sm:text-base">
+						<span>{activeMonth}</span>
+						<span class="font-normal">{card?.orders ?? 0} orders · {card?.eggs ?? 0} 🥚</span>
+						<span>{moneyRM(card?.revenueCents ?? 0)}</span>
+					</span>
+					<span></span>
+				</div>
+			{/if}
+			{#if !monthPickerShowing}
+				<div
+					class="grid grid-cols-[6.5rem_3.5rem_minmax(8rem,1fr)_4.5rem_3.5rem_5.5rem_4.5rem] items-center gap-2 bg-olf-darkbrown px-4 py-2.5 font-oswald text-xxs font-bold tracking-widest text-olf-eggshell/70 uppercase"
+				>
+					{@render sortTh('Date', 'date')}
+					{@render sortTh('Eggs', 'eggs')}
+					{@render sortTh('Customer', 'customer')}
+					{@render sortTh('Price', 'unit', true)}
+					{@render sortTh('Boxes', 'boxes', true)}
+					{@render sortTh('Total', 'total', true)}
+					<span class="sr-only">Actions</span>
+				</div>
+			{/if}
 
 			{#if ledgerLoading}
 				<div class="flex justify-center py-8 text-olf-darkgreen/60"><Spinner /></div>
@@ -528,6 +639,25 @@
 				<p class="px-4 py-8 text-center font-oswald text-sm text-olf-darkgreen/50">
 					No egg records for this filter.
 				</p>
+			{:else if monthPickerShowing}
+				<!-- Month mode, step 1: pick a month; the table shows after the pick. -->
+				<div class="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 lg:grid-cols-4">
+					{#each monthCards ?? [] as c (c.key)}
+						<button
+							type="button"
+							onclick={() => pickMonth(c.key)}
+							class="flex cursor-pointer flex-col gap-0.5 rounded-xl bg-olf-darkgreen/5 px-4 py-3 text-left transition-colors hover:bg-olf-darkgreen/15"
+						>
+							<span class="font-oswald text-sm font-bold text-olf-darkgreen">{c.key}</span>
+							<span class="font-oswald text-xs text-olf-darkgreen/70 tabular-nums"
+								>{c.orders} orders · {c.eggs} 🥚</span
+							>
+							<span class="font-caveat text-lg text-olf-darkgreen tabular-nums"
+								>{moneyRM(c.revenueCents)}</span
+							>
+						</button>
+					{/each}
+				</div>
 			{:else if ledgerGroups}
 				{#each ledgerGroups as g (g.key)}
 					<div
@@ -561,7 +691,7 @@
 			/>
 			Show deleted records
 		</label>
-		{#if !ledgerGroups}
+		{#if !monthPickerShowing}
 			<label class="flex items-center gap-1.5 font-oswald text-xs text-olf-darkgreen/70">
 				Show
 				<OptionPicker
@@ -574,8 +704,9 @@
 		{/if}
 	</div>
 
-	<!-- The single pager — client-side over the full filtered set (hidden when grouped). -->
-	{#if !ledgerGroups && sortedLedgerRows.length > eggPageSize}
+	<!-- The single pager — client-side over the visible set (flat, week-grouped,
+	     or the drilled-down month). Hidden while the month picker is up. -->
+	{#if !monthPickerShowing && baseRows.length > eggPageSize}
 		<div class="flex items-center justify-center gap-4 font-oswald text-sm text-olf-darkgreen">
 			<button
 				type="button"
