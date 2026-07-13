@@ -69,6 +69,16 @@
 	let addUserOpen = $state(false);
 	const openAddUser = () => (addUserOpen = true);
 
+	// Re-clicking the ACTIVE nav item resets its panel to defaults: the URL
+	// (usually) doesn't change, so bumping this key forces a remount — panel
+	// state (filters, sort, page) is per-mount, and mounting refetches. The
+	// goto still runs to strip any lingering params (e.g. ?page=).
+	let panelResetKey = $state(0);
+	function navTo(id: View) {
+		if (id === view) panelResetKey += 1;
+		void goto(adminUrlWith({ view: id, page: undefined }), { noScroll: true });
+	}
+
 	// `group` opens a labelled section above the item (Eggs / Subscription).
 	const NAV = [
 		{ id: 'home', label: 'Home', icon: Home },
@@ -107,7 +117,7 @@
 				</div>
 			{/if}
 			<Button
-				onclick={() => goto(adminUrlWith({ view: item.id, page: undefined }), { noScroll: true })}
+				onclick={() => navTo(item.id)}
 				class="flex items-center justify-center gap-3 rounded-xl px-3 py-2.5 font-oswald text-sm font-bold tracking-wide transition-colors sm:justify-start {view ===
 				item.id
 					? 'bg-olf-beige text-olf-darkgreen'
@@ -150,31 +160,33 @@
 			{/each}
 		</div>
 
-		{#if view === 'home'}
-			<HomePanel stats={data.stats} users={data.users} boxes={data.boxes} />
-		{:else if view === 'users'}
-			<UsersPanel
-				users={data.users}
-				plans={data.plans}
-				boxes={data.boxes}
-				total={data.total}
-				pageNum={data.page}
-				orderedOn={data.orderedOn}
-				onAddUser={openAddUser}
-			/>
-		{:else if view === 'eggs'}
-			<EggsPanel users={data.users} boxes={data.boxes} onAddUser={openAddUser} />
-		{:else if view === 'analytics'}
-			<AnalyticsPanel boxes={data.boxes} />
-		{:else if view === 'boxes'}
-			<BoxesPanel boxes={data.boxes} />
-		{:else if view === 'tiers'}
-			<TiersPanel plans={data.plans} benefits={data.benefits} />
-		{:else if view === 'benefits'}
-			<BenefitsPanel benefits={data.benefits} />
-		{:else if view === 'log'}
-			<LogPanel />
-		{/if}
+		{#key panelResetKey}
+			{#if view === 'home'}
+				<HomePanel stats={data.stats} users={data.users} boxes={data.boxes} />
+			{:else if view === 'users'}
+				<UsersPanel
+					users={data.users}
+					plans={data.plans}
+					boxes={data.boxes}
+					total={data.total}
+					pageNum={data.page}
+					orderedOn={data.orderedOn}
+					onAddUser={openAddUser}
+				/>
+			{:else if view === 'eggs'}
+				<EggsPanel users={data.users} boxes={data.boxes} onAddUser={openAddUser} />
+			{:else if view === 'analytics'}
+				<AnalyticsPanel boxes={data.boxes} />
+			{:else if view === 'boxes'}
+				<BoxesPanel boxes={data.boxes} />
+			{:else if view === 'tiers'}
+				<TiersPanel plans={data.plans} benefits={data.benefits} />
+			{:else if view === 'benefits'}
+				<BenefitsPanel benefits={data.benefits} />
+			{:else if view === 'log'}
+				<LogPanel />
+			{/if}
+		{/key}
 	</main>
 
 	<!-- Add user modal (pre-register by email + magic link); reused across panels -->
