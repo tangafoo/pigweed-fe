@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Minus, Plus, X } from '@lucide/svelte';
+	import { MapPin, Minus, Plus, X } from '@lucide/svelte';
+	import { slide } from 'svelte/transition';
 	import { m } from '$lib/paraglide/messages.js';
 	import { orderModal } from '$lib/stores/orderModal.svelte';
 	import { whatsappUrl } from '$lib/config/contact';
@@ -11,6 +12,17 @@
 
 	let dialog = $state<HTMLDialogElement>();
 	let quantity = $state(1);
+	// Overseas folks keep asking for eggs — the delivery-area disclosure heads
+	// that off before they reach WhatsApp.
+	let deliveryOpen = $state(false);
+	const deliveryAreas = [m.home_order_delivery_area_klang, m.home_order_delivery_area_kl];
+
+	// Honor reduced-motion — Svelte transitions don't gate themselves.
+	// Evaluated once on the client; SSR (no window) just renders closed.
+	const slideMs =
+		typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+			? 0
+			: 250;
 
 	const total = $derived(quantity * UNIT);
 	const whatsAppUrl = $derived(whatsappUrl(m.home_eggs_order_message({ boxes: quantity, total })));
@@ -86,6 +98,46 @@
 		<p class="-mt-2 text-center font-oswald text-xs text-olf-darkgreen/70">
 			{m.home_delivery_schedule()}
 		</p>
+
+		<div class="-mt-1 overflow-hidden rounded-xl border border-olf-darkgreen/20">
+			<button
+				type="button"
+				onclick={() => (deliveryOpen = !deliveryOpen)}
+				aria-expanded={deliveryOpen}
+				aria-controls="delivery-areas"
+				class="flex w-full cursor-pointer items-center justify-between gap-2 px-4 py-3"
+			>
+				<span
+					class="flex items-center gap-1.5 font-oswald text-xs font-bold tracking-wide text-olf-darkgreen/80 uppercase"
+				>
+					<MapPin size={14} class="shrink-0" />
+					{m.home_order_delivery_q()}
+				</span>
+				<Plus
+					size={16}
+					class="shrink-0 text-olf-darkgreen transition-transform duration-200 {deliveryOpen
+						? 'rotate-45'
+						: ''}"
+				/>
+			</button>
+			{#if deliveryOpen}
+				<div id="delivery-areas" transition:slide={{ duration: slideMs }} class="px-4 pb-3">
+					<div class="flex flex-wrap items-center gap-1.5">
+						<span class="text-base leading-none">🇲🇾</span>
+						{#each deliveryAreas as area (area)}
+							<span
+								class="rounded-full bg-olf-darkgreen px-2.5 py-1 font-oswald text-xs font-bold tracking-wider text-olf-beige uppercase"
+							>
+								{area()}
+							</span>
+						{/each}
+					</div>
+					<p class="mt-2 font-oswald text-xs leading-relaxed text-olf-darkgreen/70">
+						{m.home_order_delivery_note()}
+					</p>
+				</div>
+			{/if}
+		</div>
 
 		<a
 			href={whatsAppUrl}

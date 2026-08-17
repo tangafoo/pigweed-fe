@@ -23,8 +23,9 @@
 		SITE_URL
 	} from '$lib/config/seo';
 	import { m } from '$lib/paraglide/messages.js';
-	import { Sun, CloudRain, Wheat, Sprout } from '@lucide/svelte';
+	import { Sun, CloudRain, Wheat, Sprout, ChevronDown, ChevronUp } from '@lucide/svelte';
 	import type { PageData } from './$types';
+	import { slide } from 'svelte/transition';
 
 	let { data }: { data: PageData } = $props();
 
@@ -55,6 +56,17 @@
 			{ '@type': 'Offer', itemOffered: { '@type': 'Product', name: 'Tree-ripened fruit' } }
 		]
 	};
+
+	let compostExpanded = $state(true);
+
+	// The compost panel sliding open/closed shifts everything below it, which
+	// invalidates the pixel positions ScrollTrigger measured at setup (cluck,
+	// hop, Parallax). Re-measure once the slide transition settles. The dynamic
+	// import is already cached by then (or a cheap no-op if GSAP never loaded).
+	async function refreshScrollTriggers() {
+		const { ScrollTrigger } = await import('gsap/ScrollTrigger');
+		ScrollTrigger.refresh();
+	}
 
 	// Scroll-driven head-cluck: a barely-there tilt scrubbed by scroll position
 	// as the hen travels through the viewport — rest → +10° → 0° → -10° → 0°.
@@ -124,6 +136,49 @@
 					.to(node, { y: 0, ease: 'power2.in' })
 					.to(node, {}, '+=0.4');
 			}
+
+			cleanup = () => {
+				tl.scrollTrigger?.kill();
+				tl.kill();
+			};
+		})();
+
+		return { destroy: () => cleanup?.() };
+	}
+
+	// Scroll-driven wiggle for the worm dividers: a barely-there two-cycle rock
+	// (±2°) scrubbed by scroll. `flip: -1` mirrors the worm horizontally — the
+	// flip must live HERE (gsap.set), not in a -scale-x-100 class: GSAP rebuilds
+	// the whole transform when animating rotation, and decomposing an external
+	// CSS flip is ambiguous (flip ≡ 180° rotation), which turned the worms
+	// upside down. Async GSAP + ScrollTrigger, reduced-motion aware.
+	function wiggle(node: HTMLElement, flip: 1 | -1 = 1) {
+		let cleanup: (() => void) | undefined;
+
+		(async () => {
+			if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+				// No GSAP here, so apply the mirror with plain CSS.
+				if (flip === -1) node.style.transform = 'scaleX(-1)';
+				return;
+			}
+			const { gsap } = await import('gsap');
+			const { ScrollTrigger } = await import('gsap/ScrollTrigger');
+			gsap.registerPlugin(ScrollTrigger);
+			gsap.set(node, { scaleX: flip });
+
+			const tl = gsap.timeline({
+				defaults: { duration: 1, ease: 'sine.inOut' },
+				scrollTrigger: {
+					trigger: node,
+					start: 'top bottom',
+					end: 'bottom top',
+					scrub: true
+				}
+			});
+			for (let i = 0; i < 2; i++) {
+				tl.to(node, { rotation: 2 }).to(node, { rotation: -2 });
+			}
+			tl.to(node, { rotation: 0 });
 
 			cleanup = () => {
 				tl.scrollTrigger?.kill();
@@ -210,6 +265,174 @@
 
 <div class="bg-olf-darkgreen/95 p-2 text-center text-sm tracking-wide text-white/95">
 	<p>{m.home_delivery_lead()} • <span class="font-light">{m.home_delivery_schedule()}</span></p>
+</div>
+
+<!-- Sticky releases at the parent's bottom edge, so this wrapper is what
+     makes the header un-stick once the compost panel has scrolled past. -->
+<div>
+	<div
+		role="button"
+		tabindex="0"
+		aria-expanded={compostExpanded}
+		onclick={() => (compostExpanded = !compostExpanded)}
+		onkeydown={(e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				compostExpanded = !compostExpanded;
+			}
+		}}
+		class="sticky top-5 cursor-pointer sm:top-12"
+	>
+		<div class="flex flex-wrap items-center gap-y-1 bg-olf-darkgreen p-2">
+			<div class="mr-4 bg-olf-moss">
+				{#key compostExpanded}
+					{#if compostExpanded}
+						<ChevronUp size={24} class=" text-white/80" />
+					{:else}
+						<ChevronDown size={24} class=" text-white/80" />
+					{/if}
+				{/key}
+			</div>
+			<img
+				use:wiggle={-1}
+				src={asset('worm-divider02.webp')}
+				alt=""
+				class="hidden h-8 min-w-0 flex-none self-center object-contain sm:block"
+			/>
+			<div>
+				<p class="px-3 font-smokum text-xl tracking-widest text-white uppercase sm:text-2xl">
+					<span
+						class="font-frijole text-2xl tracking-[0.4em] text-olf-beige sm:text-4xl sm:tracking-[2rem]"
+						>Compost</span
+					>
+					Operations
+				</p>
+			</div>
+			<img
+				use:wiggle={-1}
+				src={asset('worm-divider.webp')}
+				alt=""
+				class="hidden h-8 min-w-0 flex-1 self-center object-contain sm:block"
+			/>
+			<div
+				class="mx-3 flex min-w-0 flex-wrap items-center gap-x-3 font-smokum text-lg tracking-wider text-amber-300 sm:text-2xl"
+			>
+				<p>Trench Composting</p>
+				<p>•</p>
+				<p>Hot Composting</p>
+				<p>•</p>
+				<p>Vermicomposting</p>
+			</div>
+			<img
+				use:wiggle
+				src={asset('worm-divider02.webp')}
+				alt=""
+				class="hidden h-8 min-w-0 flex-none self-center object-contain sm:block"
+			/>
+			<div class="ml-4 bg-olf-moss">
+				{#key compostExpanded}
+					{#if compostExpanded}
+						<ChevronUp size={24} class=" text-white/80" />
+					{:else}
+						<ChevronDown size={24} class=" text-white/80" />
+					{/if}
+				{/key}
+			</div>
+		</div>
+	</div>
+	{#if compostExpanded}
+		<div
+			transition:slide
+			onintroend={refreshScrollTriggers}
+			onoutroend={refreshScrollTriggers}
+			class="grid gap-8 bg-olf-soilbrown p-6 text-3xl text-white sm:grid-cols-2"
+		>
+			<div>
+				<h2 class="font-smokum text-2xl tracking-wider text-olf-yolk/95">Regenerative Orchard</h2>
+				<p>
+					'In harmony with nature' is at the heart of how we farm. Our orchard is an ecosystem with
+					trees, hens, soil, water and biodiversity feeding each other.
+				</p>
+			</div>
+			<div>
+				<h2 class="font-smokum text-2xl tracking-wider text-olf-beige/95">Soil & Compost</h2>
+				<p>
+					At ourlittlefarm, we return organic matter to the land through several natural composting
+					methods. We aim to close the cycle — transforming organic metrials back to nutrients.
+				</p>
+			</div>
+			<div>
+				<h2 class="font-smokum text-2xl tracking-wider text-olf-lightgreen">Trench Composting</h2>
+				<p>
+					Organic matter is placed directly on the soil, where it naturally breaks down and returns
+					nutrients to the ground.
+				</p>
+			</div>
+			<img
+				use:wiggle
+				src={asset('worm-divider02.webp')}
+				alt=""
+				class="mr-auto h-20 min-w-0 flex-none self-center object-contain"
+			/>
+			<div>
+				<h2 class="font-smokum text-2xl tracking-wider text-olf-rose">Hot Composting</h2>
+				<p>
+					A carefully balanced mix of organic materials creates heat through natural decomposition,
+					transforming organic matter into rich compost.
+				</p>
+			</div>
+			<div>
+				<h2 class="font-smokum text-2xl tracking-wider text-olf-bluey">Vermicomposting</h2>
+				<p>
+					Our worms do the work. Transforming organic matter into nutrient-rich worm castings that
+					nourish the soil
+				</p>
+			</div>
+			<div>
+				<h2 class="font-smokum text-2xl tracking-wider text-amber-300">
+					From Farm to City, From City to Farm
+				</h2>
+				<p>
+					Every week, we bring our nature-raised eggs and orchard produce from our farm in Mantin,
+					Negeri Sembilan to the city.
+				</p>
+				<p>
+					On the return journey, we bring organic materials from the city back to the farm,
+					transforming would be trash into soil food. We have started collecting spent coffee
+					grounds from cafés along our delivery route and turning them into compost.
+				</p>
+				<p>It's a two-way connection between farm and city — food goes out, resources come back.</p>
+			</div>
+			<div>
+				<h2 class="font-smokum text-2xl tracking-wider text-olf-beige">Our Hens</h2>
+				<p>
+					Our hens are more than egg machines — they are part of our orchard. They live and forage
+					among the trees, scratch the soil, dust bathe, explore and follow their natural
+					rhythms.Their presence adds another layer to the farm ecosystem.
+				</p>
+				<p>
+					We raise them with care, giving them space to move, natural sunlight, fresh air and a
+					thoughtfully prepared diet.
+				</p>
+			</div>
+			<img
+				use:wiggle={-1}
+				src={asset('worm-divider.webp')}
+				alt=""
+				class="ml-auto h-28 min-w-0 flex-none self-center object-contain"
+			/>
+			<div>
+				<h2 class="font-smokum text-2xl tracking-wider text-olf-lightgreen">
+					The Farm We're Growing
+				</h2>
+				<p>
+					A little farm, a bigger cycle. Regenerative farming is an ongoing journey. We are
+					learning, experimenting and finding ways to better work the natural cycles around us —
+					from nurturing healthy soil and caring for our hens to regeneration.
+				</p>
+			</div>
+		</div>
+	{/if}
 </div>
 
 {#each produceSections as section (section.heading)}

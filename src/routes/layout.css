@@ -20,6 +20,8 @@
 	--font-caveat: 'Caveat', cursive;
 	--font-homemade-apple: 'Homemade Apple', cursive;
 	--font-supermercado-one: 'Supermercado One', sans-serif;
+	--font-smokum: 'Smokum', serif;
+	--font-frijole: 'Frijole', system-ui;
 
 	--text-xxs: 10px;
 
@@ -34,6 +36,8 @@
 	--color-olf-darkgreen: #3f5e2e;
 	--color-olf-red: #c1352c;
 	--color-olf-blue: #2f6f9f;
+	--color-olf-soilbrown: #4E220F;
+	--color-olf-bluey: #2FA4D7;
 }
 
 @utility border-0\.5 {
