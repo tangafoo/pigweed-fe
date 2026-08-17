@@ -281,9 +281,9 @@
 				compostExpanded = !compostExpanded;
 			}
 		}}
-		class="sticky top-5 cursor-pointer sm:top-12"
+		class="sticky top-5 z-30 cursor-pointer bg-olf-darkgreen p-2 sm:top-12"
 	>
-		<div class="flex flex-wrap items-center gap-y-1 bg-olf-darkgreen p-2">
+		<div class="flex items-center gap-y-1 sm:flex-wrap">
 			<div class="mr-4 bg-olf-moss">
 				{#key compostExpanded}
 					{#if compostExpanded}
@@ -299,12 +299,16 @@
 				alt=""
 				class="hidden h-8 min-w-0 flex-none self-center object-contain sm:block"
 			/>
-			<div>
-				<p class="px-3 font-smokum text-xl tracking-widest text-white uppercase sm:text-2xl">
+			<div class="flex-1">
+				<p
+					class="px-3 text-center font-smokum text-xl tracking-widest text-white uppercase sm:text-2xl sm:whitespace-nowrap"
+				>
 					<span
 						class="font-frijole text-2xl tracking-[0.4em] text-olf-beige sm:text-4xl sm:tracking-[2rem]"
-						>Compost</span
 					>
+						Compost
+					</span>
+					<br class="sm:hidden" />
 					Operations
 				</p>
 			</div>
@@ -315,7 +319,7 @@
 				class="hidden h-8 min-w-0 flex-1 self-center object-contain sm:block"
 			/>
 			<div
-				class="mx-3 flex min-w-0 flex-wrap items-center gap-x-3 font-smokum text-lg tracking-wider text-amber-300 sm:text-2xl"
+				class="mx-3 hidden min-w-0 flex-wrap items-center gap-x-3 font-smokum text-lg tracking-wider text-amber-300 sm:flex sm:text-2xl"
 			>
 				<p>Trench Composting</p>
 				<p>•</p>
@@ -338,6 +342,15 @@
 					{/if}
 				{/key}
 			</div>
+		</div>
+		<div
+			class="flex min-w-0 flex-wrap items-center justify-center gap-x-3 pt-2 font-smokum text-lg tracking-wider text-amber-300 sm:hidden"
+		>
+			<p>Trench Composting</p>
+			<p>•</p>
+			<p>Hot Composting</p>
+			<p>•</p>
+			<p>Vermicomposting</p>
 		</div>
 	</div>
 	{#if compostExpanded}
