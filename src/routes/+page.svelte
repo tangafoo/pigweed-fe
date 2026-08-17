@@ -57,7 +57,7 @@
 		]
 	};
 
-	let compostExpanded = $state(true);
+	let compostExpanded = $state(false);
 
 	// The compost panel sliding open/closed shifts everything below it, which
 	// invalidates the pixel positions ScrollTrigger measured at setup (cluck,
