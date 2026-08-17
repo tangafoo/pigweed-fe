@@ -362,7 +362,11 @@
 				</p>
 			</div>
 			<div>
-				<h2 class="font-smokum text-2xl tracking-wider text-olf-lightgreen">Trench Composting</h2>
+				<h2
+					class="mb-2 w-fit rotate-2 border-2 border-olf-lightbrown px-4 py-2 font-smokum text-2xl tracking-wider text-olf-lightgreen"
+				>
+					Trench Composting
+				</h2>
 				<p>
 					Organic matter is placed directly on the soil, where it naturally breaks down and returns
 					nutrients to the ground.
@@ -375,14 +379,22 @@
 				class="mr-auto h-20 min-w-0 flex-none self-center object-contain"
 			/>
 			<div>
-				<h2 class="font-smokum text-2xl tracking-wider text-olf-rose">Hot Composting</h2>
+				<h2
+					class="mb-2 w-fit -rotate-2 border-2 border-olf-lightbrown px-4 py-2 font-smokum text-2xl tracking-wider text-olf-rose"
+				>
+					Hot Composting
+				</h2>
 				<p>
 					A carefully balanced mix of organic materials creates heat through natural decomposition,
 					transforming organic matter into rich compost.
 				</p>
 			</div>
 			<div>
-				<h2 class="font-smokum text-2xl tracking-wider text-olf-bluey">Vermicomposting</h2>
+				<h2
+					class="mb-2 w-fit rotate-2 border-2 border-olf-lightbrown px-4 py-2 font-smokum text-2xl tracking-wider text-olf-bluey"
+				>
+					Vermicomposting
+				</h2>
 				<p>
 					Our worms do the work. Transforming organic matter into nutrient-rich worm castings that
 					nourish the soil
