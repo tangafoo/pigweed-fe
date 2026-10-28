@@ -1,5 +1,6 @@
 import type { RequestHandler } from './$types';
 import { SITE_URL } from '$lib/config/seo';
+import { FARMDEX, farmdexSlug } from '$lib/data/farmdex';
 
 // Lists only canonical, indexable URLs. Login / signup / settings / demo are
 // noindex; public profile pages are discovered via crawl from the home page
@@ -8,7 +9,16 @@ export const prerender = false;
 
 export const GET: RequestHandler = () => {
 	const now = new Date().toISOString();
-	const urls = [{ loc: `${SITE_URL}/`, changefreq: 'daily', priority: '1.0' }];
+	const urls = [
+		{ loc: `${SITE_URL}/`, changefreq: 'daily', priority: '1.0' },
+		{ loc: `${SITE_URL}/farmdex`, changefreq: 'weekly', priority: '0.7' },
+		// One URL per entry (opens that entry's modal + its own meta).
+		...FARMDEX.map((e) => ({
+			loc: `${SITE_URL}/farmdex?entry=${farmdexSlug(e)}`,
+			changefreq: 'monthly',
+			priority: '0.5'
+		}))
+	];
 	const body =
 		`<?xml version="1.0" encoding="UTF-8"?>\n` +
 		`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
