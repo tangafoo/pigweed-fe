@@ -3,7 +3,6 @@
 	import {
 		FARMDEX,
 		FARMDEX_CATEGORIES,
-		FARMDEX_CATEGORY_DOT,
 		farmdexBySlug,
 		farmdexCategoryLabel,
 		farmdexNumber,
@@ -12,7 +11,8 @@
 		type FarmdexEntry
 	} from '$lib/data/farmdex';
 	import FarmdexModal from '$lib/components/farmdex/FarmdexModal.svelte';
-	import { fade, fly, scale } from 'svelte/transition';
+	import CategoryIndicator from '$lib/components/farmdex/CategoryIndicator.svelte';
+	import { fade, fly, scale, slide } from 'svelte/transition';
 	import { cubicInOut } from 'svelte/easing';
 	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/state';
@@ -31,6 +31,33 @@
 	// `cursor-none`. Injected on mount / removed on leave, so it's Farmdex-only.
 	// Imported inside onMount (browser only): ani-cursor's `riff-file` dep is
 	// CommonJS and breaks Node's SSR import, which 500s the page.
+	// The .ani's own hotspot (click point) is the starfish's arm tip, top-left
+	// of the image, so clicks land off to the side of where the starfish looks
+	// like it's pointing. Rewrite every frame's hotspot to its centre so the
+	// starfish's body is the hit point. Walks the RIFF chunks; each `icon` is a
+	// .cur file whose ICONDIRENTRY holds width/height at +6/+7 and the
+	// hotspot x/y (u16 LE) at +10/+12.
+	function centerHotspots(bytes: Uint8Array): Uint8Array {
+		const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+		const id = (at: number) => String.fromCharCode(...bytes.subarray(at, at + 4));
+		const walk = (start: number, end: number) => {
+			for (let at = start; at + 8 <= end; ) {
+				const size = view.getUint32(at + 4, true);
+				const data = at + 8;
+				if (id(at) === 'LIST') walk(data + 4, data + size);
+				else if (id(at) === 'icon' && size >= 14) {
+					const w = bytes[data + 6] || 256;
+					const h = bytes[data + 7] || 256;
+					view.setUint16(data + 10, w >> 1, true);
+					view.setUint16(data + 12, h >> 1, true);
+				}
+				at = data + size + (size & 1);
+			}
+		};
+		walk(12, bytes.length);
+		return bytes;
+	}
+
 	onMount(() => {
 		let style: HTMLStyleElement | undefined;
 		let left = false; // navigated away before the fetch finished
@@ -38,7 +65,7 @@
 			.then(([{ convertAniBinaryToCSS }, buf]) => {
 				if (left) return;
 				style = document.createElement('style');
-				const bytes = new Uint8Array(buf);
+				const bytes = centerHotspots(new Uint8Array(buf));
 				// Also on <dialog>: a modal dialog makes the page (incl. <html>)
 				// inert, and inert elements stop matching :hover, so the html
 				// animation pauses while the overlay is open.
@@ -72,9 +99,10 @@
 	});
 
 	// SEO: the page as a whole, or the open entry when `?entry=` is set.
-	const PAGE_TITLE = `${m.nav_farmdex()} — ${SITE_NAME}`;
+	// "Farmdéx" (with the é) only in the page title; everywhere else is "Farmdex".
+	const PAGE_TITLE = `Farmdéx — ${SITE_NAME}`;
 	const PAGE_DESCRIPTION =
-		'Every plant and critter we’ve met at Our Little Farm in Mantin, Negeri Sembilan — photographed, identified and logged in the Farmdéx.';
+		'Every plant and critter we’ve met at Our Little Farm in Mantin, Negeri Sembilan — photographed, identified and logged in the Farmdex.';
 	const seo = $derived(
 		selected
 			? {
@@ -90,7 +118,7 @@
 					path: '/farmdex'
 				}
 	);
-	// Structured data: the Farmdéx as a collection of taxa, one per entry.
+	// Structured data: the Farmdex as a collection of taxa, one per entry.
 	const jsonLd = {
 		'@context': 'https://schema.org',
 		'@type': 'CollectionPage',
@@ -116,6 +144,19 @@
 	};
 	// Measured; the default is a close guess so SSR / first paint barely shifts.
 	let headerHeight = $state(72);
+	// Badge's "/" end, and the matching parallelogram for the trailing stripes.
+	const SLANT = 'polygon(0 0, 100% 0, calc(100% - 1.25rem) 100%, 0 100%)';
+	// Afterburner (disabled; see the commented-out markup after the badge).
+	// Slashes left → right: gap before each, band width at rest, band width
+	// when the badge area is hovered.
+	// const STRIPE = 'polygon(1.25rem 0, 100% 0, calc(100% - 1.25rem) 100%, 0 100%)';
+	// const AFTERBURNER = [
+	// 	{ gap: 12, band: 12, bandHot: 20 },
+	// 	{ gap: 12, band: 7, bandHot: 14 }
+	// ];
+	// While an entry is open, the page's scroll areas stop scrolling, so
+	// wheel / swipe over the overlay or drawer doesn't move the grid behind.
+	const scrollLock = $derived(selected ? 'overflow-y-hidden' : 'overflow-y-auto');
 	// Highlighted left-list row tilts a hair left or right, picked at random
 	// on each selection.
 	let tilt = $state<'left' | 'right'>('left');
@@ -161,14 +202,6 @@
 		opacity: 1
 	});
 
-	// Category indicator shape; anything unlisted is an 8px circle.
-	const DOT_SHAPE: Partial<Record<FarmdexCategory, string>> = {
-		MAMMAL: 'dot-heart size-2.5',
-		REPTILE: 'dot-diamond h-2.5 w-2',
-		AMPHIBIAN: 'dot-wavy h-2.5 w-3',
-		PLANT: 'dot-ring size-3'
-	};
-
 	const FILTER =
 		'-mx-1 cursor-pointer px-1 py-1 font-oswald text-base tracking-wide text-olf-darkgreen/60 hover:text-olf-darkgreen aria-pressed:font-bold aria-pressed:text-olf-darkgreen';
 </script>
@@ -182,6 +215,49 @@
 />
 <JsonLd data={jsonLd} />
 
+<!-- Category filter buttons: "All" as text, the rest as indicators. -->
+{#snippet filters()}
+	<button
+		type="button"
+		onclick={() => (filter = 'ALL')}
+		aria-pressed={filter === 'ALL'}
+		class={FILTER}
+	>
+		{m.farmdex_all()}
+	</button>
+	{#each categories as c (c)}
+		<span class="text-olf-darkgreen/30" aria-hidden="true">|</span>
+		<!-- Categories show their indicator; the active one's name slides
+		     in from the right beside it. -->
+		<button
+			type="button"
+			onclick={() => (filter = c)}
+			aria-pressed={filter === c}
+			aria-label={farmdexCategoryLabel(c)}
+			title={farmdexCategoryLabel(c)}
+			class="group/f {FILTER} flex items-center"
+		>
+			<CategoryIndicator
+				category={c}
+				class="opacity-60 transition-opacity group-hover/f:opacity-100 group-aria-pressed/f:opacity-100"
+			/>
+			{#if filter === c}
+				<span
+					transition:slide={{ axis: 'x', duration: 200, easing: cubicInOut }}
+					class="overflow-hidden whitespace-nowrap"
+				>
+					<span
+						in:fly={{ x: '100%', opacity: 1, duration: 200, easing: cubicInOut }}
+						class="block pl-1.5"
+					>
+						{farmdexCategoryLabel(c)}
+					</span>
+				</span>
+			{/if}
+		</button>
+	{/each}
+{/snippet}
+
 <!-- Fixed to the viewport below the sticky navbar; each column scrolls on its own.
      The header floats (frosted) over the top of both columns, which pad their
      tops by its measured height so content starts below it but scrolls under. -->
@@ -191,53 +267,71 @@
 >
 	<div
 		bind:clientHeight={headerHeight}
-		class="absolute inset-x-0 top-0 z-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 bg-olf-cottoncandy/80 px-4 pt-2 pb-4 shadow-md backdrop-blur-md lg:px-6 lg:pt-3"
+		class="absolute inset-x-0 top-0 z-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 bg-olf-cottoncandy/80 px-4 pt-1 pb-2 shadow-md backdrop-blur-md md:pt-2 md:pb-4 lg:px-6 lg:pt-3"
 	>
 		<!-- The FARMDEX badge doubles as a "show all" reset. It bleeds to the bar's
 		     left, top and bottom edges (negative margins = the bar's padding, added
-		     back as its own padding so the text doesn't move) and ends in a "/" slant. -->
-		<button
-			type="button"
-			onclick={() => (filter = 'ALL')}
-			class="-mt-2 -mb-4 -ml-4 inline-flex cursor-pointer items-center gap-2 self-stretch bg-olf-coral pt-3 pr-8 pb-5 pl-7 font-oswald text-lg font-bold tracking-wide text-white uppercase lg:-mt-3 lg:-ml-6 lg:pt-4 lg:pl-9"
-			style:clip-path="polygon(0 0, 100% 0, calc(100% - 1.25rem) 100%, 0 100%)"
-		>
-			{m.nav_farmdex()}
-			<!-- Glyphs come from mismatched fallback fonts, so each gets its own
-		     vertical nudge (em, so it scales with text size) to sit centered on
-		     the cap height like one line of text. -->
-			<span class="flex items-center gap-1.5 leading-none" aria-hidden="true">
-				<span>✿</span>
-				<span class="-translate-y-[0.06em]">𓆣</span>
-				<span class="-translate-y-[0.18em]">𓆌</span>
-			</span>
-		</button>
-
-		<!-- Category filter + total count. -->
-		<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+		     back as its own padding so the text doesn't move) and ends in a "/" slant.
+		     The wrapper carries the bleed so the stripes stretch with it. -->
+		<div class="group/ab -mt-1 -mb-2 -ml-4 flex self-stretch md:-mt-2 md:-mb-4 lg:-mt-3 lg:-ml-6">
 			<button
 				type="button"
 				onclick={() => (filter = 'ALL')}
-				aria-pressed={filter === 'ALL'}
-				class={FILTER}
+				class="inline-flex cursor-pointer items-center gap-2 bg-olf-coral pt-2 pr-8 pb-3 pl-7 font-oswald text-base font-bold tracking-wide text-white uppercase md:pt-3 md:pb-5 md:text-lg lg:pt-4 lg:pl-9"
+				style:clip-path={SLANT}
 			>
-				{m.farmdex_all()}
+				{m.nav_farmdex()}
+				<!-- Glyphs come from mismatched fallback fonts, so each gets its own
+		     vertical nudge (em, so it scales with text size) to sit centered on
+		     the cap height like one line of text. -->
+				<span class="flex items-center gap-1.5 leading-none" aria-hidden="true">
+					<span>✿</span>
+					<span class="-translate-y-[0.06em]">𓆣</span>
+					<span class="-translate-y-[0.18em]">𓆌</span>
+				</span>
 			</button>
-			{#each categories as c (c)}
-				<span class="text-olf-darkgreen/30" aria-hidden="true">|</span>
-				<button
-					type="button"
-					onclick={() => (filter = c)}
-					aria-pressed={filter === c}
-					class={FILTER}
-				>
-					{farmdexCategoryLabel(c)}
-				</button>
-			{/each}
+			<!-- AFTERBURNER (disabled — uncomment this block + AFTERBURNER/STRIPE in
+			     the script to revive): coral slashes trailing the badge, thinning out
+			     to the right so they read as building up into FARMDEX. Hovering the
+			     badge area (`group/ab` on the wrapper) fires them — each widens and
+			     drifts right.
+			<div class="flex" aria-hidden="true">
+				{#each AFTERBURNER as flame, i (i)}
+					<span
+						class="w-[calc(1.25rem+var(--band))] bg-olf-coral transition-[width,margin] duration-300 ease-out group-hover/ab:w-[calc(1.25rem+var(--band-hot))]"
+						style:--band="{flame.band}px"
+						style:--band-hot="{flame.bandHot}px"
+						style:margin-left="calc({flame.gap}px - 1.25rem)"
+						style:clip-path={STRIPE}
+					></span>
+				{/each}
+			</div>
+			-->
+		</div>
+
+		<!-- Desktop: filters + count on the right. Phones: just the count here;
+		     the filters live in a sticky bar at the bottom (below). -->
+		<div class="hidden flex-wrap items-center gap-x-3 gap-y-1 md:flex">
+			{@render filters()}
 			<span class="h-px w-12 bg-olf-darkgreen/30" aria-hidden="true"></span>
 			<span class="font-oswald text-base text-olf-darkgreen/60">
 				{m.farmdex_entries({ count: FARMDEX.length })}
 			</span>
+		</div>
+		<span class="font-oswald text-base text-olf-darkgreen/60 md:hidden">
+			{m.farmdex_entries({ count: FARMDEX.length })}
+		</span>
+	</div>
+
+	<!-- Phones: frosted filter bar pinned to the bottom of the page. One row
+	     that scrolls sideways once there are too many categories to fit;
+	     `w-max mx-auto` keeps it centred while it fits (justify-center would
+	     clip the start of an overflowing row). -->
+	<div
+		class="absolute inset-x-0 bottom-0 z-10 [scrollbar-width:none] overflow-x-auto bg-olf-cottoncandy/80 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_6px_-1px_rgb(0_0_0/0.1)] backdrop-blur-md md:hidden [&::-webkit-scrollbar]:hidden"
+	>
+		<div class="mx-auto flex w-max items-center gap-x-3 px-4 whitespace-nowrap">
+			{@render filters()}
 		</div>
 	</div>
 
@@ -246,7 +340,7 @@
 		     grid alone is enough. -->
 		{#key filter}
 			<ul
-				class="hidden w-52 shrink-0 flex-col gap-1 overflow-y-auto pt-[calc(var(--farmdex-header-h)+1.5rem)] pb-4 pl-4 md:flex lg:pb-6 lg:pl-6"
+				class="hidden w-52 shrink-0 flex-col gap-1 {scrollLock} pt-[calc(var(--farmdex-header-h)+1.5rem)] pb-4 pl-4 md:flex lg:pb-6 lg:pl-6"
 			>
 				{#each visible as entry, i (entry.scientificName)}
 					<li in:fly|global={rise(i)}>
@@ -273,7 +367,7 @@
 								class="relative size-8 shrink-0 rounded-full object-cover transition-transform duration-200 ease-out group-aria-[current=true]:scale-110"
 							/>
 							<span
-								class="relative min-w-0 truncate pr-1 font-oswald text-sm text-olf-darkgreen italic"
+								class="relative min-w-0 truncate pr-1 font-oswald text-sm text-olf-darkgreen capitalize italic"
 							>
 								{entry.scientificName}
 							</span>
@@ -286,7 +380,7 @@
 		<!-- Right: photo grid. -->
 		{#key filter}
 			<ul
-				class="grid flex-1 grid-cols-2 content-start gap-x-5 gap-y-4 overflow-y-auto px-4 pt-[calc(var(--farmdex-header-h)+1.5rem)] pb-4 sm:grid-cols-3 md:pl-0 lg:grid-cols-4 lg:pr-6 lg:pb-6 xl:grid-cols-5"
+				class="grid flex-1 grid-cols-2 content-start gap-x-5 gap-y-4 {scrollLock} px-4 pt-[calc(var(--farmdex-header-h)+1.5rem)] pb-20 sm:grid-cols-3 md:pb-4 md:pl-0 lg:grid-cols-4 lg:pr-6 lg:pb-6 xl:grid-cols-5"
 			>
 				{#each visible as entry, i (entry.scientificName)}
 					<li in:scale|global={pop(i)}>
@@ -311,15 +405,16 @@
 								</span>
 							</span>
 							<span
-								class="mt-2 flex items-center gap-2 font-oswald text-base text-olf-darkgreen italic"
+								class="mt-2 flex items-center gap-2 font-oswald text-base text-olf-darkgreen capitalize italic"
 							>
 								{entry.scientificName}
-								<span
-									title={farmdexCategoryLabel(entry.category)}
-									class="shrink-0 translate-y-[0.12em] opacity-50 transition-opacity duration-200 group-hover:opacity-100 {DOT_SHAPE[
-										entry.category
-									] ?? 'size-2 rounded-full'} {FARMDEX_CATEGORY_DOT[entry.category]}"
-								></span>
+								<span title={farmdexCategoryLabel(entry.category)} class="flex">
+									<CategoryIndicator
+										category={entry.category}
+										class="opacity-50 transition-opacity duration-200 group-hover:opacity-100"
+										shapeClass="translate-y-[0.12em]"
+									/>
+								</span>
 							</span>
 							<span class="font-oswald text-sm text-olf-darkgreen/60">{entry.commonName}</span>
 						</button>
@@ -344,27 +439,3 @@
 </div>
 
 <FarmdexModal bind:entry={selected} onstep={stepEntry} />
-
-<style>
-	/* Heart-shaped category dot (mammals): the bg colour shows through a heart
-	   mask, so it still uses the same FARMDEX_CATEGORY_DOT colour class. */
-	.dot-heart {
-		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21.6S1 15 1 8.2C1 4.9 3.5 2.4 6.6 2.4c2.2 0 4.2 1.2 5.4 3 1.2-1.8 3.2-3 5.4-3 3.1 0 5.6 2.5 5.6 5.8C23 15 12 21.6 12 21.6z'/%3E%3C/svg%3E")
-			center / contain no-repeat;
-	}
-	/* Playing-card diamond (reptiles): taller than wide, slightly pinched sides. */
-	.dot-diamond {
-		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 24'%3E%3Cpath d='M10 0Q13.5 7 20 12Q13.5 17 10 24Q6.5 17 0 12Q6.5 7 10 0z'/%3E%3C/svg%3E")
-			center / contain no-repeat;
-	}
-	/* Curvy equals ≈ (amphibians): two rounded wavy strokes. */
-	.dot-wavy {
-		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20' fill='none' stroke='black' stroke-width='3.5' stroke-linecap='round'%3E%3Cpath d='M2 6.5Q7 2 12 6.5T22 6.5M2 14.5Q7 10 12 14.5T22 14.5'/%3E%3C/svg%3E")
-			center / contain no-repeat;
-	}
-	/* ◉ (plants): solid centre dot, a gap, then an outline ring. */
-	.dot-ring {
-		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10.25' fill='none' stroke='black' stroke-width='3.5'/%3E%3Ccircle cx='12' cy='12' r='4.5'/%3E%3C/svg%3E")
-			center / contain no-repeat;
-	}
-</style>
