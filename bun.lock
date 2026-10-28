@@ -7,7 +7,7 @@
       "dependencies": {
         "@better-auth/passkey": "^1.6.11",
         "@lucide/svelte": "^1.16.0",
-        "@meteorclass/pigweed-contract": "file:../pigweed-be/contract",
+        "@meteorclass/pigweed-contract": "0.1.0",
         "ani-cursor": "^2.3.1",
         "better-auth": "^1.6.11",
         "date-fns": "^4.2.1",
@@ -248,7 +248,7 @@
 
     "@lucide/svelte": ["@lucide/svelte@1.16.0", "", { "peerDependencies": { "svelte": "^5" } }, "sha512-AvvPJnaWxeiNkAljI5MsSEc84yHPLMaWQIAJOcbX7k9au/f9ITS7cxTTQiautDiOFKVOXiYdZ+d6mtl88J+Kbg=="],
 
-    "@meteorclass/pigweed-contract": ["@meteorclass/pigweed-contract@file:../pigweed-be/contract", { "dependencies": { "zod": "^3.23.8" }, "devDependencies": { "typescript": "^5.6.0" } }],
+    "@meteorclass/pigweed-contract": ["@meteorclass/pigweed-contract@0.1.0", "", { "dependencies": { "zod": "^3.23.8" } }, "sha512-8ifeMi7DFKx+/cquI50qmOoF/SUqoLEsKOTNe6cOhZlBPnTLVCu+Ngw5WCEudY9OyoI6trCa4sUSKpx5I48XBQ=="],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.1.4", "", { "dependencies": { "@tybys/wasm-util": "^0.10.1" }, "peerDependencies": { "@emnapi/core": "^1.7.1", "@emnapi/runtime": "^1.7.1" } }, "sha512-3NQNNgA1YSlJb/kMH1ildASP9HW7/7kYnRI2szWJaofaS1hWmbGI4H+d3+22aGzXXN9IJ+n+GiFVcGipJP18ow=="],
 
@@ -843,8 +843,6 @@
     "@cspotcode/source-map-support/@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.9", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.0.3", "@jridgewell/sourcemap-codec": "^1.4.10" } }, "sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ=="],
 
     "@eslint-community/eslint-utils/eslint-visitor-keys": ["eslint-visitor-keys@3.4.3", "", {}, "sha512-wpc+LXeiyiisxPlEkUzU6svyS1frIO3Mgxj1fdy7Pm8Ygzguax2N3Fa/D/ag1WqbOprdI+uY6wMUl8/a2G+iag=="],
-
-    "@meteorclass/pigweed-contract/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@meteorclass/pigweed-contract/zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
 
