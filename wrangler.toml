@@ -5,6 +5,3 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 PUBLIC_API_BASE_URL = "https://api.ourlittlefarm.club"
-# Cloudflare's build image moved to Bun 1.4, which fails the install on the
-# dev-only `file:../pigweed-be/contract` dep. 1.3 skips it (matches local).
-BUN_VERSION = "1.3.13"
