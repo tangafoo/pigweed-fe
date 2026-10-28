@@ -13,8 +13,17 @@
 	import { connectEvents, disconnectEvents } from '$lib/realtime/events';
 	import type { Session } from '@meteorclass/pigweed-contract';
 	import { SITE_NAME, SITE_TAGLINE, SITE_URL } from '$lib/config/seo';
+	import { m } from '$lib/paraglide/messages.js';
+	import { NAV_ITEMS } from '$lib/config/nav';
+	import MobileNavDrawer from '$lib/components/layout/MobileNavDrawer.svelte';
+	import { Menu } from '@lucide/svelte';
 
 	let { children } = $props();
+
+	// Below lg the top-bar items move into the burger's bottom drawer.
+	let mobileNavOpen = $state(false);
+	const NAV_ITEM_CLASS =
+		'rounded-full px-3 py-1 font-oswald text-base font-normal tracking-wide text-olf-darkgreen transition-colors hover:bg-olf-darkgreen/10 aria-[current=page]:bg-olf-darkgreen aria-[current=page]:text-olf-beige';
 
 	// Measured navbar height, published as --navbar-h so descendants (e.g. the
 	// admin sidebar) can size themselves to exactly 100dvh minus the sticky
@@ -92,7 +101,7 @@
 <div class="flex min-h-dvh flex-col" style="--navbar-h: {navbarHeight}px">
 	<div
 		bind:clientHeight={navbarHeight}
-		class="sticky top-0 z-50 flex w-full items-center gap-3 bg-olf-beige px-2 py-2.5 shadow-sm lg:py-3"
+		class="sticky top-0 z-50 flex w-full items-center gap-3 bg-olf-sage px-2 py-2.5 shadow-sm lg:py-3"
 	>
 		{#if isAdminRoute && peeking}
 			<!-- Clip box spanning the whole navbar — the chicken rises into it and
@@ -107,10 +116,25 @@
 				/>
 			</div>
 		{/if}
-		<a href="/" aria-label="Our Little Farm" class="flex items-center">
-			<img src={LOGO} alt="Our Little Farm" class="h-5.5 w-auto rounded-md lg:h-7" />
+		<a href="/" aria-label="Our Little Farm" class="flex items-center lg:ml-3">
+			<img src={LOGO} alt="Our Little Farm" class="h-5.5 w-auto rounded-md shadow-md lg:h-7" />
 		</a>
 		<div class="ml-auto flex items-center gap-2">
+			<nav class="mr-3 hidden items-center gap-1 lg:flex">
+				{#each NAV_ITEMS as item, i (i)}
+					{#if item.href}
+						<a
+							href={item.href}
+							aria-current={page.url.pathname.startsWith(item.href) ? 'page' : undefined}
+							class={NAV_ITEM_CLASS}
+						>
+							{item.label()}
+						</a>
+					{:else}
+						<span class={NAV_ITEM_CLASS}>{item.label()}</span>
+					{/if}
+				{/each}
+			</nav>
 			<LocaleSwitcher />
 			{#if sessionUser}
 				<!-- Coin balance pill — same treatment as the one in LatestPostsStrip.
@@ -125,6 +149,15 @@
 				</div>
 			{/if}
 			<UserMenu {userId} />
+			<button
+				type="button"
+				onclick={() => (mobileNavOpen = true)}
+				aria-label={m.nav_menu()}
+				aria-expanded={mobileNavOpen}
+				class="flex size-8 items-center justify-center rounded-full bg-olf-darkgreen/10 text-olf-darkgreen hover:bg-olf-darkgreen/20 lg:hidden"
+			>
+				<Menu size={18} />
+			</button>
 		</div>
 	</div>
 
@@ -134,6 +167,7 @@
 
 	<Footer />
 </div>
+<MobileNavDrawer bind:open={mobileNavOpen} />
 <OrderEggsModal />
 <SubscriptionModal />
 <Toast />
