@@ -210,6 +210,7 @@
 	"farmdex_category_insect": "昆蟲",
 	"farmdex_category_arachnid": "蛛形綱",
 	"farmdex_category_mollusc": "軟體動物",
+	"farmdex_category_fish": "魚類",
 	"farmdex_category_amphibian": "兩棲類",
 	"farmdex_category_reptile": "爬蟲類",
 	"farmdex_category_bird": "鳥類",
@@ -483,5 +484,9 @@
 	"projects_not_started": "尚未開始",
 	"projects_ongoing": "進行中",
 	"projects_tools": "工具",
-	"projects_people": "人員"
+	"projects_people": "人員",
+	"projects_open_page": "在新分頁開啟專案頁面",
+	"projects_expand": "展開",
+	"projects_close_all": "全部關閉",
+	"projects_collapse": "收合"
 }

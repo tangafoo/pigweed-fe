@@ -210,6 +210,7 @@
 	"farmdex_category_insect": "곤충",
 	"farmdex_category_arachnid": "거미류",
 	"farmdex_category_mollusc": "연체동물",
+	"farmdex_category_fish": "어류",
 	"farmdex_category_amphibian": "양서류",
 	"farmdex_category_reptile": "파충류",
 	"farmdex_category_bird": "조류",
@@ -483,5 +484,9 @@
 	"projects_not_started": "아직 시작 전",
 	"projects_ongoing": "진행 중",
 	"projects_tools": "도구",
-	"projects_people": "사람들"
+	"projects_people": "사람들",
+	"projects_open_page": "새 탭에서 프로젝트 페이지 열기",
+	"projects_expand": "펼치기",
+	"projects_close_all": "모두 닫기",
+	"projects_collapse": "접기"
 }

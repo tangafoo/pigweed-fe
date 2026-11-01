@@ -210,6 +210,7 @@
 	"farmdex_category_insect": "昆虫",
 	"farmdex_category_arachnid": "クモ類",
 	"farmdex_category_mollusc": "軟体動物",
+	"farmdex_category_fish": "魚類",
 	"farmdex_category_amphibian": "両生類",
 	"farmdex_category_reptile": "爬虫類",
 	"farmdex_category_bird": "鳥類",
@@ -483,5 +484,9 @@
 	"projects_not_started": "未着手",
 	"projects_ongoing": "進行中",
 	"projects_tools": "道具",
-	"projects_people": "メンバー"
+	"projects_people": "メンバー",
+	"projects_open_page": "新しいタブでプロジェクトページを開く",
+	"projects_expand": "展開する",
+	"projects_close_all": "すべて閉じる",
+	"projects_collapse": "折りたたむ"
 }
