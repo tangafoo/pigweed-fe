@@ -488,5 +488,11 @@
 	"projects_open_page": "Open project page in a new tab",
 	"projects_expand": "Expand",
 	"projects_close_all": "Close all",
-	"projects_collapse": "Collapse"
+	"projects_collapse": "Collapse",
+	"volunteer_coming_soon": "Details coming soon.",
+	"volunteer_view_work": "See {name}'s work on the farm",
+	"volunteer_request_contact": "Request contact",
+	"volunteer_email_placeholder": "Your email",
+	"volunteer_interest_placeholder": "What are you interested to do?",
+	"volunteer_send": "Send"
 }

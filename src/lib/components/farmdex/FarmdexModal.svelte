@@ -481,7 +481,7 @@
 											imageIndex = i;
 										}}
 										aria-label="{shown.commonName} {i + 1}"
-										class="size-14 cursor-pointer overflow-hidden rounded-md ring-2 {i ===
+										class="size-14 cursor-pointer overflow-hidden rounded-full ring-2 {i ===
 										imageIndex
 											? 'ring-olf-bucketblue'
 											: 'opacity-70 ring-transparent hover:opacity-100'}"

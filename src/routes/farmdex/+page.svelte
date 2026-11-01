@@ -19,69 +19,13 @@
 	import { goto } from '$app/navigation';
 	import Seo from '$lib/components/seo/Seo.svelte';
 	import { canScrollY, createWheelLatch } from '$lib/utils/wheelLatch';
+	import { mountAniCursor } from '$lib/utils/aniCursor';
 	import JsonLd from '$lib/components/seo/JsonLd.svelte';
 	import { SITE_NAME, absoluteUrl } from '$lib/config/seo';
 
 	// Animated starfish cursor while on Farmdex — page, modal and overlay alike.
-	// Browsers can't play .ani natively, so ani-cursor turns its frames into a
-	// CSS @keyframes that steps `cursor: url(...)` (still the native cursor, so
-	// no lag). It runs once on <html> and everything inherits it; running it
-	// per-element would restart the loop on every hover change (flicker).
-	// The inherit rule sits in the `components` layer: above layout.css's
-	// `@layer base` hand pointer on buttons, below utilities like the lens's
-	// `cursor-none`. Injected on mount / removed on leave, so it's Farmdex-only.
-	// Imported inside onMount (browser only): ani-cursor's `riff-file` dep is
-	// CommonJS and breaks Node's SSR import, which 500s the page.
-	// The .ani's own hotspot (click point) is the starfish's arm tip, top-left
-	// of the image, so clicks land off to the side of where the starfish looks
-	// like it's pointing. Rewrite every frame's hotspot to its centre so the
-	// starfish's body is the hit point. Walks the RIFF chunks; each `icon` is a
-	// .cur file whose ICONDIRENTRY holds width/height at +6/+7 and the
-	// hotspot x/y (u16 LE) at +10/+12.
-	function centerHotspots(bytes: Uint8Array): Uint8Array {
-		const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-		const id = (at: number) => String.fromCharCode(...bytes.subarray(at, at + 4));
-		const walk = (start: number, end: number) => {
-			for (let at = start; at + 8 <= end; ) {
-				const size = view.getUint32(at + 4, true);
-				const data = at + 8;
-				if (id(at) === 'LIST') walk(data + 4, data + size);
-				else if (id(at) === 'icon' && size >= 14) {
-					const w = bytes[data + 6] || 256;
-					const h = bytes[data + 7] || 256;
-					view.setUint16(data + 10, w >> 1, true);
-					view.setUint16(data + 12, h >> 1, true);
-				}
-				at = data + size + (size & 1);
-			}
-		};
-		walk(12, bytes.length);
-		return bytes;
-	}
-
-	onMount(() => {
-		let style: HTMLStyleElement | undefined;
-		let left = false; // navigated away before the fetch finished
-		Promise.all([import('ani-cursor'), fetch('/cursors/starfish.ani').then((r) => r.arrayBuffer())])
-			.then(([{ convertAniBinaryToCSS }, buf]) => {
-				if (left) return;
-				style = document.createElement('style');
-				const bytes = centerHotspots(new Uint8Array(buf));
-				// Also on <dialog>: a modal dialog makes the page (incl. <html>)
-				// inert, and inert elements stop matching :hover, so the html
-				// animation pauses while the overlay is open.
-				style.textContent =
-					convertAniBinaryToCSS('html', bytes) +
-					convertAniBinaryToCSS('dialog', bytes) +
-					'@layer components { html * { cursor: inherit; } }';
-				document.head.appendChild(style);
-			})
-			.catch(() => {}); // cosmetic — fall back to the normal cursor
-		return () => {
-			left = true;
-			style?.remove();
-		};
-	});
+	// Its own hotspot is an arm tip, so clicks land on the body instead.
+	onMount(() => mountAniCursor('/cursors/starfish.ani', { centerHotspot: true }));
 
 	// Raw (no deep proxy) so `selected === entry` identity checks hold.
 	// Seeded from `?entry=<slug>` so a shared / crawled entry URL opens (and
@@ -436,6 +380,14 @@
 								>
 									{farmdexNumber(entry)}
 								</span>
+								<!-- "1/3" photo count, only when the entry has more than one. -->
+								{#if entry.imageUrls.length > 1}
+									<span
+										class="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/30 px-2 py-0.5 font-mono text-xs text-white tabular-nums backdrop-blur-sm"
+									>
+										1/{entry.imageUrls.length}
+									</span>
+								{/if}
 							</span>
 							<span
 								class="mt-2 flex items-center gap-2 font-oswald text-base text-olf-darkgreen capitalize italic"

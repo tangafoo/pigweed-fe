@@ -1,4 +1,5 @@
-import { PEOPLE } from '$lib/data/projects';
+import { PEOPLE } from '$lib/data/people';
+import { shuffle } from '$lib/utils/shuffle';
 import type { PageServerLoad } from './$types';
 
 // People board order: permanent people shuffled fresh on every load, then
@@ -8,10 +9,7 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = () => {
 	const all = Object.values(PEOPLE);
 	const permanent = all.filter((p) => p.role === 'PERMANENT');
-	for (let i = permanent.length - 1; i > 0; i--) {
-		const j = Math.floor(Math.random() * (i + 1));
-		[permanent[i], permanent[j]] = [permanent[j], permanent[i]];
-	}
+	shuffle(permanent);
 	return {
 		peopleOrder: [...permanent, ...all.filter((p) => p.role !== 'PERMANENT')].map((p) => p.id)
 	};
