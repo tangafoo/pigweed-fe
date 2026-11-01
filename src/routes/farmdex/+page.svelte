@@ -192,10 +192,11 @@
 	{#each categories as c (c)}
 		<span class="text-olf-darkgreen/30" aria-hidden="true">|</span>
 		<!-- Categories show their indicator; the active one's name slides
-		     in from the right beside it. -->
+		     in from the right beside it. Clicking the active one again goes
+		     back to All. -->
 		<button
 			type="button"
-			onclick={() => (filter = c)}
+			onclick={() => (filter = filter === c ? 'ALL' : c)}
 			aria-pressed={filter === c}
 			aria-label={farmdexCategoryLabel(c)}
 			title={farmdexCategoryLabel(c)}
@@ -357,7 +358,7 @@
 		{#key filter}
 			<ul
 				onscroll={(e) => (scrollTops.grid = e.currentTarget.scrollTop)}
-				class="grid flex-1 grid-cols-2 content-start gap-x-5 gap-y-4 {scrollLock} px-4 pt-[calc(var(--farmdex-header-h)+1.5rem)] pb-20 sm:grid-cols-3 md:pb-4 md:pl-0 lg:grid-cols-4 lg:pr-6 lg:pb-6 xl:grid-cols-5"
+				class="grid flex-1 grid-cols-2 content-start gap-x-5 gap-y-[1.15rem] {scrollLock} px-4 pt-[calc(var(--farmdex-header-h)+1.5rem)] pb-20 sm:grid-cols-3 md:pb-4 md:pl-0 lg:grid-cols-4 lg:pr-6 lg:pb-6 xl:grid-cols-5"
 			>
 				{#each visible as entry, i (entry.scientificName)}
 					<li in:scale|global={pop(i)}>

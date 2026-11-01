@@ -101,6 +101,7 @@
 <div class="flex min-h-dvh flex-col" style="--navbar-h: {navbarHeight}px">
 	<div
 		bind:clientHeight={navbarHeight}
+		style:view-transition-name="site-navbar"
 		class="sticky top-0 z-50 flex w-full items-center gap-3 bg-olf-sage px-2 py-2.5 shadow-sm lg:py-3"
 	>
 		{#if isAdminRoute && peeking}

@@ -29,7 +29,8 @@
 		deal = null,
 		filterRole = null,
 		onexpandedchange,
-		onpersonclick
+		onpersonclick,
+		activePerson = null
 	}: {
 		project: Project;
 		expanded: boolean;
@@ -43,6 +44,8 @@
 		onexpandedchange: (value: boolean) => void;
 		/** Avatar click: filter the page to that person. */
 		onpersonclick?: (person: Person) => void;
+		/** The person the page is filtered by: their avatar glows. */
+		activePerson?: Person | null;
 	} = $props();
 
 	let expandButton = $state<HTMLButtonElement>();
@@ -537,15 +540,25 @@
 					<h3 class="mb-1 text-sm tracking-wide text-olf-darkgreen/60 uppercase md:mb-2">
 						{m.projects_people()}
 					</h3>
-					<ul class="flex flex-wrap gap-2 md:flex-col md:items-end">
+					<ul class="flex flex-wrap gap-2 md:flex-col md:items-end md:gap-[0.6rem]">
 						{#each project.people as person (person.id)}
-							<!-- Name shows on hover only (clicking does nothing); keyboard focus shows it too. -->
+							<!-- Name shows on hover (keyboard focus too). Click filters the page by them;
+							     again clears it (desktop only, see onpersonclick). -->
 							<li class="group relative">
+								<!-- Filtered by this person: a bucketblue glow behind the avatar
+								     (like the succinct card's loot glow) that drifts slowly. -->
+								{#if person === activePerson}
+									<span
+										transition:fade={{ duration: 200 }}
+										aria-hidden="true"
+										class="person-glow pointer-events-none absolute top-1/2 left-1/2 size-[85%] -translate-1/2 rounded-full bg-olf-bucketblue/70 blur-lg"
+									></span>
+								{/if}
 								<button
 									type="button"
 									onclick={() => onpersonclick?.(person)}
 									aria-label={person.name}
-									class="flex size-9.25 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-olf-lightcoral text-olf-darkbrown transition-transform duration-200 ease-out outline-none hover:scale-120 focus-visible:ring-2 focus-visible:ring-olf-darkgreen"
+									class="relative flex size-9.25 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-olf-lightcoral text-olf-darkbrown transition-transform duration-200 ease-out outline-none hover:scale-120 focus-visible:ring-2 focus-visible:ring-olf-darkgreen"
 								>
 									{#if person.imageUrl}
 										<img src={person.imageUrl} alt="" class="size-full object-cover" />
@@ -607,6 +620,28 @@
 	@keyframes deal-in {
 		from {
 			transform: translateY(64px) rotate(var(--deal-tilt));
+		}
+	}
+	/* Slow wander around the avatar's centre. `transform`, so it composes with
+	   Tailwind's -translate-1/2 (the `translate` property) instead of replacing it. */
+	@media (prefers-reduced-motion: no-preference) {
+		.person-glow {
+			animation: person-glow 9s ease-in-out infinite;
+		}
+	}
+	@keyframes person-glow {
+		0%,
+		100% {
+			transform: translate(0, 0) scale(1);
+		}
+		25% {
+			transform: translate(5px, -4px) scale(1.08);
+		}
+		50% {
+			transform: translate(-2px, 5px) scale(0.94);
+		}
+		75% {
+			transform: translate(-5px, -3px) scale(1.04);
 		}
 	}
 	.number {

@@ -77,13 +77,9 @@
 	// phone there'd be no way to clear it).
 	const isDesktop = () => matchMedia('(min-width: 768px)').matches;
 
-	// `toggle`: the board buttons clear the filter when clicked again; an avatar
-	// click in a card always applies it.
-	async function setPerson(next: Person | null, toggle = true) {
-		if (next === highlighted) {
-			if (!toggle) return;
-			next = null;
-		}
+	// Clicking the filtered person again (board row or a card's avatar) clears it.
+	async function setPerson(next: Person | null) {
+		if (next === highlighted) next = null;
 		tilt = Math.random() < 0.5 ? 'left' : 'right';
 		// The board highlight answers the click right away (live, outside the
 		// card swap); the cards follow in the view transition.
@@ -202,8 +198,9 @@
 		</header>
 		<div class="flex flex-1">
 			<!-- Left (desktop): people filter, like the Farmdex index column, as a
-			     square-cornered beige board inset by the page padding, full height of
-			     the row. Click a person to show only their projects; again to clear
+			     square-cornered beige board. Sticky: it floats a little below the
+			     navbar while the cards scroll (scrolls itself if ever taller than the
+			     screen). Click a person to show only their projects; again to clear
 			     (nothing selected = all). -->
 			<aside
 				style:view-transition-name="projects-people"
@@ -211,7 +208,7 @@
 				style:background-image="linear-gradient({BEIGE_WASH}, {BEIGE_WASH}), url({asset(
 					'woodgrain-03.webp'
 				)})"
-				class="hidden w-44 shrink-0 border border-olf-darkgreen/20 bg-olf-beige bg-[length:auto_800px] bg-top bg-repeat-y p-4 shadow-lg md:block"
+				class="hidden max-h-[calc(100dvh-var(--navbar-h,0px)-3rem)] w-44 shrink-0 self-start overflow-y-auto border border-olf-darkgreen/20 bg-olf-beige bg-[length:auto_800px] bg-top bg-repeat-y p-4 shadow-lg md:sticky md:top-[calc(var(--navbar-h,0px)+1.5rem)] md:block md:pb-20"
 			>
 				<h2
 					class="mb-2 border-b border-olf-darkgreen/20 pb-2 font-oswald text-sm tracking-wide text-olf-darkgreen/60 uppercase"
@@ -276,7 +273,8 @@
 								? 'entering'
 								: null}
 						onexpandedchange={(v) => setExpanded(project, v)}
-						onpersonclick={(x) => isDesktop() && setPerson(x, false)}
+						onpersonclick={(x) => isDesktop() && setPerson(x)}
+						activePerson={person}
 					/>
 				{/each}
 			</div>

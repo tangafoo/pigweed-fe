@@ -61,7 +61,9 @@ export const PROJECTS: Project[] = [
 		subtitle: [
 			'decorate the many ',
 			{ text: 'portable water barrels', marks: ['italic'] },
-			' around the farm. Practice graffitti.'
+			' and ',
+			{ text: 'empty walls', marks: ['italic', 'underline'] },
+			' around the farm. Practice graffiti.'
 		],
 		duration: 999,
 		imageUrls: [
