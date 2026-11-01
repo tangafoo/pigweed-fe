@@ -478,5 +478,10 @@
 	"subscribe_card_no_plan": "プランなし",
 	"subscribe_card_see_page": "定期購入ページ",
 	"subscribe_modal_no_sub": "有効な定期購入はありません",
-	"subscribe_modal_browse": "たまごプランを見る"
+	"subscribe_modal_browse": "たまごプランを見る",
+
+	"projects_not_started": "未着手",
+	"projects_ongoing": "進行中",
+	"projects_tools": "道具",
+	"projects_people": "メンバー"
 }

@@ -478,5 +478,10 @@
 	"subscribe_card_no_plan": "No active plan",
 	"subscribe_card_see_page": "Subscription page",
 	"subscribe_modal_no_sub": "No active subscription",
-	"subscribe_modal_browse": "Browse egg plans"
+	"subscribe_modal_browse": "Browse egg plans",
+
+	"projects_not_started": "Not started yet",
+	"projects_ongoing": "Ongoing",
+	"projects_tools": "Tools",
+	"projects_people": "People"
 }

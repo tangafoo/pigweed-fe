@@ -478,5 +478,10 @@
 	"subscribe_card_no_plan": "활성 플랜 없음",
 	"subscribe_card_see_page": "구독 페이지",
 	"subscribe_modal_no_sub": "활성 구독이 없습니다",
-	"subscribe_modal_browse": "달걀 플랜 보기"
+	"subscribe_modal_browse": "달걀 플랜 보기",
+
+	"projects_not_started": "아직 시작 전",
+	"projects_ongoing": "진행 중",
+	"projects_tools": "도구",
+	"projects_people": "사람들"
 }
