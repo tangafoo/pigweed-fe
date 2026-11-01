@@ -18,6 +18,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import Seo from '$lib/components/seo/Seo.svelte';
+	import { canScrollY, createWheelLatch } from '$lib/utils/wheelLatch';
 	import JsonLd from '$lib/components/seo/JsonLd.svelte';
 	import { SITE_NAME, absoluteUrl } from '$lib/config/seo';
 
@@ -144,6 +145,18 @@
 	};
 	// Measured; the default is a close guess so SSR / first paint barely shifts.
 	let headerHeight = $state(72);
+	// Once either column has scrolled a fair way, the header shortens ~20% (like
+	// the Projects header when a card opens). The columns keep padding for the
+	// full-height header (only re-measured while full), so the shrink never
+	// moves the grid. The left index follows the live height instead, so its
+	// entries ride up with the header. A filter change rebuilds both columns at the top.
+	const COMPACT_AFTER_PX = 120;
+	let scrollTops = $state({ list: 0, grid: 0 });
+	const compact = $derived(Math.max(scrollTops.list, scrollTops.grid) > COMPACT_AFTER_PX);
+	let fullHeaderHeight = $state(72);
+	$effect(() => {
+		if (!compact) fullHeaderHeight = headerHeight;
+	});
 	// Badge's "/" end, and the matching parallelogram for the trailing stripes.
 	const SLANT = 'polygon(0 0, 100% 0, calc(100% - 1.25rem) 100%, 0 100%)';
 	// Afterburner (disabled; see the commented-out markup after the badge).
@@ -174,6 +187,13 @@
 		select(visible[(i + delta + n) % n]);
 	}
 	let filter = $state<FarmdexCategory | 'ALL'>('ALL');
+	// The left index doesn't chain into the page when a flick hits its end
+	// (same edge latch as a zoomed Projects photo).
+	const listLatch = createWheelLatch();
+	$effect(() => {
+		void filter;
+		untrack(() => (scrollTops = { list: 0, grid: 0 }));
+	});
 
 	// Only offer categories that actually have entries, in enum order.
 	const categories = FARMDEX_CATEGORIES.filter((c) => FARMDEX.some((e) => e.category === c));
@@ -263,21 +283,31 @@
      tops by its measured height so content starts below it but scrolls under. -->
 <div
 	class="relative flex h-[calc(100dvh-var(--navbar-h))] flex-col bg-olf-cottoncandy"
-	style:--farmdex-header-h="{headerHeight}px"
+	style:--farmdex-header-h="{fullHeaderHeight}px"
+	style:--farmdex-header-live="{headerHeight}px"
 >
 	<div
 		bind:clientHeight={headerHeight}
-		class="absolute inset-x-0 top-0 z-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 bg-olf-cottoncandy/80 px-4 pt-1 pb-2 shadow-md backdrop-blur-md md:pt-2 md:pb-4 lg:px-6 lg:pt-3"
+		class="absolute inset-x-0 top-0 z-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 bg-olf-cottoncandy/80 px-4 pt-1 pb-2 shadow-md backdrop-blur-md transition-[padding] duration-350 ease-in lg:px-6 {compact
+			? 'md:pt-1 md:pb-2 lg:pt-1.5'
+			: 'md:pt-2 md:pb-4 lg:pt-3'}"
 	>
 		<!-- The FARMDEX badge doubles as a "show all" reset. It bleeds to the bar's
 		     left, top and bottom edges (negative margins = the bar's padding, added
 		     back as its own padding so the text doesn't move) and ends in a "/" slant.
 		     The wrapper carries the bleed so the stripes stretch with it. -->
-		<div class="group/ab -mt-1 -mb-2 -ml-4 flex self-stretch md:-mt-2 md:-mb-4 lg:-mt-3 lg:-ml-6">
+		<!-- Compact: the bar's padding shrinks, so the bleed shrinks with it. -->
+		<div
+			class="group/ab -mt-1 -mb-2 -ml-4 flex self-stretch transition-[margin] duration-350 ease-in lg:-ml-6 {compact
+				? 'md:-mt-1 md:-mb-2 lg:-mt-1.5'
+				: 'md:-mt-2 md:-mb-4 lg:-mt-3'}"
+		>
 			<button
 				type="button"
 				onclick={() => (filter = 'ALL')}
-				class="inline-flex cursor-pointer items-center gap-2 bg-olf-coral pt-2 pr-8 pb-3 pl-7 font-oswald text-base font-bold tracking-wide text-white uppercase md:pt-3 md:pb-5 md:text-lg lg:pt-4 lg:pl-9"
+				class="inline-flex cursor-pointer items-center gap-2 bg-olf-coral pr-8 pl-7 font-oswald text-base font-bold tracking-wide text-white uppercase transition-[padding] duration-350 ease-in md:text-lg lg:pl-9 {compact
+					? 'pt-1 pb-2 md:pt-1.5 md:pb-3.5 lg:pt-2'
+					: 'pt-2 pb-3 md:pt-3 md:pb-5 lg:pt-4'}"
 				style:clip-path={SLANT}
 			>
 				{m.nav_farmdex()}
@@ -340,7 +370,9 @@
 		     grid alone is enough. -->
 		{#key filter}
 			<ul
-				class="hidden w-52 shrink-0 flex-col gap-1 {scrollLock} pt-[calc(var(--farmdex-header-h)+1.5rem)] pb-4 pl-4 md:flex lg:pb-6 lg:pl-6"
+				onscroll={(e) => (scrollTops.list = e.currentTarget.scrollTop)}
+				onwheel={(e) => listLatch(canScrollY(e.currentTarget, e)) && e.preventDefault()}
+				class="hidden w-52 shrink-0 flex-col gap-1 bg-olf-eggshell {scrollLock} pt-[calc(var(--farmdex-header-live)+1.5rem)] pb-4 pl-4 md:flex lg:pb-6 lg:pl-6"
 			>
 				{#each visible as entry, i (entry.scientificName)}
 					<li in:fly|global={rise(i)}>
@@ -380,6 +412,7 @@
 		<!-- Right: photo grid. -->
 		{#key filter}
 			<ul
+				onscroll={(e) => (scrollTops.grid = e.currentTarget.scrollTop)}
 				class="grid flex-1 grid-cols-2 content-start gap-x-5 gap-y-4 {scrollLock} px-4 pt-[calc(var(--farmdex-header-h)+1.5rem)] pb-20 sm:grid-cols-3 md:pb-4 md:pl-0 lg:grid-cols-4 lg:pr-6 lg:pb-6 xl:grid-cols-5"
 			>
 				{#each visible as entry, i (entry.scientificName)}

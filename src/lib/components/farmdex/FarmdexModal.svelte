@@ -272,7 +272,7 @@
 	}
 
 	const ARROW =
-		'absolute top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/45';
+		'absolute top-1/2 flex size-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/45';
 </script>
 
 <!-- The dialog is a transparent full-screen stage (so the big side buttons
