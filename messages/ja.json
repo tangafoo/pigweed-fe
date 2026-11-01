@@ -488,5 +488,11 @@
 	"projects_open_page": "新しいタブでプロジェクトページを開く",
 	"projects_expand": "展開する",
 	"projects_close_all": "すべて閉じる",
-	"projects_collapse": "折りたたむ"
+	"projects_collapse": "折りたたむ",
+	"volunteer_coming_soon": "詳細は近日公開。",
+	"volunteer_view_work": "{name}の農場での作業を見る",
+	"volunteer_request_contact": "連絡をリクエスト",
+	"volunteer_email_placeholder": "メールアドレス",
+	"volunteer_interest_placeholder": "どんなことに興味がありますか？",
+	"volunteer_send": "送信"
 }

@@ -488,5 +488,11 @@
 	"projects_open_page": "在新分頁開啟專案頁面",
 	"projects_expand": "展開",
 	"projects_close_all": "全部關閉",
-	"projects_collapse": "收合"
+	"projects_collapse": "收合",
+	"volunteer_coming_soon": "詳情即將公布。",
+	"volunteer_view_work": "查看{name}在農場的作品",
+	"volunteer_request_contact": "請求聯絡",
+	"volunteer_email_placeholder": "你的電郵",
+	"volunteer_interest_placeholder": "你有興趣做什麼？",
+	"volunteer_send": "送出"
 }
