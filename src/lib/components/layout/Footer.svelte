@@ -9,12 +9,15 @@
 	const year = new Date().getFullYear();
 	const sessionUser = $derived((page.data as { session?: Session | null }).session?.user ?? null);
 	const signedIn = $derived(!!sessionUser);
+
+	// Beige everywhere except pages that want their own footer colour.
+	const bg = $derived(page.route.id === '/projects' ? 'bg-olf-sunfadedsage' : 'bg-olf-beige');
 </script>
 
-<footer class="w-full bg-olf-beige px-6 py-10 text-olf-darkgreen">
+<footer class="w-full {bg} px-6 py-10 text-olf-darkgreen">
 	<div class="mx-auto flex max-w-4xl flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
 		<div>
-			<img src={LOGO} alt="Our Little Farm" class="h-6 w-auto" />
+			<img src={LOGO} alt="Our Little Farm" class="h-6 w-auto rounded-md shadow-md" />
 			<p class="mt-2 font-oswald text-sm">{m.footer_tagline()}</p>
 		</div>
 

@@ -478,5 +478,10 @@
 	"subscribe_card_no_plan": "尚無方案",
 	"subscribe_card_see_page": "訂閱頁面",
 	"subscribe_modal_no_sub": "尚無有效訂閱",
-	"subscribe_modal_browse": "瀏覽雞蛋方案"
+	"subscribe_modal_browse": "瀏覽雞蛋方案",
+
+	"projects_not_started": "尚未開始",
+	"projects_ongoing": "進行中",
+	"projects_tools": "工具",
+	"projects_people": "人員"
 }

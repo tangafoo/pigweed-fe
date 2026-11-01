@@ -59,11 +59,6 @@
 		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21.6S1 15 1 8.2C1 4.9 3.5 2.4 6.6 2.4c2.2 0 4.2 1.2 5.4 3 1.2-1.8 3.2-3 5.4-3 3.1 0 5.6 2.5 5.6 5.8C23 15 12 21.6 12 21.6z'/%3E%3C/svg%3E")
 			center / contain no-repeat;
 	}
-	/* Playing-card diamond (reptiles): taller than wide, slightly pinched sides. */
-	.dot-diamond {
-		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 24'%3E%3Cpath d='M10 0Q13.5 7 20 12Q13.5 17 10 24Q6.5 17 0 12Q6.5 7 10 0z'/%3E%3C/svg%3E")
-			center / contain no-repeat;
-	}
 	/* Curvy equals ≈ (amphibians): two rounded wavy strokes. */
 	.dot-wavy {
 		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20' fill='none' stroke='black' stroke-width='3.5' stroke-linecap='round'%3E%3Cpath d='M2 6.5Q7 2 12 6.5T22 6.5M2 14.5Q7 10 12 14.5T22 14.5'/%3E%3C/svg%3E")
