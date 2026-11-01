@@ -11,7 +11,12 @@
 	const signedIn = $derived(!!sessionUser);
 
 	// Beige everywhere except pages that want their own footer colour.
-	const bg = $derived(page.route.id === '/projects' ? 'bg-olf-sunfadedsage' : 'bg-olf-beige');
+	const FOOTER_BG: Record<string, string> = {
+		'/projects': 'bg-olf-sunfadedsage',
+		'/farmdex': 'bg-olf-cementblue',
+		'/volunteer': 'bg-olf-sage'
+	};
+	const bg = $derived(FOOTER_BG[page.route.id ?? ''] ?? 'bg-olf-beige');
 </script>
 
 <footer class="w-full {bg} px-6 py-10 text-olf-darkgreen">

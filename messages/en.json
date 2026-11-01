@@ -494,5 +494,15 @@
 	"volunteer_request_contact": "Request contact",
 	"volunteer_email_placeholder": "Your email",
 	"volunteer_interest_placeholder": "What are you interested to do?",
-	"volunteer_send": "Send"
+	"volunteer_send": "Send",
+	"volunteer_interest_with_placeholder": "What are you interested in working on with {name}?",
+	"season_ne_monsoon": "Monsoon season",
+	"season_inter_monsoon": "Inter-monsoon",
+	"season_sw_monsoon": "Hot & dry season",
+	"season_haze": "Haze",
+	"volunteer_prev_month": "Previous month",
+	"volunteer_next_month": "Next month",
+	"volunteer_clear_date": "Clear date",
+	"volunteer_pick_date": "Pick a day to come by",
+	"volunteer_preferred_date": "Preferred date"
 }

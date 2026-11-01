@@ -82,3 +82,10 @@
 	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 24'%3E%3Cpath d='M10 0Q13.5 7 20 12Q13.5 17 10 24Q6.5 17 0 12Q6.5 7 10 0z'/%3E%3C/svg%3E")
 		center / contain no-repeat;
 }
+
+/* View transitions draw every named group above the page, so a card or the
+   people board moving under the sticky navbar would paint over it. The navbar
+   is its own group (+layout.svelte), lifted above the rest. */
+::view-transition-group(site-navbar) {
+	z-index: 100;
+}
