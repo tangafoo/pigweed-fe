@@ -210,6 +210,7 @@
 	"farmdex_category_insect": "Insect",
 	"farmdex_category_arachnid": "Arachnid",
 	"farmdex_category_mollusc": "Mollusc",
+	"farmdex_category_fish": "Fish",
 	"farmdex_category_amphibian": "Amphibian",
 	"farmdex_category_reptile": "Reptile",
 	"farmdex_category_bird": "Bird",
@@ -483,5 +484,9 @@
 	"projects_not_started": "Not started yet",
 	"projects_ongoing": "Ongoing",
 	"projects_tools": "Tools",
-	"projects_people": "People"
+	"projects_people": "People",
+	"projects_open_page": "Open project page in a new tab",
+	"projects_expand": "Expand",
+	"projects_close_all": "Close all",
+	"projects_collapse": "Collapse"
 }

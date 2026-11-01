@@ -17,7 +17,11 @@
 <footer class="w-full {bg} px-6 py-10 text-olf-darkgreen">
 	<div class="mx-auto flex max-w-4xl flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
 		<div>
-			<img src={LOGO} alt="Our Little Farm" class="h-6 w-auto rounded-md shadow-md" />
+			<img
+				src={LOGO}
+				alt="Our Little Farm"
+				class="h-6 w-auto rounded-md bg-[#f0e1cd] px-2 shadow-md"
+			/>
 			<p class="mt-2 font-oswald text-sm">{m.footer_tagline()}</p>
 		</div>
 

@@ -117,7 +117,11 @@
 			</div>
 		{/if}
 		<a href="/" aria-label="Our Little Farm" class="flex items-center lg:ml-3">
-			<img src={LOGO} alt="Our Little Farm" class="h-5.5 w-auto rounded-md shadow-md lg:h-7" />
+			<img
+				src={LOGO}
+				alt="Our Little Farm"
+				class="h-5.5 w-auto rounded-md bg-[#f0e1cd] px-2 shadow-md lg:h-7"
+			/>
 		</a>
 		<div class="ml-auto flex items-center gap-2">
 			<nav class="mr-3 hidden items-center gap-1 lg:flex">

@@ -36,6 +36,7 @@
 		MAMMAL: 'dot-heart size-2.5',
 		REPTILE: 'dot-diamond h-2.5 w-2',
 		AMPHIBIAN: 'dot-wavy h-2.5 w-3',
+		FISH: 'dot-drop h-3 w-2.5',
 		PLANT: 'dot-ring size-3'
 	};
 </script>
@@ -62,6 +63,11 @@
 	/* Curvy equals ≈ (amphibians): two rounded wavy strokes. */
 	.dot-wavy {
 		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20' fill='none' stroke='black' stroke-width='3.5' stroke-linecap='round'%3E%3Cpath d='M2 6.5Q7 2 12 6.5T22 6.5M2 14.5Q7 10 12 14.5T22 14.5'/%3E%3C/svg%3E")
+			center / contain no-repeat;
+	}
+	/* Water droplet (fish): pointed top, round bottom. */
+	.dot-drop {
+		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 24'%3E%3Cpath d='M9 0C9 0 1 9.5 1 15a8 8 0 0 0 16 0C17 9.5 9 0 9 0z'/%3E%3C/svg%3E")
 			center / contain no-repeat;
 	}
 	/* ◉ (plants): solid centre dot, a gap, then an outline ring. */
