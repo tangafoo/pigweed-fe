@@ -2,9 +2,13 @@
 	import { m } from '$lib/paraglide/messages.js';
 	import Seo from '$lib/components/seo/Seo.svelte';
 	import ProjectCard from '$lib/components/projects/ProjectCard.svelte';
-	import { PEOPLE, PROJECTS, type Person, type Project } from '$lib/data/projects';
-	import { onMount, tick } from 'svelte';
+	import { PROJECTS, projectCount, type Project } from '$lib/data/projects';
+	import { PEOPLE, type Person } from '$lib/data/people';
+	import { onMount, tick, untrack } from 'svelte';
+	import { page } from '$app/state';
+	import { replaceState } from '$app/navigation';
 	import { trackPeopleBoard } from '$lib/utils/peopleBoard';
+	import { mountAniCursor } from '$lib/utils/aniCursor';
 	import { UserRound } from '@lucide/svelte';
 	import { fly } from 'svelte/transition';
 	import { asset } from '$lib/config/assets';
@@ -30,7 +34,12 @@
 			.map((id) => byId.get(id)!)
 			.filter((p) => PROJECTS.some((x) => x.people.includes(p)))
 	);
-	let person = $state.raw<Person | null>(null);
+	// Seeded from `?person=<id>` (e.g. the Volunteer page's "see their work"
+	// link), so the page opens already filtered, SSR included.
+	// Someone on no projects isn't on the board (nothing to clear), so ignored.
+	const linked = byId.get(page.url.searchParams.get('person') ?? '');
+	const fromUrl = linked && projectCount(linked) ? linked : null;
+	let person = $state.raw<Person | null>(fromUrl);
 	const visible = $derived(person ? PROJECTS.filter((p) => p.people.includes(person!)) : PROJECTS);
 	// Only expanded cards that are on screen count (header size, solo collapse).
 	const shownExpanded = $derived(expanded.filter((p) => visible.includes(p)));
@@ -45,13 +54,17 @@
 		return () => clearTimeout(t);
 	});
 
+	// Animated Mike Wazowski cursor while on Projects. Its own hotspot (top-left
+	// arrow tip) is the click point, so it's kept as is.
+	onMount(() => mountAniCursor('/cursors/mike-wazowski.ani'));
+
 	// Board background: woodgrain under a 60% beige wash (= woodgrain at 40%
 	// over beige). Fixed size, pinned to the top (not cover): the grain
 	// mustn't rescale when the board changes height mid-animation.
 	const BEIGE_WASH = 'color-mix(in srgb, var(--color-olf-beige) 60%, transparent)';
 
 	const FILTER =
-		'group relative flex w-full cursor-pointer items-center gap-2 p-1 pr-2 text-left transition-colors duration-200 aria-pressed:text-olf-eggshell';
+		'group relative flex w-full items-center gap-2 p-1 pr-2 text-left transition-colors duration-200 aria-pressed:text-olf-eggshell';
 	// Highlighted row's background tilts a hair left or right, picked at random
 	// on each selection (same as the Farmdex index).
 	let tilt = $state<'left' | 'right'>('left');
@@ -102,7 +115,23 @@
 				delete root.dataset.peopleBoard;
 			});
 	}
-	let highlighted = $state.raw<Person | null>(null);
+	let highlighted = $state.raw<Person | null>(fromUrl);
+
+	// Phones have no board to clear the filter with, so drop a linked one there.
+	onMount(() => {
+		if (person && !isDesktop()) person = highlighted = null;
+	});
+
+	// Keep `?person=` in sync with the filter. Shallow replaceState: no history
+	// spam, and no load re-run (which would reshuffle the board).
+	$effect(() => {
+		const want = person?.id ?? null;
+		const url = untrack(() => new URL(page.url));
+		if (url.searchParams.get('person') === want) return;
+		if (want) url.searchParams.set('person', want);
+		else url.searchParams.delete('person');
+		replaceState(url, {});
+	});
 	let leaving = $state.raw<Project[]>([]);
 	let entering = $state.raw<Project[]>([]);
 
@@ -221,7 +250,7 @@
 								<span
 									class="relative ml-auto font-mono text-xs font-light text-olf-darkgreen/60 transition-colors duration-200 group-aria-pressed:text-olf-eggshell/80"
 								>
-									{PROJECTS.filter((x) => x.people.includes(p)).length}
+									{projectCount(p)}
 								</span>
 							</button>
 						</li>

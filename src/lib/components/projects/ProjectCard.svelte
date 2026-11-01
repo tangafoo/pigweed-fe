@@ -15,7 +15,8 @@
 	import { DURATION_NOT_STARTED, DURATION_ONGOING, formatDays } from '$lib/utils/date';
 	import { trackPeopleBoard } from '$lib/utils/peopleBoard';
 	import { createWheelLatch } from '$lib/utils/wheelLatch';
-	import { projectId, projectNumber, type Person, type Project } from '$lib/data/projects';
+	import { projectId, projectNumber, type Project } from '$lib/data/projects';
+	import type { Person } from '$lib/data/people';
 
 	// Desktop: a small succinct card that expands into the full card. The page
 	// owns which cards are expanded: they span the whole row and stack at the
@@ -223,6 +224,11 @@
 	const ACTION =
 		'flex size-8 cursor-pointer items-center justify-center rounded-full bg-olf-eggshell text-olf-darkgreen shadow-md hover:bg-olf-darkgreen hover:text-olf-eggshell';
 
+	// "2/3" photo counter, top-left of the succinct cover (the Farmdex modal
+	// centres it along the bottom).
+	const PHOTO_COUNT =
+		'pointer-events-none absolute top-2 left-2 z-10 rounded-full bg-black/30 px-2 py-0.5 font-mono text-xs text-white tabular-nums backdrop-blur-sm';
+
 	// Smaller ARROW for the succinct cover; fades in with the card's hover.
 	const COVER_ARROW =
 		'pointer-events-auto absolute top-1/2 z-10 flex size-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/30 text-white opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover/card:opacity-100 group-has-focus-visible/card:opacity-100 hover:bg-black/45 focus-visible:opacity-100';
@@ -317,7 +323,7 @@
 				onclick={() => setExpanded(true)}
 				aria-expanded="false"
 				aria-labelledby={titleId}
-				class="absolute inset-0 cursor-pointer rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-olf-darkgreen"
+				class="absolute inset-0 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-olf-darkgreen"
 			></button>
 			<!-- Round actions beside the photo, bottom-aligned just above the details box
 			     (a photo-sized frame, so bottom-16 = the box's -mt-16 overlap). Above the
@@ -325,6 +331,9 @@
 			<div class="pointer-events-none absolute top-0 left-0 aspect-square w-[80%]">
 				<!-- Photo arrows, over the stretched button; shown on hover / focus. -->
 				{#if project.imageUrls.length > 1}
+					<span class="{PHOTO_COUNT} number">
+						{coverIndex + 1}/{project.imageUrls.length}
+					</span>
 					<button
 						type="button"
 						onclick={() => goTo(coverIndex - 1, coverScroller)}
@@ -375,9 +384,7 @@
 		tabindex="-1"
 		onclick={collapseOnClick}
 		onkeydown={(e) => expanded && e.key === 'Escape' && setExpanded(false)}
-		class="relative outline-none md:pl-[40%] {expanded
-			? 'md:cursor-pointer md:[&_:is(p,h2,h3)]:cursor-auto'
-			: 'md:hidden'}"
+		class="relative outline-none md:pl-[40%] {expanded ? '' : 'md:hidden'}"
 	>
 		{@render tab('w-1/2 rounded-t-lg md:rounded-tl-none')}
 		{#if expanded}
@@ -434,7 +441,7 @@
 				     zoom underneath, and data-keep-open stops it collapsing the card. -->
 				<span
 					data-keep-open
-					class="number absolute top-3 left-4 z-10 cursor-default font-mono text-sm font-light tracking-wide text-white select-none"
+					class="number absolute top-3 left-4 z-10 font-mono text-sm font-light tracking-wide text-white select-none"
 				>
 					{projectNumber(project)}
 				</span>

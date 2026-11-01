@@ -1,14 +1,9 @@
 import { asset } from '$lib/config/assets';
 import type { RichText } from '$lib/utils/richText';
 import { assignNumbers, formatNumber } from '$lib/utils/numbering';
+import { PEOPLE, type Person } from '$lib/data/people';
 
 export type Tool = { name: string };
-
-export const PERSON_ROLES = ['PERMANENT', 'HELPER'] as const;
-export type PersonRole = (typeof PERSON_ROLES)[number];
-
-/** `id` is stable so people can be @-tagged later. No `imageUrl` = generic avatar icon. */
-export type Person = { id: string; name: string; role?: PersonRole; imageUrl?: string };
 
 export type Project = {
 	title: RichText;
@@ -24,15 +19,6 @@ export type Project = {
 	/** Optional fixed number; otherwise the next free one in PROJECTS order (like Farmdex). */
 	number?: number;
 };
-
-export const PEOPLE = {
-	rubz: { id: 'rubz', name: 'Rubz', role: 'HELPER', imageUrl: asset('rubz-avatar.webp') },
-	gaf: { id: 'gaf', name: 'Gaf', role: 'PERMANENT', imageUrl: asset('gf-avatar.webp') },
-	gaia: { id: 'gaia', name: 'Gaia', role: 'PERMANENT', imageUrl: asset('gaia-avatar.webp') },
-	kh: { id: 'kh', name: 'KH', role: 'PERMANENT', imageUrl: asset('kh-avatar.webp') },
-	lm: { id: 'lm', name: 'LM', role: 'PERMANENT', imageUrl: asset('klm-avatar.webp') },
-	cwaka: { id: 'cwaka', name: 'Cwaka', role: 'PERMANENT', imageUrl: asset('cwaka-avatar.webp') }
-} satisfies Record<string, Person>;
 
 export const PROJECTS: Project[] = [
 	{
@@ -105,4 +91,9 @@ export function projectId(project: Project): number {
 
 export function projectById(id: number): Project | null {
 	return PROJECTS.find((p) => PROJECT_NUMBERS.get(p) === id) ?? null;
+}
+
+/** How many projects a person is on. */
+export function projectCount(person: Person): number {
+	return PROJECTS.filter((p) => p.people.includes(person)).length;
 }
