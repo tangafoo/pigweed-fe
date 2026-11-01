@@ -494,5 +494,15 @@
 	"volunteer_request_contact": "연락 요청",
 	"volunteer_email_placeholder": "이메일",
 	"volunteer_interest_placeholder": "어떤 일을 해보고 싶으세요?",
-	"volunteer_send": "보내기"
+	"volunteer_send": "보내기",
+	"volunteer_interest_with_placeholder": "{name}와 함께 어떤 일을 해보고 싶으세요?",
+	"season_ne_monsoon": "몬순 시즌",
+	"season_inter_monsoon": "몬순 전환기",
+	"season_sw_monsoon": "덥고 건조한 시즌",
+	"season_haze": "연무",
+	"volunteer_prev_month": "이전 달",
+	"volunteer_next_month": "다음 달",
+	"volunteer_clear_date": "날짜 지우기",
+	"volunteer_pick_date": "방문할 날짜를 골라 주세요",
+	"volunteer_preferred_date": "희망 날짜"
 }

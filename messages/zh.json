@@ -494,5 +494,15 @@
 	"volunteer_request_contact": "請求聯絡",
 	"volunteer_email_placeholder": "你的電郵",
 	"volunteer_interest_placeholder": "你有興趣做什麼？",
-	"volunteer_send": "送出"
+	"volunteer_send": "送出",
+	"volunteer_interest_with_placeholder": "你有興趣和{name}一起做什麼？",
+	"season_ne_monsoon": "季候風季節",
+	"season_inter_monsoon": "季候風過渡期",
+	"season_sw_monsoon": "炎熱乾燥季節",
+	"season_haze": "煙霾",
+	"volunteer_prev_month": "上個月",
+	"volunteer_next_month": "下個月",
+	"volunteer_clear_date": "清除日期",
+	"volunteer_pick_date": "選一天過來",
+	"volunteer_preferred_date": "希望日期"
 }

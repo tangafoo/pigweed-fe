@@ -494,5 +494,15 @@
 	"volunteer_request_contact": "連絡をリクエスト",
 	"volunteer_email_placeholder": "メールアドレス",
 	"volunteer_interest_placeholder": "どんなことに興味がありますか？",
-	"volunteer_send": "送信"
+	"volunteer_send": "送信",
+	"volunteer_interest_with_placeholder": "{name}とどんなことに取り組みたいですか？",
+	"season_ne_monsoon": "モンスーンの季節",
+	"season_inter_monsoon": "モンスーンの端境期",
+	"season_sw_monsoon": "暑く乾いた季節",
+	"season_haze": "ヘイズ（煙霧）",
+	"volunteer_prev_month": "前の月",
+	"volunteer_next_month": "次の月",
+	"volunteer_clear_date": "日付をクリア",
+	"volunteer_pick_date": "来られる日を選んでください",
+	"volunteer_preferred_date": "希望日"
 }
