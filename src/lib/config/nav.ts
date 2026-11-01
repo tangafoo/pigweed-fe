@@ -7,7 +7,7 @@ export type NavItem = { label: () => string; href?: string };
 
 export const NAV_ITEMS: NavItem[] = [
 	{ label: () => m.nav_buy() },
-	{ label: () => m.nav_projects() },
+	{ label: () => m.nav_projects(), href: '/projects' },
 	{ label: () => m.nav_farmdex(), href: '/farmdex' },
 	{ label: () => m.nav_volunteer(), href: '/volunteer' }
 ];
