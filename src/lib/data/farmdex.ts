@@ -1,5 +1,6 @@
 import { asset } from '$lib/config/assets';
 import { m } from '$lib/paraglide/messages.js';
+import { assignNumbers, formatNumber } from '$lib/utils/numbering';
 
 export const FARMDEX_CATEGORIES = [
 	'PLANT',
@@ -7,6 +8,7 @@ export const FARMDEX_CATEGORIES = [
 	'INSECT',
 	'ARACHNID',
 	'MOLLUSC',
+	'FISH',
 	'AMPHIBIAN',
 	'REPTILE',
 	'BIRD',
@@ -24,6 +26,7 @@ export const FARMDEX_CATEGORY_DOT: Record<FarmdexCategory, string> = {
 	INSECT: 'bg-olf-chimera',
 	ARACHNID: 'bg-olf-soilbrown',
 	MOLLUSC: 'bg-olf-sunfadedblue',
+	FISH: 'bg-olf-bucketblue',
 	AMPHIBIAN: 'bg-olf-bluey',
 	REPTILE: 'bg-olf-darkgreen',
 	BIRD: 'bg-olf-bluey',
@@ -43,6 +46,8 @@ export function farmdexCategoryLabel(c: FarmdexCategory): string {
 			return m.farmdex_category_arachnid();
 		case 'MOLLUSC':
 			return m.farmdex_category_mollusc();
+		case 'FISH':
+			return m.farmdex_category_fish();
 		case 'AMPHIBIAN':
 			return m.farmdex_category_amphibian();
 		case 'REPTILE':
@@ -90,7 +95,7 @@ export const FARMDEX: FarmdexEntry[] = [
 		category: 'AMPHIBIAN',
 		commonName: 'Asian Painted Bullfrog',
 		scientificName: 'Kaloula pulchra',
-		imageUrls: [asset('bullfrog.webp')],
+		imageUrls: [asset('bullfrog.webp'), asset('bullfrog-dex02.webp')],
 		description:
 			'Calls like a loud, cow bellow. There are so many tadpoles now, they love making babies. A neat beige stripe on its head for identification, and likes to hide under lilypads.',
 		dateRegistered: '2026-10-28'
@@ -99,7 +104,11 @@ export const FARMDEX: FarmdexEntry[] = [
 		category: 'REPTILE',
 		commonName: 'Equatorial Spitting Cobra',
 		scientificName: 'Naja sumatrana',
-		imageUrls: [asset('cobra-water.webp'), asset('snake-outta-bucket.webp')],
+		imageUrls: [
+			asset('cobra-water.webp'),
+			asset('snake-outta-bucket.webp'),
+			asset('cobra-curled-dex.webp')
+		],
 		description:
 			"A baby one. Common in farms, but flee from humans. Shelters near man-made structures when it rains heavily - probably cause cold. Haven't seen one spit, hopefully not anytime soon. Venomous.",
 		dateRegistered: '2026-10-28'
@@ -108,7 +117,7 @@ export const FARMDEX: FarmdexEntry[] = [
 		category: 'MAMMAL',
 		commonName: 'Goat',
 		scientificName: 'Capra hircus',
-		imageUrls: [asset('triplet-goats.webp')],
+		imageUrls: [asset('triplet-goats.webp'), asset('baby-goats.webp')],
 		description:
 			"Still don't know how to hold or pet one.. but seen friends do it like a cat, so am hopeful for a future good relation with one someday. Makes good milk.",
 		dateRegistered: '2026-10-28'
@@ -117,7 +126,7 @@ export const FARMDEX: FarmdexEntry[] = [
 		category: 'MAMMAL',
 		commonName: 'Sheep',
 		scientificName: 'Ovis aries',
-		imageUrls: [asset('cute-brown-goat-baby.webp')],
+		imageUrls: [asset('cute-brown-goat-baby.webp'), asset('baby-sheep02-dex.webp')],
 		description: 'A cute baby brown one !',
 		dateRegistered: '2026-10-28'
 	},
@@ -134,7 +143,7 @@ export const FARMDEX: FarmdexEntry[] = [
 		category: 'MAMMAL',
 		commonName: 'Cat',
 		scientificName: 'Felis catus',
-		imageUrls: [asset('freya-and-frangi.webp')],
+		imageUrls: [asset('freya-and-frangi.webp'), asset('freya-cat-dex.webp')],
 		description:
 			'Arrived on a wet Wednesday morning. She had flu, our resident ratcatcher (and treeshrew devourer)',
 		dateRegistered: '2026-10-28'
@@ -152,7 +161,7 @@ export const FARMDEX: FarmdexEntry[] = [
 		category: 'BIRD',
 		commonName: 'Chinese Goose',
 		scientificName: 'Anser cygnoides domesticus',
-		imageUrls: [asset('lilo-bamboo-geese.webp')],
+		imageUrls: [asset('lilo-bamboo-geese.webp'), asset('naturalPond-04.webp')],
 		description:
 			'Lilo and Bamboo. Not a fan (noisy and so aggressive). Have nice blue eyes though.',
 		dateRegistered: '2026-10-28'
@@ -161,7 +170,11 @@ export const FARMDEX: FarmdexEntry[] = [
 		category: 'PLANT',
 		commonName: 'Mussaenda',
 		scientificName: 'Mussaenda philippica',
-		imageUrls: [asset('mussaenda-phillipa-plant.webp')],
+		imageUrls: [
+			asset('mussaenda-phillipa-plant.webp'),
+			asset('mussandae-dex02.webp'),
+			asset('mussandae-dex-03.webp')
+		],
 		description:
 			'My healthiest plant so far ! A leafhopper hiding under a sepal. Flowers are yellow, tiny, and star-shaped (yet to bloom) with huge pink sepals surrounding it. Soft fuzzy leaves, that turn brown quickly once cut.',
 		dateRegistered: '2026-10-28',
@@ -189,7 +202,7 @@ export const FARMDEX: FarmdexEntry[] = [
 		category: 'MOLLUSC',
 		commonName: 'Giant African Land Snail',
 		scientificName: 'Lissachatina fulica',
-		imageUrls: [asset('snail-in-pail.webp')],
+		imageUrls: [asset('snail-in-pail.webp'), asset('africanSnail-dex.webp')],
 		description:
 			'Touched its head unclogging a pail, and definitely stepped on a few unwillingly. rip. Groovy to see its eyes retract and extend. ',
 		dateRegistered: '2026-10-28'
@@ -211,29 +224,58 @@ export const FARMDEX: FarmdexEntry[] = [
 		description:
 			'Baby one too. Startly fellas with an awesome aura. Great at climbing trees, and attracted to our livestock birds (including their eggs). Can grow HUGE, and should be treated more kindly.',
 		dateRegistered: '2026-10-28'
+	},
+	{
+		category: 'FISH',
+		commonName: 'Siamese Fighting Fish',
+		scientificName: 'Betta splendens',
+		imageUrls: [asset('bluey-betta-dex.webp'), asset('bluey-betta-dex02.webp')],
+		description: 'Placeholder.',
+		dateRegistered: '2026-11-01'
+	},
+	{
+		category: 'PLANT',
+		commonName: 'Eugenia',
+		scientificName: 'Syzygium myrtifolium',
+		imageUrls: [asset('eugenia-dex.webp')],
+		description: 'Also called Pucuk Merah. Its older name is Eugenia oleana.',
+		dateRegistered: '2026-11-01'
+	},
+	{
+		category: 'PLANT',
+		commonName: 'Kalamansi',
+		scientificName: 'Citrus × microcarpa',
+		imageUrls: [asset('lime-idk-which-dex.webp')],
+		description: 'Placeholder.',
+		dateRegistered: '2026-11-01'
+	},
+	{
+		category: 'INSECT',
+		commonName: 'Praying Mantis',
+		scientificName: 'Statilia maculata',
+		imageUrls: [
+			asset('praying-mantis-idkwhich-dex.webp'),
+			asset('praying-mantis-idkwhich-dex02.webp')
+		],
+		description: 'Placeholder.',
+		dateRegistered: '2026-11-01'
+	},
+	{
+		category: 'PLANT',
+		commonName: 'White Alder',
+		scientificName: 'Turnera subulata',
+		imageUrls: [asset('turnera-flower-farmdex.webp')],
+		description: 'Placeholder.',
+		dateRegistered: '2026-11-01'
 	}
 ];
 
-// Pinned entries keep their `dexNumber`; the rest take the lowest free
-// numbers in FARMDEX order, skipping every pinned one.
-const DEX_NUMBERS = (() => {
-	const pinned = new Set(FARMDEX.flatMap((e) => (e.dexNumber == null ? [] : [e.dexNumber])));
-	const numbers = new Map<FarmdexEntry, number>();
-	let next = 1;
-	for (const e of FARMDEX) {
-		if (e.dexNumber != null) {
-			numbers.set(e, e.dexNumber);
-			continue;
-		}
-		while (pinned.has(next)) next++;
-		numbers.set(e, next++);
-	}
-	return numbers;
-})();
+// Pinned entries keep their `dexNumber`; the rest are numbered around them.
+const DEX_NUMBERS = assignNumbers('Farmdex', FARMDEX, (e) => e.dexNumber);
 
 /** Dex number as `#001` — the entry's `dexNumber`, else the next free number (see DEX_NUMBERS). */
 export function farmdexNumber(entry: FarmdexEntry): string {
-	return `#${String(DEX_NUMBERS.get(entry)).padStart(3, '0')}`;
+	return formatNumber(DEX_NUMBERS.get(entry));
 }
 
 /** URL-safe id for `/farmdex?entry=…`, from the scientific name (e.g. `varanus-salvator`). */
