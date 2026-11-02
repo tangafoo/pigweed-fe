@@ -8,7 +8,13 @@
 	import { page } from '$app/state';
 	import { replaceState } from '$app/navigation';
 	import { trackPeopleBoard } from '$lib/utils/peopleBoard';
-	import { mountCursor } from '$lib/utils/aniCursor';
+	import { mountCursor } from '$lib/utils/pageCursor';
+	import {
+		BUTTERFLIES,
+		BUTTERFLY_HOTSPOT,
+		flutterFrames,
+		type Butterfly
+	} from '$lib/data/butterflies';
 	import { UserRound } from '@lucide/svelte';
 	import { fly } from 'svelte/transition';
 	import { asset } from '$lib/config/assets';
@@ -54,23 +60,9 @@
 		return () => clearTimeout(t);
 	});
 
-	// A butterfly cursor while on Projects, picked with the round buttons at
-	// the header's left (peacock by default; the choice is kept in
-	// localStorage). It flaps now and then: a rest, then the wings fold in and
-	// back out. Frames (static/cursors/<id>-flutter/) are 40px: its image from
-	// <id>.ico at 36px with a baked-in drop shadow and the wings squashed
-	// toward the body. Click point = the butterfly's centre. static/cursors/
-	// also keeps still .cur versions of the first two, ladybug.ani and
-	// mike-wazowski.ani for other pages.
-	// `head`: which way its head points in the image, degrees clockwise from
-	// straight up (the picker turns it back upright).
-	const BUTTERFLIES = [
-		{ id: 'peacock', head: -45, name: () => m.butterfly_peacock() },
-		{ id: 'mountain-apollo', head: -45, name: () => m.butterfly_mountain_apollo() },
-		{ id: 'mourning-cloak', head: 40, name: () => m.butterfly_mourning_cloak() },
-		{ id: 'garden-tiger-moth', head: 28, name: () => m.butterfly_garden_tiger_moth() }
-	] as const;
-	type Butterfly = (typeof BUTTERFLIES)[number]['id'];
+	// Butterfly cursor while on Projects (lib/data/butterflies), picked with the
+	// round buttons at the header's left: peacock by default, the choice kept
+	// in localStorage. static/cursors/ also keeps cursors for other pages.
 	const CURSOR_KEY = 'olf-projects-cursor';
 	let butterfly = $state<Butterfly>('peacock');
 	onMount(() => {
@@ -89,24 +81,7 @@
 			// Storage blocked: the pick still holds for this visit.
 		}
 	}
-	// Frame (0 open, 2 folded) and how long it shows: a rest, then two flaps.
-	const FLUTTER: [frame: number, ms: number][] = [
-		[0, 972],
-		[1, 90],
-		[2, 90],
-		[1, 90],
-		[0, 90],
-		[1, 90],
-		[2, 90],
-		[1, 90]
-	];
-	$effect(() => {
-		const dir = `/cursors/${butterfly}-flutter`;
-		return mountCursor(
-			FLUTTER.map(([i, ms]) => [`${dir}/${i}.png`, ms]),
-			{ hotspot: [19, 19] }
-		);
-	});
+	$effect(() => mountCursor(flutterFrames(butterfly), { hotspot: BUTTERFLY_HOTSPOT }));
 
 	// Board background: woodgrain under a 60% beige wash (= woodgrain at 40%
 	// over beige). Fixed size, pinned to the top (not cover): the grain

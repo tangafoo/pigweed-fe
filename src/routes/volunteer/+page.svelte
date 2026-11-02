@@ -3,7 +3,7 @@
 	import Seo from '$lib/components/seo/Seo.svelte';
 	import { asset } from '$lib/config/assets';
 	import { onMount } from 'svelte';
-	import { mountAniCursor } from '$lib/utils/aniCursor';
+	import { mountAniCursor } from '$lib/utils/pageCursor';
 	import {
 		ArrowRight,
 		ChevronDown,

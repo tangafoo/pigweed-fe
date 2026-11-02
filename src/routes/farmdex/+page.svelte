@@ -19,7 +19,7 @@
 	import { goto } from '$app/navigation';
 	import Seo from '$lib/components/seo/Seo.svelte';
 	import { canScrollY, createWheelLatch } from '$lib/utils/wheelLatch';
-	import { mountAniCursor } from '$lib/utils/aniCursor';
+	import { mountAniCursor } from '$lib/utils/pageCursor';
 	import JsonLd from '$lib/components/seo/JsonLd.svelte';
 	import { SITE_NAME, absoluteUrl } from '$lib/config/seo';
 

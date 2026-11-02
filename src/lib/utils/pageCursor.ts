@@ -1,5 +1,6 @@
-// Animated .ani cursor for a single page (Farmdex starfish, Volunteer horse; static ones via
-// mountCursor below, e.g. the Projects butterflies).
+// Custom cursor for a single page: mountAniCursor for animated .ani files
+// (Farmdex starfish, Volunteer horse), mountCursor for plain images or PNG
+// frames (the Projects butterflies).
 // Browsers can't play .ani natively, so ani-cursor turns its frames into a
 // CSS @keyframes that steps `cursor: url(...)` (still the native cursor, so
 // no lag). It runs once on <html> and everything inherits it; running it
@@ -35,28 +36,34 @@ function centerHotspots(bytes: Uint8Array): Uint8Array {
 	return bytes;
 }
 
+// Adds the page's cursor CSS plus the inherit rule; returns the cleanup.
+// The cursor goes on <dialog> too: a modal dialog makes the page (incl.
+// <html>) inert, and inert elements stop matching :hover, so an html-only
+// animation would pause while the overlay is open.
+const PAGE = ':is(html, dialog)';
+function injectCursorStyle(css: string): () => void {
+	const style = document.createElement('style');
+	style.textContent = css + ' @layer components { html * { cursor: inherit; } }';
+	document.head.appendChild(style);
+	return () => style.remove();
+}
+
 export function mountAniCursor(url: string, { centerHotspot = false } = {}): () => void {
-	let style: HTMLStyleElement | undefined;
+	let remove: (() => void) | undefined;
 	let left = false; // navigated away before the fetch finished
 	Promise.all([import('ani-cursor'), fetch(url).then((r) => r.arrayBuffer())])
 		.then(([{ convertAniBinaryToCSS }, buf]) => {
 			if (left) return;
-			style = document.createElement('style');
 			const raw = new Uint8Array(buf);
-			const bytes = centerHotspot ? centerHotspots(raw) : raw;
-			// Also on <dialog>: a modal dialog makes the page (incl. <html>)
-			// inert, and inert elements stop matching :hover, so the html
-			// animation pauses while the overlay is open.
-			style.textContent =
-				convertAniBinaryToCSS('html', bytes) +
-				convertAniBinaryToCSS('dialog', bytes) +
-				'@layer components { html * { cursor: inherit; } }';
-			document.head.appendChild(style);
+			// ani-cursor appends `:hover` to the selector, hence :is().
+			remove = injectCursorStyle(
+				convertAniBinaryToCSS(PAGE, centerHotspot ? centerHotspots(raw) : raw)
+			);
 		})
 		.catch(() => {}); // cosmetic — fall back to the normal cursor
 	return () => {
 		left = true;
-		style?.remove();
+		remove?.();
 	};
 }
 
@@ -75,7 +82,7 @@ export function mountCursor(
 	const frames = typeof image === 'string' ? [[image, 0] as const] : image;
 	const cursor = (url: string) => `cursor: url('${url}') ${hotspot[0]} ${hotspot[1]}, auto;`;
 	// Fetch every frame up front so the first loop doesn't flash the default cursor.
-	for (const [url] of frames) new Image().src = url;
+	for (const url of new Set(frames.map(([url]) => url))) new Image().src = url;
 	const total = frames.reduce((sum, [, ms]) => sum + ms, 0);
 	let at = 0;
 	const steps = frames.map(([url, ms]) => {
@@ -83,13 +90,10 @@ export function mountCursor(
 		at += ms;
 		return step;
 	});
-	const style = document.createElement('style');
-	style.textContent =
+	return injectCursorStyle(
 		frames.length === 1
-			? `html, dialog { ${cursor(frames[0][0])} }`
+			? `${PAGE} { ${cursor(frames[0][0])} }`
 			: `@keyframes page-cursor { ${steps.join(' ')} } ` +
-				`html, dialog { ${cursor(frames[0][0])} animation: page-cursor ${total}ms step-end infinite; }`;
-	style.textContent += ' @layer components { html * { cursor: inherit; } }';
-	document.head.appendChild(style);
-	return () => style.remove();
+					`${PAGE} { ${cursor(frames[0][0])} animation: page-cursor ${total}ms step-end infinite; }`
+	);
 }

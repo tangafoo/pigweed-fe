@@ -243,10 +243,10 @@
 
 <svelte:document onclick={collapseOnOutsideClick} />
 
-{#snippet tab(cls: string)}
+{#snippet tab(cls: string, text = 'text-xs')}
 	<span class="flex items-center justify-between bg-olf-darkgreen px-3 py-1 {cls}">
 		<span
-			class="bg-linear-to-r from-olf-eggshell via-olf-lightgreen to-olf-eggshell bg-size-[200%] bg-clip-text text-xs text-transparent uppercase motion-safe:animate-gradient-x motion-safe:[animation-duration:6s]"
+			class="bg-linear-to-r from-olf-eggshell via-olf-lightgreen to-olf-eggshell bg-size-[200%] bg-clip-text text-transparent uppercase motion-safe:animate-gradient-x motion-safe:[animation-duration:6s] {text}"
 		>
 			{duration}
 		</span>
@@ -389,7 +389,12 @@
 		onkeydown={(e) => expanded && e.key === 'Escape' && setExpanded(false)}
 		class="relative outline-none md:pl-[40%] {expanded ? '' : 'md:hidden'}"
 	>
-		{@render tab('w-1/2 rounded-t-lg md:rounded-tl-none')}
+		<!-- The duration grows to text-sm as the card opens (@starting-style: the
+		     card goes from display:none, which skips normal transitions). -->
+		{@render tab(
+			'w-1/2 rounded-t-lg md:rounded-tl-none',
+			'text-sm transition-[font-size] duration-200 ease-out md:starting:text-xs'
+		)}
 		{#if expanded}
 			<!-- Minimize (desktop): in the empty strip right of the duration tab, a
 			     little gap above the people box. Same as Escape / clicking empty space. -->
