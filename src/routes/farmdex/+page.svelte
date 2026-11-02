@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages.js';
+	import Tooltip from '$lib/components/ui/Tooltip.svelte';
 	import {
 		FARMDEX,
 		FARMDEX_CATEGORIES,
@@ -19,7 +20,7 @@
 	import { goto } from '$app/navigation';
 	import Seo from '$lib/components/seo/Seo.svelte';
 	import { canScrollY, createWheelLatch } from '$lib/utils/wheelLatch';
-	import { mountAniCursor } from '$lib/utils/aniCursor';
+	import { mountAniCursor } from '$lib/utils/pageCursor';
 	import JsonLd from '$lib/components/seo/JsonLd.svelte';
 	import { SITE_NAME, absoluteUrl } from '$lib/config/seo';
 
@@ -194,32 +195,33 @@
 		<!-- Categories show their indicator; the active one's name slides
 		     in from the right beside it. Clicking the active one again goes
 		     back to All. -->
-		<button
-			type="button"
-			onclick={() => (filter = filter === c ? 'ALL' : c)}
-			aria-pressed={filter === c}
-			aria-label={farmdexCategoryLabel(c)}
-			title={farmdexCategoryLabel(c)}
-			class="group/f {FILTER} flex items-center"
-		>
-			<CategoryIndicator
-				category={c}
-				class="opacity-60 transition-opacity group-hover/f:opacity-100 group-aria-pressed/f:opacity-100"
-			/>
-			{#if filter === c}
-				<span
-					transition:slide={{ axis: 'x', duration: 200, easing: cubicInOut }}
-					class="overflow-hidden whitespace-nowrap"
-				>
+		<Tooltip text={farmdexCategoryLabel(c)}>
+			<button
+				type="button"
+				onclick={() => (filter = filter === c ? 'ALL' : c)}
+				aria-pressed={filter === c}
+				aria-label={farmdexCategoryLabel(c)}
+				class="group/f {FILTER} flex items-center"
+			>
+				<CategoryIndicator
+					category={c}
+					class="opacity-60 transition-opacity group-hover/f:opacity-100 group-aria-pressed/f:opacity-100"
+				/>
+				{#if filter === c}
 					<span
-						in:fly={{ x: '100%', opacity: 1, duration: 200, easing: cubicInOut }}
-						class="block pl-1.5"
+						transition:slide={{ axis: 'x', duration: 200, easing: cubicInOut }}
+						class="overflow-hidden whitespace-nowrap"
 					>
-						{farmdexCategoryLabel(c)}
+						<span
+							in:fly={{ x: '100%', opacity: 1, duration: 200, easing: cubicInOut }}
+							class="block pl-1.5"
+						>
+							{farmdexCategoryLabel(c)}
+						</span>
 					</span>
-				</span>
-			{/if}
-		</button>
+				{/if}
+			</button>
+		</Tooltip>
 	{/each}
 {/snippet}
 
@@ -394,13 +396,14 @@
 								class="mt-2 flex items-center gap-2 font-oswald text-base text-olf-darkgreen capitalize italic"
 							>
 								{entry.scientificName}
-								<span title={farmdexCategoryLabel(entry.category)} class="flex">
+								<Tooltip text={farmdexCategoryLabel(entry.category)}>
 									<CategoryIndicator
 										category={entry.category}
 										class="opacity-50 transition-opacity duration-200 group-hover:opacity-100"
 										shapeClass="translate-y-[0.12em]"
 									/>
-								</span>
+									<span class="sr-only">{farmdexCategoryLabel(entry.category)}</span>
+								</Tooltip>
 							</span>
 							<span class="font-oswald text-sm text-olf-darkgreen/60">{entry.commonName}</span>
 						</button>

@@ -2,13 +2,20 @@
 	import { m } from '$lib/paraglide/messages.js';
 	import Seo from '$lib/components/seo/Seo.svelte';
 	import ProjectCard from '$lib/components/projects/ProjectCard.svelte';
+	import Tooltip from '$lib/components/ui/Tooltip.svelte';
 	import { PROJECTS, projectCount, type Project } from '$lib/data/projects';
 	import { PEOPLE, type Person } from '$lib/data/people';
 	import { onMount, tick, untrack } from 'svelte';
 	import { page } from '$app/state';
 	import { replaceState } from '$app/navigation';
 	import { trackPeopleBoard } from '$lib/utils/peopleBoard';
-	import { mountAniCursor } from '$lib/utils/aniCursor';
+	import { mountCursor } from '$lib/utils/pageCursor';
+	import {
+		BUTTERFLIES,
+		BUTTERFLY_HOTSPOT,
+		flutterFrames,
+		type Butterfly
+	} from '$lib/data/butterflies';
 	import { UserRound } from '@lucide/svelte';
 	import { fly } from 'svelte/transition';
 	import { asset } from '$lib/config/assets';
@@ -54,9 +61,34 @@
 		return () => clearTimeout(t);
 	});
 
-	// Animated Mike Wazowski cursor while on Projects. Its own hotspot (top-left
-	// arrow tip) is the click point, so it's kept as is.
-	onMount(() => mountAniCursor('/cursors/mike-wazowski.ani'));
+	// Butterfly cursor while on Projects (lib/data/butterflies), picked with the
+	// round buttons at the header's left: peacock by default, the choice kept
+	// in localStorage. static/cursors/ also keeps cursors for other pages.
+	const CURSOR_KEY = 'olf-projects-cursor';
+	let butterfly = $state<Butterfly>('peacock');
+	// The cursor waits for the saved choice, so a returning visitor doesn't
+	// get a flash of the default first.
+	let cursorReady = $state(false);
+	onMount(() => {
+		try {
+			const saved = BUTTERFLIES.find((x) => x.id === localStorage.getItem(CURSOR_KEY));
+			if (saved) butterfly = saved.id;
+		} catch {
+			// Storage blocked: stay on the default.
+		}
+		cursorReady = true;
+	});
+	function pickButterfly(b: Butterfly) {
+		butterfly = b;
+		try {
+			localStorage.setItem(CURSOR_KEY, b);
+		} catch {
+			// Storage blocked: the pick still holds for this visit.
+		}
+	}
+	$effect(() => {
+		if (cursorReady) return mountCursor(flutterFrames(butterfly), { hotspot: BUTTERFLY_HOTSPOT });
+	});
 
 	// Board background: woodgrain under a 60% beige wash (= woodgrain at 40%
 	// over beige). Fixed size, pinned to the top (not cover): the grain
@@ -169,15 +201,19 @@
 		     It's NOT in the cards' view transition: the page behind them is shown
 		     live, so these plain CSS transitions play while the cards move. -->
 		<header
-			class="@container-size relative -mx-4 -mt-10 mb-8 flex items-center justify-center overflow-hidden transition-[height] duration-350 ease-in {shownExpanded.length
+			class="@container-size relative z-10 -mx-4 -mt-10 mb-8 flex items-center justify-center transition-[height] duration-350 ease-in {shownExpanded.length
 				? 'h-12.5'
 				: 'h-20'}"
 		>
-			<img
-				src={asset('woodgrain-02.webp')}
-				alt=""
-				class="absolute top-1/2 left-1/2 h-[100cqw] w-[100cqh] max-w-none -translate-1/2 rotate-90 object-fill"
-			/>
+			<!-- The clip lives on this layer, not the header, so the cursor picker's
+			     tooltips can hang below the header. -->
+			<div class="absolute inset-0 overflow-hidden">
+				<img
+					src={asset('woodgrain-02.webp')}
+					alt=""
+					class="absolute top-1/2 left-1/2 h-[100cqw] w-[100cqh] max-w-none -translate-1/2 rotate-90 object-fill"
+				/>
+			</div>
 			<h1
 				class="relative w-fit font-frijole text-3xl font-bold tracking-widest text-olf-eggshell shadow-lg transition-[scale] duration-350 ease-in {shownExpanded.length
 					? 'scale-50'
@@ -185,6 +221,28 @@
 			>
 				{m.nav_projects()}
 			</h1>
+			<!-- Cursor picker (desktop: phones have no cursor, and it would cover the
+			     title): the butterflies, turned upright (head up), named on hover. -->
+			<div class="absolute left-6 hidden gap-4 md:flex">
+				{#each BUTTERFLIES as b (b.id)}
+					<Tooltip text={b.name()} mono>
+						<button
+							type="button"
+							onclick={() => pickButterfly(b.id)}
+							aria-pressed={butterfly === b.id}
+							aria-label={b.name()}
+							class="flex size-9 cursor-pointer items-center justify-center rounded-full p-1 ring-olf-eggshell transition-[background-color,box-shadow] duration-200 outline-none hover:bg-olf-eggshell/20 focus-visible:ring-2 aria-pressed:bg-olf-eggshell/25 aria-pressed:ring-2"
+						>
+							<img
+								src="/cursors/{b.id}.ico"
+								alt=""
+								style:rotate="{-b.head}deg"
+								class="size-full drop-shadow-md"
+							/>
+						</button>
+					</Tooltip>
+				{/each}
+			</div>
 			{#if shownExpanded.length}
 				<button
 					type="button"
@@ -198,9 +256,10 @@
 		</header>
 		<div class="flex flex-1">
 			<!-- Left (desktop): people filter, like the Farmdex index column, as a
-			     square-cornered beige board. Sticky: it floats a little below the
-			     navbar while the cards scroll (scrolls itself if ever taller than the
-			     screen). Click a person to show only their projects; again to clear
+			     square-cornered beige board, full height of the row (it grows and
+			     shrinks with the cards, see utils/peopleBoard), capped at the screen
+			     height so it can stick a little below the navbar while the cards
+			     scroll. Click a person to show only their projects; again to clear
 			     (nothing selected = all). -->
 			<aside
 				style:view-transition-name="projects-people"
@@ -208,7 +267,7 @@
 				style:background-image="linear-gradient({BEIGE_WASH}, {BEIGE_WASH}), url({asset(
 					'woodgrain-03.webp'
 				)})"
-				class="hidden max-h-[calc(100dvh-var(--navbar-h,0px)-3rem)] w-44 shrink-0 self-start overflow-y-auto border border-olf-darkgreen/20 bg-olf-beige bg-[length:auto_800px] bg-top bg-repeat-y p-4 shadow-lg md:sticky md:top-[calc(var(--navbar-h,0px)+1.5rem)] md:block md:pb-20"
+				class="hidden max-h-[calc(100dvh-var(--navbar-h,0px)-3rem)] w-44 shrink-0 overflow-y-auto border border-olf-darkgreen/20 bg-olf-beige bg-[length:auto_800px] bg-top bg-repeat-y p-4 shadow-lg md:sticky md:top-[calc(var(--navbar-h,0px)+1.5rem)] md:block"
 			>
 				<h2
 					class="mb-2 border-b border-olf-darkgreen/20 pb-2 font-oswald text-sm tracking-wide text-olf-darkgreen/60 uppercase"

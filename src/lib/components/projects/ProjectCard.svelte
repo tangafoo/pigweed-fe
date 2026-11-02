@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages.js';
 	import RichText from '$lib/components/ui/RichText.svelte';
+	import Tooltip from '$lib/components/ui/Tooltip.svelte';
 	import { tick } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import {
@@ -243,10 +244,10 @@
 
 <svelte:document onclick={collapseOnOutsideClick} />
 
-{#snippet tab(cls: string)}
+{#snippet tab(cls: string, text = 'text-xs')}
 	<span class="flex items-center justify-between bg-olf-darkgreen px-3 py-1 {cls}">
 		<span
-			class="bg-linear-to-r from-olf-eggshell via-olf-lightgreen to-olf-eggshell bg-size-[200%] bg-clip-text text-transparent uppercase motion-safe:animate-gradient-x motion-safe:[animation-duration:6s]"
+			class="bg-linear-to-r from-olf-eggshell via-olf-lightgreen to-olf-eggshell bg-size-[200%] bg-clip-text text-transparent uppercase motion-safe:animate-gradient-x motion-safe:[animation-duration:6s] {text}"
 		>
 			{duration}
 		</span>
@@ -389,7 +390,12 @@
 		onkeydown={(e) => expanded && e.key === 'Escape' && setExpanded(false)}
 		class="relative outline-none md:pl-[40%] {expanded ? '' : 'md:hidden'}"
 	>
-		{@render tab('w-1/2 rounded-t-lg md:rounded-tl-none')}
+		<!-- The duration grows to text-sm as the card opens (@starting-style: the
+		     card goes from display:none, which skips normal transitions). -->
+		{@render tab(
+			'w-1/2 rounded-t-lg md:rounded-tl-none',
+			'text-sm transition-[font-size] duration-200 ease-out md:starting:text-xs'
+		)}
 		{#if expanded}
 			<!-- Minimize (desktop): in the empty strip right of the duration tab, a
 			     little gap above the people box. Same as Escape / clicking empty space. -->
@@ -477,7 +483,7 @@
 									: undefined}
 								class="size-full origin-top-left object-contain ease-out motion-safe:transition-transform {panning
 									? 'duration-75'
-									: 'duration-200'} {zoom?.i === i ? 'cursor-zoom-out' : 'cursor-zoom-in'}"
+									: 'duration-200'}"
 							/>
 						</div>
 					{/each}
@@ -544,7 +550,7 @@
 						{#each project.people as person (person.id)}
 							<!-- Name shows on hover (keyboard focus too). Click filters the page by them;
 							     again clears it (desktop only, see onpersonclick). -->
-							<li class="group relative">
+							<li class="relative">
 								<!-- Filtered by this person: a bucketblue glow behind the avatar
 								     (like the succinct card's loot glow) that drifts slowly. -->
 								{#if person === activePerson}
@@ -554,24 +560,20 @@
 										class="person-glow pointer-events-none absolute top-1/2 left-1/2 size-[85%] -translate-1/2 rounded-full bg-olf-bucketblue/70 blur-lg"
 									></span>
 								{/if}
-								<button
-									type="button"
-									onclick={() => onpersonclick?.(person)}
-									aria-label={person.name}
-									class="relative flex size-9.25 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-olf-lightcoral text-olf-darkbrown transition-transform duration-200 ease-out outline-none hover:scale-120 focus-visible:ring-2 focus-visible:ring-olf-darkgreen"
-								>
-									{#if person.imageUrl}
-										<img src={person.imageUrl} alt="" class="size-full object-cover" />
-									{:else}
-										<UserRound size={21} />
-									{/if}
-								</button>
-								<span
-									role="tooltip"
-									class="pointer-events-none absolute top-full left-1/2 z-20 mt-1.5 hidden -translate-x-1/2 rounded-lg bg-olf-darkgreen px-2 py-0.5 text-sm whitespace-nowrap text-olf-eggshell shadow-md group-hover:block group-has-focus-visible:block"
-								>
-									{person.name}
-								</span>
+								<Tooltip text={person.name}>
+									<button
+										type="button"
+										onclick={() => onpersonclick?.(person)}
+										aria-label={person.name}
+										class="relative flex size-9.25 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-olf-lightcoral text-olf-darkbrown transition-transform duration-200 ease-out outline-none hover:scale-120 focus-visible:ring-2 focus-visible:ring-olf-darkgreen"
+									>
+										{#if person.imageUrl}
+											<img src={person.imageUrl} alt="" class="size-full object-cover" />
+										{:else}
+											<UserRound size={21} />
+										{/if}
+									</button>
+								</Tooltip>
 							</li>
 						{/each}
 					</ul>
