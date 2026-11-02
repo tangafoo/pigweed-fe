@@ -8,7 +8,7 @@
 	import { page } from '$app/state';
 	import { replaceState } from '$app/navigation';
 	import { trackPeopleBoard } from '$lib/utils/peopleBoard';
-	import { mountAniCursor } from '$lib/utils/aniCursor';
+	import { mountCursor } from '$lib/utils/aniCursor';
 	import { UserRound } from '@lucide/svelte';
 	import { fly } from 'svelte/transition';
 	import { asset } from '$lib/config/assets';
@@ -54,9 +54,59 @@
 		return () => clearTimeout(t);
 	});
 
-	// Animated Mike Wazowski cursor while on Projects. Its own hotspot (top-left
-	// arrow tip) is the click point, so it's kept as is.
-	onMount(() => mountAniCursor('/cursors/mike-wazowski.ani'));
+	// A butterfly cursor while on Projects, picked with the round buttons at
+	// the header's left (peacock by default; the choice is kept in
+	// localStorage). It flaps now and then: a rest, then the wings fold in and
+	// back out. Frames (static/cursors/<id>-flutter/) are 40px: its image from
+	// <id>.ico at 36px with a baked-in drop shadow and the wings squashed
+	// toward the body. Click point = the butterfly's centre. static/cursors/
+	// also keeps still .cur versions of the first two, ladybug.ani and
+	// mike-wazowski.ani for other pages.
+	// `head`: which way its head points in the image, degrees clockwise from
+	// straight up (the picker turns it back upright).
+	const BUTTERFLIES = [
+		{ id: 'peacock', head: -45, name: () => m.butterfly_peacock() },
+		{ id: 'mountain-apollo', head: -45, name: () => m.butterfly_mountain_apollo() },
+		{ id: 'mourning-cloak', head: 40, name: () => m.butterfly_mourning_cloak() },
+		{ id: 'garden-tiger-moth', head: 28, name: () => m.butterfly_garden_tiger_moth() }
+	] as const;
+	type Butterfly = (typeof BUTTERFLIES)[number]['id'];
+	const CURSOR_KEY = 'olf-projects-cursor';
+	let butterfly = $state<Butterfly>('peacock');
+	onMount(() => {
+		try {
+			const saved = BUTTERFLIES.find((x) => x.id === localStorage.getItem(CURSOR_KEY));
+			if (saved) butterfly = saved.id;
+		} catch {
+			// Storage blocked: stay on the default.
+		}
+	});
+	function pickButterfly(b: Butterfly) {
+		butterfly = b;
+		try {
+			localStorage.setItem(CURSOR_KEY, b);
+		} catch {
+			// Storage blocked: the pick still holds for this visit.
+		}
+	}
+	// Frame (0 open, 2 folded) and how long it shows: a rest, then two flaps.
+	const FLUTTER: [frame: number, ms: number][] = [
+		[0, 972],
+		[1, 90],
+		[2, 90],
+		[1, 90],
+		[0, 90],
+		[1, 90],
+		[2, 90],
+		[1, 90]
+	];
+	$effect(() => {
+		const dir = `/cursors/${butterfly}-flutter`;
+		return mountCursor(
+			FLUTTER.map(([i, ms]) => [`${dir}/${i}.png`, ms]),
+			{ hotspot: [19, 19] }
+		);
+	});
 
 	// Board background: woodgrain under a 60% beige wash (= woodgrain at 40%
 	// over beige). Fixed size, pinned to the top (not cover): the grain
@@ -169,15 +219,19 @@
 		     It's NOT in the cards' view transition: the page behind them is shown
 		     live, so these plain CSS transitions play while the cards move. -->
 		<header
-			class="@container-size relative -mx-4 -mt-10 mb-8 flex items-center justify-center overflow-hidden transition-[height] duration-350 ease-in {shownExpanded.length
+			class="@container-size relative z-10 -mx-4 -mt-10 mb-8 flex items-center justify-center transition-[height] duration-350 ease-in {shownExpanded.length
 				? 'h-12.5'
 				: 'h-20'}"
 		>
-			<img
-				src={asset('woodgrain-02.webp')}
-				alt=""
-				class="absolute top-1/2 left-1/2 h-[100cqw] w-[100cqh] max-w-none -translate-1/2 rotate-90 object-fill"
-			/>
+			<!-- The clip lives on this layer, not the header, so the cursor picker's
+			     tooltips can hang below the header. -->
+			<div class="absolute inset-0 overflow-hidden">
+				<img
+					src={asset('woodgrain-02.webp')}
+					alt=""
+					class="absolute top-1/2 left-1/2 h-[100cqw] w-[100cqh] max-w-none -translate-1/2 rotate-90 object-fill"
+				/>
+			</div>
 			<h1
 				class="relative w-fit font-frijole text-3xl font-bold tracking-widest text-olf-eggshell shadow-lg transition-[scale] duration-350 ease-in {shownExpanded.length
 					? 'scale-50'
@@ -185,6 +239,34 @@
 			>
 				{m.nav_projects()}
 			</h1>
+			<!-- Cursor picker: the butterflies, turned upright (head up). Name on
+			     hover / keyboard focus. -->
+			<div class="absolute left-6 flex gap-4">
+				{#each BUTTERFLIES as b (b.id)}
+					<div class="group relative">
+						<button
+							type="button"
+							onclick={() => pickButterfly(b.id)}
+							aria-pressed={butterfly === b.id}
+							aria-label={b.name()}
+							class="flex size-9 cursor-pointer items-center justify-center rounded-full p-1 ring-olf-eggshell transition-[background-color,box-shadow] duration-200 outline-none hover:bg-olf-eggshell/20 focus-visible:ring-2 aria-pressed:bg-olf-eggshell/25 aria-pressed:ring-2"
+						>
+							<img
+								src="/cursors/{b.id}.ico"
+								alt=""
+								style:rotate="{-b.head}deg"
+								class="size-full drop-shadow-md"
+							/>
+						</button>
+						<span
+							role="tooltip"
+							class="pointer-events-none absolute top-full left-1/2 z-20 mt-1.5 -translate-x-1/2 rounded-lg bg-olf-darkgreen px-2 py-0.5 font-mono text-xs whitespace-nowrap text-olf-eggshell opacity-0 shadow-md transition-opacity duration-200 group-hover:opacity-100 group-has-focus-visible:opacity-100"
+						>
+							{b.name()}
+						</span>
+					</div>
+				{/each}
+			</div>
 			{#if shownExpanded.length}
 				<button
 					type="button"
@@ -198,9 +280,10 @@
 		</header>
 		<div class="flex flex-1">
 			<!-- Left (desktop): people filter, like the Farmdex index column, as a
-			     square-cornered beige board. Sticky: it floats a little below the
-			     navbar while the cards scroll (scrolls itself if ever taller than the
-			     screen). Click a person to show only their projects; again to clear
+			     square-cornered beige board, full height of the row (it grows and
+			     shrinks with the cards, see utils/peopleBoard), capped at the screen
+			     height so it can stick a little below the navbar while the cards
+			     scroll. Click a person to show only their projects; again to clear
 			     (nothing selected = all). -->
 			<aside
 				style:view-transition-name="projects-people"
@@ -208,7 +291,7 @@
 				style:background-image="linear-gradient({BEIGE_WASH}, {BEIGE_WASH}), url({asset(
 					'woodgrain-03.webp'
 				)})"
-				class="hidden max-h-[calc(100dvh-var(--navbar-h,0px)-3rem)] w-44 shrink-0 self-start overflow-y-auto border border-olf-darkgreen/20 bg-olf-beige bg-[length:auto_800px] bg-top bg-repeat-y p-4 shadow-lg md:sticky md:top-[calc(var(--navbar-h,0px)+1.5rem)] md:block md:pb-20"
+				class="hidden max-h-[calc(100dvh-var(--navbar-h,0px)-3rem)] w-44 shrink-0 overflow-y-auto border border-olf-darkgreen/20 bg-olf-beige bg-[length:auto_800px] bg-top bg-repeat-y p-4 shadow-lg md:sticky md:top-[calc(var(--navbar-h,0px)+1.5rem)] md:block"
 			>
 				<h2
 					class="mb-2 border-b border-olf-darkgreen/20 pb-2 font-oswald text-sm tracking-wide text-olf-darkgreen/60 uppercase"

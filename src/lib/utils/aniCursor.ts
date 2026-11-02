@@ -1,4 +1,5 @@
-// Animated .ani cursor for a single page (Farmdex starfish, Projects Mike).
+// Animated .ani cursor for a single page (Farmdex starfish, Volunteer horse; static ones via
+// mountCursor below, e.g. the Projects butterflies).
 // Browsers can't play .ani natively, so ani-cursor turns its frames into a
 // CSS @keyframes that steps `cursor: url(...)` (still the native cursor, so
 // no lag). It runs once on <html> and everything inherits it; running it
@@ -57,4 +58,38 @@ export function mountAniCursor(url: string, { centerHotspot = false } = {}): () 
 		left = true;
 		style?.remove();
 	};
+}
+
+/**
+ * Cursor from plain images (.cur, single-size .ico, or PNG frames) for a
+ * single page, same inheritance as above. Browsers show these natively.
+ * Keep them small: Chrome ignores cursors over 128px, and from a multi-size
+ * .ico it may pick the 256px image. A url = a still cursor; a list of
+ * `[url, ms]` frames = an animation looping through them.
+ * `hotspot` is the click point (a .cur's own one wins for a still cursor).
+ */
+export function mountCursor(
+	image: string | [url: string, ms: number][],
+	{ hotspot = [16, 16] }: { hotspot?: [number, number] } = {}
+): () => void {
+	const frames = typeof image === 'string' ? [[image, 0] as const] : image;
+	const cursor = (url: string) => `cursor: url('${url}') ${hotspot[0]} ${hotspot[1]}, auto;`;
+	// Fetch every frame up front so the first loop doesn't flash the default cursor.
+	for (const [url] of frames) new Image().src = url;
+	const total = frames.reduce((sum, [, ms]) => sum + ms, 0);
+	let at = 0;
+	const steps = frames.map(([url, ms]) => {
+		const step = `${(at / total) * 100}% { ${cursor(url)} }`;
+		at += ms;
+		return step;
+	});
+	const style = document.createElement('style');
+	style.textContent =
+		frames.length === 1
+			? `html, dialog { ${cursor(frames[0][0])} }`
+			: `@keyframes page-cursor { ${steps.join(' ')} } ` +
+				`html, dialog { ${cursor(frames[0][0])} animation: page-cursor ${total}ms step-end infinite; }`;
+	style.textContent += ' @layer components { html * { cursor: inherit; } }';
+	document.head.appendChild(style);
+	return () => style.remove();
 }

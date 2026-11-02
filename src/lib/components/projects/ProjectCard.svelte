@@ -246,7 +246,7 @@
 {#snippet tab(cls: string)}
 	<span class="flex items-center justify-between bg-olf-darkgreen px-3 py-1 {cls}">
 		<span
-			class="bg-linear-to-r from-olf-eggshell via-olf-lightgreen to-olf-eggshell bg-size-[200%] bg-clip-text text-transparent uppercase motion-safe:animate-gradient-x motion-safe:[animation-duration:6s]"
+			class="bg-linear-to-r from-olf-eggshell via-olf-lightgreen to-olf-eggshell bg-size-[200%] bg-clip-text text-xs text-transparent uppercase motion-safe:animate-gradient-x motion-safe:[animation-duration:6s]"
 		>
 			{duration}
 		</span>
@@ -477,7 +477,7 @@
 									: undefined}
 								class="size-full origin-top-left object-contain ease-out motion-safe:transition-transform {panning
 									? 'duration-75'
-									: 'duration-200'} {zoom?.i === i ? 'cursor-zoom-out' : 'cursor-zoom-in'}"
+									: 'duration-200'}"
 							/>
 						</div>
 					{/each}

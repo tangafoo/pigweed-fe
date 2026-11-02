@@ -3,6 +3,7 @@
 	import Seo from '$lib/components/seo/Seo.svelte';
 	import { asset } from '$lib/config/assets';
 	import { onMount } from 'svelte';
+	import { mountAniCursor } from '$lib/utils/aniCursor';
 	import {
 		ArrowRight,
 		ChevronDown,
@@ -107,6 +108,10 @@
 	onMount(() => {
 		windy = !matchMedia('(prefers-reduced-motion: reduce)').matches;
 	});
+
+	// Animated horse cursor while on Volunteer. Its own click point is already
+	// its centre, so it's kept as is.
+	onMount(() => mountAniCursor('/cursors/horse.ani'));
 </script>
 
 <svelte:document onclick={unpickOnOutsideClick} />
