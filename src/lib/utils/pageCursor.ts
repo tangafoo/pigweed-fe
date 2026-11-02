@@ -73,14 +73,19 @@ export function mountAniCursor(url: string, { centerHotspot = false } = {}): () 
  * Keep them small: Chrome ignores cursors over 128px, and from a multi-size
  * .ico it may pick the 256px image. A url = a still cursor; a list of
  * `[url, ms]` frames = an animation looping through them.
- * `hotspot` is the click point (a .cur's own one wins for a still cursor).
+ * `hotspot` is the click point; leave it out to use the file's own (a .cur
+ * has one; anything else then clicks at its top-left).
  */
+let cursorId = 0;
 export function mountCursor(
 	image: string | [url: string, ms: number][],
-	{ hotspot = [16, 16] }: { hotspot?: [number, number] } = {}
+	{ hotspot }: { hotspot?: [number, number] } = {}
 ): () => void {
 	const frames = typeof image === 'string' ? [[image, 0] as const] : image;
-	const cursor = (url: string) => `cursor: url('${url}') ${hotspot[0]} ${hotspot[1]}, auto;`;
+	const spot = hotspot ? ` ${hotspot[0]} ${hotspot[1]}` : '';
+	const cursor = (url: string) => `cursor: url('${url}')${spot}, auto;`;
+	// Unique per mount, so an overlapping mount/cleanup can't clobber it.
+	const name = `page-cursor-${++cursorId}`;
 	// Fetch every frame up front so the first loop doesn't flash the default cursor.
 	for (const url of new Set(frames.map(([url]) => url))) new Image().src = url;
 	const total = frames.reduce((sum, [, ms]) => sum + ms, 0);
@@ -93,7 +98,7 @@ export function mountCursor(
 	return injectCursorStyle(
 		frames.length === 1
 			? `${PAGE} { ${cursor(frames[0][0])} }`
-			: `@keyframes page-cursor { ${steps.join(' ')} } ` +
-					`${PAGE} { ${cursor(frames[0][0])} animation: page-cursor ${total}ms step-end infinite; }`
+			: `@keyframes ${name} { ${steps.join(' ')} } ` +
+					`${PAGE} { ${cursor(frames[0][0])} animation: ${name} ${total}ms step-end infinite; }`
 	);
 }

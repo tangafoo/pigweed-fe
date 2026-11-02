@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages.js';
 	import Seo from '$lib/components/seo/Seo.svelte';
+	import Tooltip from '$lib/components/ui/Tooltip.svelte';
 	import { asset } from '$lib/config/assets';
 	import { onMount } from 'svelte';
 	import { mountAniCursor } from '$lib/utils/pageCursor';
@@ -269,15 +270,23 @@
 	<!-- Keyed so a change (e.g. to Haze once the reading arrives) fades over. -->
 	{#key season}
 		{@const Icon = SEASON_ICON[season]}
-		<span
-			in:fade={{ duration: 200 }}
-			title={api === null ? undefined : `API ${api} (Nilai)`}
-			class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-oswald text-sm font-bold tracking-wide text-olf-eggshell uppercase shadow-md {SEASON_BADGE[
-				season
-			]}"
-		>
-			<Icon size={16} strokeWidth={2.5} aria-hidden="true" />
-			{seasonLabel(season)}
+		{#snippet badge()}
+			<span
+				class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-oswald text-sm font-bold tracking-wide text-olf-eggshell uppercase shadow-md {SEASON_BADGE[
+					season
+				]}"
+			>
+				<Icon size={16} strokeWidth={2.5} aria-hidden="true" />
+				{seasonLabel(season)}
+			</span>
+		{/snippet}
+		<span in:fade={{ duration: 200 }} class="inline-flex">
+			<!-- The live air-quality reading behind a Haze badge, on hover. -->
+			{#if api === null}
+				{@render badge()}
+			{:else}
+				<Tooltip text="API {api} (Nilai)" mono>{@render badge()}</Tooltip>
+			{/if}
 		</span>
 	{/key}
 {/snippet}

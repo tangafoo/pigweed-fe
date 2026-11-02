@@ -2,6 +2,7 @@
 	import { m } from '$lib/paraglide/messages.js';
 	import Seo from '$lib/components/seo/Seo.svelte';
 	import ProjectCard from '$lib/components/projects/ProjectCard.svelte';
+	import Tooltip from '$lib/components/ui/Tooltip.svelte';
 	import { PROJECTS, projectCount, type Project } from '$lib/data/projects';
 	import { PEOPLE, type Person } from '$lib/data/people';
 	import { onMount, tick, untrack } from 'svelte';
@@ -65,6 +66,9 @@
 	// in localStorage. static/cursors/ also keeps cursors for other pages.
 	const CURSOR_KEY = 'olf-projects-cursor';
 	let butterfly = $state<Butterfly>('peacock');
+	// The cursor waits for the saved choice, so a returning visitor doesn't
+	// get a flash of the default first.
+	let cursorReady = $state(false);
 	onMount(() => {
 		try {
 			const saved = BUTTERFLIES.find((x) => x.id === localStorage.getItem(CURSOR_KEY));
@@ -72,6 +76,7 @@
 		} catch {
 			// Storage blocked: stay on the default.
 		}
+		cursorReady = true;
 	});
 	function pickButterfly(b: Butterfly) {
 		butterfly = b;
@@ -81,7 +86,9 @@
 			// Storage blocked: the pick still holds for this visit.
 		}
 	}
-	$effect(() => mountCursor(flutterFrames(butterfly), { hotspot: BUTTERFLY_HOTSPOT }));
+	$effect(() => {
+		if (cursorReady) return mountCursor(flutterFrames(butterfly), { hotspot: BUTTERFLY_HOTSPOT });
+	});
 
 	// Board background: woodgrain under a 60% beige wash (= woodgrain at 40%
 	// over beige). Fixed size, pinned to the top (not cover): the grain
@@ -214,11 +221,11 @@
 			>
 				{m.nav_projects()}
 			</h1>
-			<!-- Cursor picker: the butterflies, turned upright (head up). Name on
-			     hover / keyboard focus. -->
-			<div class="absolute left-6 flex gap-4">
+			<!-- Cursor picker (desktop: phones have no cursor, and it would cover the
+			     title): the butterflies, turned upright (head up), named on hover. -->
+			<div class="absolute left-6 hidden gap-4 md:flex">
 				{#each BUTTERFLIES as b (b.id)}
-					<div class="group relative">
+					<Tooltip text={b.name()} mono>
 						<button
 							type="button"
 							onclick={() => pickButterfly(b.id)}
@@ -233,13 +240,7 @@
 								class="size-full drop-shadow-md"
 							/>
 						</button>
-						<span
-							role="tooltip"
-							class="pointer-events-none absolute top-full left-1/2 z-20 mt-1.5 -translate-x-1/2 rounded-lg bg-olf-darkgreen px-2 py-0.5 font-mono text-xs whitespace-nowrap text-olf-eggshell opacity-0 shadow-md transition-opacity duration-200 group-hover:opacity-100 group-has-focus-visible:opacity-100"
-						>
-							{b.name()}
-						</span>
-					</div>
+					</Tooltip>
 				{/each}
 			</div>
 			{#if shownExpanded.length}

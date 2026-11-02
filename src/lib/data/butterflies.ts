@@ -4,7 +4,8 @@ import { m } from '$lib/paraglide/messages.js';
 // static/cursors/<id>.ico (the art; the picker shows it) and
 // static/cursors/<id>-flutter/0-2.png: 34px frames, the art at 30px with a
 // baked-in drop shadow and the wings squashed toward the body (0 open,
-// 2 folded). Click point = the butterfly's centre.
+// 2 folded). Click point = the butterfly's centre (the art is centred at 16,16, a
+// pixel up-left so its down-right shadow fits).
 // `head`: which way its head points in the art, degrees clockwise from
 // straight up (the picker turns it back upright).
 export const BUTTERFLIES = [
